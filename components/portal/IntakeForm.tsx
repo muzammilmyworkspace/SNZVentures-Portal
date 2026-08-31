@@ -306,7 +306,7 @@ const isBlank = (f: IntakeField, v: unknown) => {
     );
   }
   if (f.type === "documents") return false; // decided across steps, not here
-  if (f.type === "checklist") return false; // the applicant's own tracking
+
   if (Array.isArray(v)) return v.length === 0;
   return v === undefined || v === null || String(v).trim() === "";
 };
@@ -363,11 +363,17 @@ export function IntakeForm({
   definition,
   initialAnswers,
   initialStep,
+  checklistTicks = {},
   status,
 }: {
   definition: IntakeDefinition;
   initialAnswers: Answers;
   initialStep: number;
+  /**
+   * The document checklist's ticks, which live in their own table rather than
+   * in the form — they have to keep working after this locks. See migration 011.
+   */
+  checklistTicks?: Record<string, boolean>;
   status: Status;
 }) {
   const router = useRouter();
@@ -705,8 +711,7 @@ export function IntakeForm({
                     <ChecklistBoard
                       applyLevel={String(answers.applyLevel ?? "")}
                       intake={String(answers.intake ?? "")}
-                      value={(answers[f.key] as Record<string, boolean>) ?? {}}
-                      onChange={(next) => set(f.key, next)}
+                      initialTicks={checklistTicks}
                     />
                   ) : f.type === "consent" ? (
                     <UndertakingDoc />

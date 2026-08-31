@@ -6,6 +6,7 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { IntakeForm } from "@/components/portal/IntakeForm";
 import { getIntake } from "@/lib/db/repos/operations";
+import { ticksFor } from "@/lib/db/repos/checklist";
 import { PATHWAY_FOR_ROLE, intakeFor } from "@/lib/portal/intake";
 
 /** Private. Never indexed — see app/portal/layout.tsx. */
@@ -66,6 +67,11 @@ export default async function ApplicationPage() {
 
   const definition = intakeFor(pathway);
   const form = await getIntake(session.userId, pathway);
+  /*
+    The checklist ticks come from their own table, not from the form. They have
+    to keep working after this locks — see migration 011.
+  */
+  const checklistTicks = session.role === "student" ? await ticksFor(session.userId) : {};
 
   return (
     <>
@@ -79,6 +85,7 @@ export default async function ApplicationPage() {
           definition={definition}
           initialAnswers={form?.data ?? {}}
           initialStep={form?.step ?? 0}
+          checklistTicks={checklistTicks}
           status={form?.status ?? "draft"}
         />
       </Panel>

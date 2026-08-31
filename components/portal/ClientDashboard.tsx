@@ -15,6 +15,7 @@ import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/inta
 import { studentStage } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
+import { ticksFor } from "@/lib/db/repos/checklist";
 import {
   ADMISSION_CHECKLIST,
   VISA_CHECKLIST,
@@ -99,7 +100,13 @@ export async function ClientDashboard({ session }: { session: Session }) {
   */
   const answers = (intake?.data ?? {}) as Record<string, unknown>;
   const applyLevel = String(answers.applyLevel ?? "");
-  const ticked = (answers.checklist ?? {}) as Record<string, unknown>;
+  /*
+    From the checklist's own table, not the application. It was read out of
+    intake.data, which locks on submission — so the panel froze at whatever had
+    been ticked before the file went in, while the attestation and visa items
+    were still being worked through. See migration 011.
+  */
+  const ticked = role === "student" ? await ticksFor(session.userId) : {};
   const admissionDocs = role === "student" ? checklistProgress(ADMISSION_CHECKLIST, applyLevel, ticked) : null;
   const visaDocs = role === "student" ? checklistProgress(VISA_CHECKLIST, applyLevel, ticked) : null;
   const february = role === "student" ? februaryRequirement(String(answers.intake ?? ""), applyLevel) : null;
@@ -362,7 +369,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
         <Panel
           className="mt-5"
           title="Document checklist"
-          action={<CardLink href="/portal/application">Open the checklist</CardLink>}
+          action={<CardLink href="/portal/checklist">Open the checklist</CardLink>}
         >
           {february && (
             <p className="mb-4 rounded-[var(--radius-sm)] border border-moss-400/50 bg-moss-400/[0.08] px-4 py-3 text-[0.86rem] leading-relaxed text-fg">

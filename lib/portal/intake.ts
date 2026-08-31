@@ -560,26 +560,6 @@ export function validateStep(
       continue;
     }
 
-    /* ------------------------------------------------ checklist ticks */
-    if (field.type === "checklist") {
-      const map =
-        raw && typeof raw === "object" && !Array.isArray(raw)
-          ? (raw as Record<string, unknown>)
-          : {};
-      const cleanMap: Record<string, boolean> = {};
-      for (const [id, on] of Object.entries(map).slice(0, 200)) {
-        if (on === true) cleanMap[String(id).slice(0, 60)] = true;
-      }
-      if (raw !== undefined) clean[field.key] = cleanMap;
-      /*
-        Never required, deliberately. These are physical documents sitting in a
-        queue at a Board office; making a submission depend on them would only
-        teach people to tick boxes to get past a screen. The ticks are the
-        applicant's record of their own progress, not a claim we rely on.
-      */
-      continue;
-    }
-
     /* ------------------------------------------------- document slots */
     if (field.type === "documents") {
       const map =

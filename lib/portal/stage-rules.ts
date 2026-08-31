@@ -57,6 +57,7 @@ const ALWAYS_OPEN_PREFIX = [
 /** Locked until staff verify the fee. Children are locked with the parent. */
 const NEEDS_FEE = [
   "/portal/application",
+  "/portal/checklist",
   "/portal/journey",
   "/portal/cases",
   "/portal/documents",

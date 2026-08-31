@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ADMISSION_CHECKLIST,
   VISA_CHECKLIST,
@@ -31,6 +31,13 @@ import { cn } from "@/lib/utils";
  * people to tick boxes to get past a screen. The ticks are their record, not
  * ours — and the attestation chains are the part worth the room, because that
  * is what actually sends applications back.
+ *
+ * IT SAVES ITSELF, one tick at a time, rather than riding along with a form.
+ * The first version kept the ticks inside the application, which locks on
+ * submission — so the checklist went read-only at exactly the point it starts
+ * to matter, with the attestation, the Apostille and the entire visa list
+ * still ahead. It now writes to its own store and works the same on the
+ * standalone page, inside the form, and long after the file has gone in.
  */
 
 function Ring({ percent }: { percent: number }) {
@@ -214,17 +221,41 @@ function Board({
 export function ChecklistBoard({
   applyLevel,
   intake,
-  value,
-  onChange,
+  initialTicks,
 }: {
   applyLevel: string;
   intake: string;
-  value: Record<string, boolean>;
-  onChange: (next: Record<string, boolean>) => void;
+  initialTicks: Record<string, boolean>;
 }) {
   const [tab, setTab] = useState<"admission" | "visa">("admission");
-  const ticked = value ?? {};
-  const toggle = (id: string) => onChange({ ...ticked, [id]: !ticked[id] });
+  const [ticked, setTicked] = useState<Record<string, boolean>>(initialTicks ?? {});
+  const [failed, setFailed] = useState<string | null>(null);
+
+  /*
+    OPTIMISTIC, AND HONEST WHEN IT FAILS.
+
+    A tick that waits for a round trip before moving feels broken on a list of
+    thirty-one, and somebody working down it quickly would out-run the network.
+    So the box moves at once — and if the save is refused, it moves back and
+    says so, rather than leaving a tick on screen that is not in the database.
+  */
+  const toggle = useCallback(async (id: string) => {
+    const next = !ticked[id];
+    setTicked((t) => ({ ...t, [id]: next }));
+    setFailed(null);
+    try {
+      const res = await fetch("/api/portal/checklist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: id, on: next }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
+      if (!res.ok || !data.ok) throw new Error("refused");
+    } catch {
+      setTicked((t) => ({ ...t, [id]: !next }));
+      setFailed("That didn't save. Check your connection and try again.");
+    }
+  }, [ticked]);
 
   const february = februaryRequirement(intake, applyLevel);
   const admission = checklistProgress(ADMISSION_CHECKLIST, applyLevel, ticked);
@@ -313,9 +344,17 @@ export function ChecklistBoard({
         </div>
       )}
 
+      {failed && (
+        <p role="alert" className="text-[0.82rem] text-red-300">
+          {failed}
+        </p>
+      )}
+
       <p className="text-[0.78rem] leading-relaxed text-faint">
         Ticking these is for your own tracking — nothing here blocks your
-        application. Your ticks are saved with the rest of your answers.
+        application. Each tick saves on its own, and this list stays open after
+        your application has gone in, because the attestation and visa items
+        come afterwards.
       </p>
     </div>
   );

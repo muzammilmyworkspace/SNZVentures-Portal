@@ -145,6 +145,13 @@ export const DECORATIVE: ReadonlySet<FieldType> = new Set<FieldType>([
   "note",
   "derived",
   "review",
+  /*
+    The checklist saves each tick on its own, to its own table. Holding the
+    ticks in the application made them lock when it was submitted — which is
+    the moment the attestation and visa items start being ticked. See
+    migration 011.
+  */
+  "checklist",
   // The document itself holds no answer. What is agreed to is recorded by the
   // tick and the typed signature beside it, which are ordinary required fields.
   "consent",
