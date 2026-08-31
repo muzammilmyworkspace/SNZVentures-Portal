@@ -59,8 +59,21 @@ export async function studentStage(userId: string): Promise<StageInfo> {
           LIMIT 1) AS fee_note,
         (SELECT count(*)::int FROM fee_submissions
           WHERE user_id = ${userId}) AS fee_any,
+        /*
+          'study', not 'student'.
+
+          intake_forms.pathway is CHECK-constrained to study | career |
+          business, so 'student' matched nothing that could ever exist. The
+          subquery returned NULL for everyone, the stage read that as "not
+          submitted", and a student who had filled in and sent the whole
+          application stayed at the application stage for good — with
+          consent_due and complete unreachable behind it.
+
+          A wrong literal in a subquery does not error. It just quietly
+          answers "no" forever.
+        */
         (SELECT status::text FROM intake_forms
-          WHERE user_id = ${userId} AND pathway = 'student'
+          WHERE user_id = ${userId} AND pathway = 'study'
           LIMIT 1) AS intake_status,
         (SELECT count(*)::int FROM consents
           WHERE user_id = ${userId} AND kind = 'student_undertaking') AS consented

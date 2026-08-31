@@ -867,5 +867,36 @@ export const STUDY_APPLICATION: IntakeDefinition = {
         },
       ],
     },
+
+    /* ═══════════════════════════════════════════════════ 10 ═══ */
+    {
+      key: "undertaking",
+      title: "Consent & undertaking",
+      blurb: "The agreement that lets us act for you",
+      intro:
+        "This is the last thing, and it is the one that authorises us to send your file to universities and immigration authorities. Read it properly — it is the same document you would sign on paper in our office, and nothing is submitted until you have.",
+      cards: [{ startsAt: "undertakingAccepted", title: "Your signature" }],
+      fields: [
+        { key: "undertakingDoc", label: "", type: "consent", wide: true },
+        {
+          key: "undertakingAccepted",
+          label:
+            "I have read, understood, and agreed to the Student Consent & Undertaking above.",
+          type: "checkbox",
+          required: true,
+          wide: true,
+        },
+        {
+          key: "undertakingSignature",
+          label: "Type your full name as your signature",
+          type: "text",
+          required: true,
+          wide: true,
+          max: 160,
+          placeholder: "Your full name, as on your passport",
+          hint: "Typed by you, with the date, time and version of the document, is what makes this a record we can stand behind.",
+        },
+      ],
+    },
   ],
 };

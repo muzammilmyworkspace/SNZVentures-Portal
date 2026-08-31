@@ -42,7 +42,9 @@ export type FieldType =
   /** Read-only text assembled from other answers. */
   | "derived"
   /** The whole application, played back before it is sent. */
-  | "review";
+  | "review"
+  /** The Student Consent & Undertaking, in full, to be read before signing. */
+  | "consent";
 
 /**
  * Show this field only when another answer says so.
@@ -141,6 +143,9 @@ export const DECORATIVE: ReadonlySet<FieldType> = new Set<FieldType>([
   "note",
   "derived",
   "review",
+  // The document itself holds no answer. What is agreed to is recorded by the
+  // tick and the typed signature beside it, which are ordinary required fields.
+  "consent",
 ]);
 
 /**

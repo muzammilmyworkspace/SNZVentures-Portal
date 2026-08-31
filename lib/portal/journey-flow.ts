@@ -48,15 +48,15 @@ export const STUDENT_FLOW: FlowStage[] = [
     key: "application",
     name: "Your application",
     description:
-      "Nine sections covering everything a European university asks for, including your documents. Save as you go — nothing is lost between visits.",
+      "Ten sections covering everything a European university asks for, including your documents, ending with the undertaking you sign. Save as you go — nothing is lost between visits.",
     action: { label: "Open my application", href: "/portal/application" },
   },
   {
     key: "consent",
     name: "Consent & undertaking",
     description:
-      "The document that authorises us to submit your file to universities and immigration authorities on your behalf.",
-    action: { label: "Sign the undertaking", href: "/portal/student" },
+      "The document that authorises us to submit your file to universities and immigration authorities. It is the last section of your application — nothing is sent until you have signed it.",
+    action: { label: "Open my application", href: "/portal/application" },
   },
   {
     key: "submission",
@@ -110,13 +110,13 @@ export function flowPosition(stage: StudentStage): {
       return {
         index: 2,
         waiting: false,
-        note: "Your fee is verified. The application form is open and saves as you go.",
+        note: "Your fee is verified. The application form is open, saves as you go, and ends with the undertaking you sign.",
       };
     case "consent_due":
       return {
         index: 3,
         waiting: false,
-        note: "Your application is in. The consent and undertaking is the last thing you sign.",
+        note: "Your answers are in. The undertaking at the end of the form is the last thing to sign before we can send anything.",
       };
     case "complete":
       return {

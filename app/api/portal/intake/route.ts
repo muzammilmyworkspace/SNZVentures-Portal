@@ -5,6 +5,8 @@ import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { PATHWAY_FOR_ROLE, intakeFor, validateStep } from "@/lib/portal/intake";
+import { recordConsent } from "@/lib/db/repos/consents";
+import { CONSENT_VERSION } from "@/lib/portal/consent";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -184,6 +186,67 @@ export async function POST(request: Request) {
   */
   const chosen = Array.isArray(clean.countries) ? (clean.countries as string[]) : [];
   const country = chosen.find((c) => c && c !== "Open to advice") ?? null;
+
+  /*
+    THE UNDERTAKING IS RECORDED BEFORE THE FORM IS SUBMITTED, NOT AFTER.
+
+    It is what authorises us to send this file to universities and immigration
+    authorities. Submitting first would leave a completed application sitting
+    in the staff queue that nobody is yet permitted to act on — and if the
+    consent write then failed, that state would be permanent and invisible.
+
+    This ordering cannot produce a submitted application with no consent. The
+    reverse can, and the failure is silent.
+
+    Its own version comes from the SERVER's constant, never from the request: a
+    browser must not be able to claim it agreed to a different document, or an
+    older one, than the one it was shown. Duplicate acceptances of the same
+    version are dropped by the unique constraint, so a retry after a failed
+    submit is safe.
+  */
+  if (pathway === "study") {
+    const signature = String(clean.undertakingSignature ?? "").trim();
+    if (clean.undertakingAccepted !== true || signature.length < 2) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Read the Student Consent & Undertaking, tick the box and type your name as your signature. Nothing is submitted without it.",
+          missing: [{ step: definition.steps.length - 1, label: "Consent & undertaking" }],
+        },
+        { status: 422 }
+      );
+    }
+
+    const recorded = await recordConsent({
+      userId: session.userId,
+      version: CONSENT_VERSION,
+      signedName: signature,
+      ip: clientIp(request),
+      userAgent: request.headers.get("user-agent"),
+    });
+
+    if (!recorded) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "We could not record your signature just now, so nothing was submitted. Please try again.",
+        },
+        { status: 503 }
+      );
+    }
+
+    await audit({
+      action: "consent.accepted",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "user",
+      entityId: session.userId,
+      meta: { kind: "student_undertaking", version: CONSENT_VERSION, at: "application_submit" },
+      ip: clientIp(request),
+    });
+  }
 
   const form = await ops.submitIntake({
     userId: session.userId,

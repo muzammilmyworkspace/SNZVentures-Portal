@@ -13,6 +13,7 @@ import { buildMotivation } from "@/lib/application/motivation";
 import { filenamePrefix } from "@/lib/application/documents";
 import { DIAL_CODES } from "@/lib/application/reference";
 import { ReviewSummary } from "@/components/application/ReviewSummary";
+import { UndertakingDoc } from "@/components/application/UndertakingDoc";
 import {
   applyMask,
   RadioPills,
@@ -639,6 +640,8 @@ export function IntakeForm({
                       value={(answers[f.key] as Record<string, string>) ?? {}}
                       onChange={(next) => set(f.key, next)}
                     />
+                  ) : f.type === "consent" ? (
+                    <UndertakingDoc />
                   ) : f.type === "review" ? (
                     <ReviewSummary definition={definition} answers={answers} onEdit={setIndex} />
                   ) : f.type === "derived" ? (

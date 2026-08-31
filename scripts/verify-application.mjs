@@ -24,8 +24,24 @@ const all = steps.flatMap((s) => s.fields);
 const byKey = new Map();
 
 console.log("\n=== structure ===");
-if (steps.length !== 9) fail(`expected 9 sections, found ${steps.length}`);
-else ok("nine sections");
+if (steps.length !== 10) fail(`expected 10 sections, found ${steps.length}`);
+else ok("ten sections");
+
+/* The undertaking must be LAST. It authorises us to send the file, so it is
+   signed on the finished thing — a signature taken before the final section
+   is a signature on a document that was still being written. */
+if (steps[steps.length - 1].key !== "undertaking") {
+  fail("the consent & undertaking is not the final section");
+} else {
+  ok("the undertaking is the last section");
+}
+if (!steps.some((s) => s.fields.some((f) => f.type === "consent"))) {
+  fail("no section renders the undertaking document");
+}
+for (const key of ["undertakingAccepted", "undertakingSignature"]) {
+  const f = all.find((x) => x.key === key);
+  if (!f?.required) fail(`${key} is not required — the application could submit unsigned`);
+}
 
 for (const f of all) {
   if (byKey.has(f.key)) fail(`duplicate key "${f.key}" — the second would overwrite the first`);
