@@ -1,0 +1,1290 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   SNZ VENTURES — DESIGN SYSTEM v2
+   ----------------------------------------------------------------------------
+   Evolution of the MERIDIAN direction, not a replacement:
+     • Type is now a single modern grotesk. The display serif read decorative;
+       weight and tracking carry the hierarchy instead.
+     • The ground lifts from near-black to deep navy, and the page alternates
+       through four surfaces so it breathes.
+     • Vertical rhythm tightened for information density.
+
+   SURFACES are semantic. A section sets a tone class and every child reads
+   --fg / --fg-muted / --line / --surface from it, so the same component works
+   on navy or on white without conditional props.
+   ========================================================================== */
+
+@theme {
+  /* --- Navy: deep → royal (lifted off black) ----------------------------- */
+  /**
+   * Ink for type sitting ON the accent green (filled buttons, badges).
+   * `text-void` was in use across the codebase with no token behind it, so the
+   * class emitted nothing and button labels silently inherited their parent's
+   * colour — white on #72C43C, about 1.9:1. Defining it fixes that everywhere
+   * at once, and keeps working when the surrounding theme flips.
+   */
+  --color-void: #060D1C;
+
+  --color-navy-950: #060D1C;
+  --color-navy-900: #0A1730; /* deep — page ground */
+  --color-navy-850: #0D1D3C;
+  --color-navy-800: #102142; /* soft — alternating band */
+  --color-navy-700: #16305D;
+  --color-navy-600: #1D3F79;
+  --color-navy-500: #2755A2;
+  --color-navy-400: #3D71C9;
+  --color-navy-300: #7BA0DF;
+  --color-navy-200: #AFC7EE;
+  --color-navy-100: #D9E5F8;
+
+  /* --- Accent: refined green --------------------------------------------- */
+  --color-moss-800: #2E5C18;
+  --color-moss-700: #3E7A22;
+  --color-moss-600: #4F9628;
+  --color-moss-500: #5EAF2F;
+  --color-moss-400: #72C43C;
+  --color-moss-300: #93D667;
+  --color-moss-200: #BCE7A0;
+  --color-moss-100: #DDF3CB;
+  --color-moss-50: #F0F9E5;
+
+  /* --- Neutrals ----------------------------------------------------------- */
+  --color-paper: #FCFCFD;
+  --color-mist-50: #F7F9FC;
+  --color-mist-100: #EEF2F7; /* light neutral band */
+  --color-mist-200: #E1E7F0;
+  --color-mist-300: #C7D0DF;
+  --color-mist-400: #9AA6BB;
+  --color-mist-500: #697690;
+  --color-mist-600: #4A566D;
+  --color-mist-700: #2E3849;
+  --color-ink: #0C1526;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --breakpoint-xs: 400px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================================
+   TONE SYSTEM — four surfaces, one semantic contract
+   ========================================================================== */
+
+.tone-deep,
+.tone-soft,
+.tone-light,
+.tone-white {
+  color: var(--fg);
+  background-color: var(--surface);
+  background-image: var(--surface-wash);
+  background-repeat: no-repeat;
+}
+
+/* ============================================================================
+   SURFACE WASH — the page ground, lit rather than flat
+   ----------------------------------------------------------------------------
+   Each band used to be one flat fill: navy in dark, near-white in light. Legible,
+   but inert — a wall rather than a space.
+
+   Every band now carries a wash: two or three very wide radial pools in the
+   brand hues, laid over the flat fill. They are positioned OFF the band's
+   corners so what you see is the falloff rather than the centre of a circle,
+   which is what keeps this reading as light in a room instead of as a shape
+   printed on the page.
+
+   Three rules hold the whole thing together:
+
+     1. ALTERNATION. Consecutive bands push their pools to opposite corners and
+        lead with different hues — blue-led on `deep`, green-led on `soft`. Give
+        every band the same wash and a long page turns into visible stripes.
+
+     2. CEILING ON ALPHA. Dark runs up to ~0.46 because the pools sit mostly
+        OUTSIDE the band and only their falloff lands on it; light is held near
+        0.20, where the surface is already close to white and has less room
+        to move before the type starts sitting on a tint. The real limit is contrast, not taste — `npm run audit:theme`
+        measures every heading and paragraph against the ground it actually
+        lands on, so any increase here has to survive that.
+
+     3. NOTHING ANIMATES. These are large blurred areas; animating them means
+        repainting most of the viewport every frame. The movement on this page
+        comes from the reveals, not from the wallpaper.
+
+   `--surface-wash` is a token, so `.plate-deep` can null it out: those sections
+   are photographs, and a wash under a photo is invisible work.
+   ========================================================================== */
+
+.tone-deep {
+  --surface-wash:
+    radial-gradient(115% 85% at 6% -12%, color-mix(in srgb, var(--brand-blue) 46%, transparent) 0%, transparent 58%),
+    radial-gradient(95% 75% at 98% 4%, color-mix(in srgb, var(--brand-teal) 30%, transparent) 0%, transparent 54%),
+    radial-gradient(115% 70% at 52% 110%, color-mix(in srgb, var(--brand-green) 24%, transparent) 0%, transparent 56%),
+    linear-gradient(168deg, #0B1B3C 0%, transparent 42%);
+}
+
+.tone-soft {
+  --surface-wash:
+    radial-gradient(105% 80% at 95% -10%, color-mix(in srgb, var(--brand-green) 32%, transparent) 0%, transparent 56%),
+    radial-gradient(105% 85% at 2% 28%, color-mix(in srgb, var(--brand-blue) 40%, transparent) 0%, transparent 58%),
+    radial-gradient(125% 70% at 62% 108%, color-mix(in srgb, var(--brand-teal) 26%, transparent) 0%, transparent 54%),
+    linear-gradient(196deg, #122A55 0%, transparent 46%);
+}
+
+.tone-light {
+  --surface-wash:
+    radial-gradient(110% 80% at 6% -6%, color-mix(in srgb, var(--brand-blue) 18%, transparent) 0%, transparent 56%),
+    radial-gradient(110% 80% at 98% 12%, color-mix(in srgb, var(--brand-green) 16%, transparent) 0%, transparent 54%);
+}
+
+.tone-white {
+  --surface-wash:
+    radial-gradient(120% 85% at 95% -8%, color-mix(in srgb, var(--brand-teal) 16%, transparent) 0%, transparent 56%),
+    radial-gradient(110% 75% at 2% 104%, color-mix(in srgb, var(--brand-blue) 15%, transparent) 0%, transparent 56%);
+}
+
+/* A photograph is already the surface. */
+.plate-deep {
+  --surface-wash: none;
+}
+
+/* ============================================================================
+   BRAND GRADIENT — the two logo hues
+   ----------------------------------------------------------------------------
+   Sampled from public/brand/snz-logo-original.png rather than picked by eye.
+   The mark is 42% navy-blue around hue 228° (#243057) and 34% green around
+   hue 96° (#7CBD43); everything else is white or an edge pixel.
+
+   Those two sit 130° apart, and a straight two-stop blend between them passes
+   through desaturated slate — the exact muddy midpoint that makes a
+   blue-to-green gradient look cheap. A teal midpoint holds chroma across the
+   whole sweep, so the ramp stays luminous end to end. That mid stop is the
+   difference between "premium" and "default CSS gradient".
+
+   Two ramps, because a gradient bright enough to glow on navy is unreadable
+   on near-white:
+
+     --grad-brand   for FILLS (buttons, rules, hairlines) — vivid
+     --grad-text    for TYPE  (background-clip: text)     — meets contrast
+
+   `--grad-text` is redefined per tone so emphasised words stay legible on
+   whichever surface they land on. Its darkest stop is the one that has to
+   clear AA, since that is the worst case a reader sees.
+   ========================================================================== */
+
+.tone-deep,
+.tone-soft,
+.tone-light,
+.tone-white {
+  --brand-blue: #3D71C9;
+  --brand-teal: #2FAE93;
+  --brand-green: #72C43C;
+  --grad-brand: linear-gradient(
+    100deg,
+    var(--brand-blue) 0%,
+    var(--brand-teal) 52%,
+    var(--brand-green) 100%
+  );
+}
+
+/* On dark ground the vivid ramp is already well clear of AA. */
+.tone-deep,
+.tone-soft {
+  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #93D667 100%);
+}
+
+/* On light ground every stop is darkened until the lightest clears 4.5:1. */
+.tone-light,
+.tone-white {
+  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #3E7A22 100%);
+}
+
+.tone-deep {
+  --surface: var(--color-navy-900);
+  --surface-raised: #0E1E3C;
+  --fg: var(--color-paper);
+  --fg-strong: #ffffff;
+  --fg-muted: var(--color-navy-200);
+  --fg-faint: var(--color-navy-300);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --accent: var(--color-moss-400);
+  --accent-soft: var(--color-moss-300);
+}
+
+.tone-soft {
+  --surface: var(--color-navy-800);
+  --surface-raised: #16295080;
+  --fg: var(--color-paper);
+  --fg-strong: #ffffff;
+  --fg-muted: var(--color-navy-200);
+  --fg-faint: var(--color-navy-300);
+  --line: rgba(255, 255, 255, 0.13);
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --accent: var(--color-moss-400);
+  --accent-soft: var(--color-moss-300);
+}
+
+.tone-light {
+  --surface: var(--color-mist-100);
+  --surface-raised: #ffffff;
+  --fg: var(--color-ink);
+  --fg-strong: #050B16;
+  --fg-muted: var(--color-mist-600);
+  --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
+  --line: rgba(12, 21, 38, 0.12);
+  --line-strong: rgba(12, 21, 38, 0.22);
+  --accent: var(--color-moss-700);
+  --accent-soft: var(--color-moss-600);
+}
+
+.tone-white {
+  --surface: #ffffff;
+  --surface-raised: var(--color-mist-50);
+  --fg: var(--color-ink);
+  --fg-strong: #050B16;
+  --fg-muted: var(--color-mist-600);
+  --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
+  --line: rgba(12, 21, 38, 0.1);
+  --line-strong: rgba(12, 21, 38, 0.2);
+  --accent: var(--color-moss-700);
+  --accent-soft: var(--color-moss-600);
+}
+
+/* ============================================================================
+   LIGHT THEME
+   ----------------------------------------------------------------------------
+   The site is dark-first: the four tone classes above ARE the dark theme, and
+   nothing below runs unless the reader opts in via the header switch, which
+   stamps `data-theme="light"` on <html>.
+
+   Palette taken from SnZ's own student site (student.snzventures.com), read
+   straight out of its stylesheet rather than eyeballed. It is expressed there
+   in oklch; the sRGB equivalents are noted per token so the intent survives a
+   future edit by someone without a colour tool:
+
+     surface   oklch(98.5% .003 260)  → #FAFBFD   near-white, faintly blue
+     raised    #FFFFFF
+     band      oklch(97%   .005 260)  → #F4F6FA
+     sunken    oklch(96%   .01  260)  → #EEF1F7
+     line      oklch(90%   .015 260)  → #DDE3ED
+     ink       oklch(29%   .09  268)  → #1E2B5E   the brand navy, also #1e2b5e
+                                                  in the reference markup
+     accent    oklch(76%   .18  138)  → #6DC13F   the same green as dark mode
+
+   The mapping is deliberately NOT a straight inversion. `tone-deep` and
+   `tone-soft` are the two bands that carry most of the page, so they take the
+   two lightest surfaces; `tone-light` and `tone-white` — already light in the
+   dark theme — step DOWN to keep the alternating rhythm the layout depends on.
+   Invert them naively and every second band disappears into its neighbour.
+
+   Accent is darkened to moss-700 for body text and hairlines: #6DC13F on
+   near-white is about 1.9:1, nowhere near readable. The vivid green survives
+   where it belongs — filled buttons, which set their own dark ink on top.
+   ========================================================================== */
+
+[data-theme="light"] body {
+  background-color: #FAFBFD;
+  color: var(--color-ink);
+}
+
+/**
+ * Light-mode washes for the two main bands.
+ *
+ * In light mode `tone-deep` and `tone-soft` become near-white surfaces, but
+ * they keep their dark-mode wash unless it is restated — and a 20% blue pool
+ * that reads as depth on navy reads as a stain on near-white. These are the
+ * same compositions at roughly half the alpha, so the bands stay lit without
+ * the ground looking tinted.
+ */
+[data-theme="light"] .tone-deep {
+  --surface-wash:
+    radial-gradient(120% 90% at 6% -10%, color-mix(in srgb, var(--brand-blue) 22%, transparent) 0%, transparent 58%),
+    radial-gradient(100% 80% at 97% 6%, color-mix(in srgb, var(--brand-teal) 18%, transparent) 0%, transparent 54%),
+    radial-gradient(120% 70% at 55% 108%, color-mix(in srgb, var(--brand-green) 16%, transparent) 0%, transparent 56%);
+}
+
+[data-theme="light"] .tone-soft {
+  --surface-wash:
+    radial-gradient(110% 85% at 94% -8%, color-mix(in srgb, var(--brand-green) 20%, transparent) 0%, transparent 56%),
+    radial-gradient(110% 85% at 3% 30%, color-mix(in srgb, var(--brand-blue) 20%, transparent) 0%, transparent 58%),
+    radial-gradient(130% 75% at 60% 106%, color-mix(in srgb, var(--brand-teal) 16%, transparent) 0%, transparent 54%);
+}
+
+/* In light mode the two main bands become light, so type on them needs the
+   darkened ramp — the same swap tone-light/tone-white already make. */
+[data-theme="light"] .tone-deep,
+[data-theme="light"] .tone-soft {
+  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #3E7A22 100%);
+}
+
+/* …except over a photograph, which stays dark whatever the theme. */
+[data-theme="light"] .plate-deep {
+  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #93D667 100%);
+}
+
+[data-theme="light"] .tone-deep {
+  --surface: #FAFBFD;
+  --surface-raised: #FFFFFF;
+  --fg: #1E2B5E;
+  --fg-strong: #101B40;
+  --fg-muted: #4A566D;
+  --fg-faint: #5A6780;
+  --line: rgba(30, 43, 94, 0.14);
+  --line-strong: rgba(30, 43, 94, 0.26);
+  --accent: var(--color-moss-700);
+  --accent-soft: var(--color-moss-600);
+}
+
+[data-theme="light"] .tone-soft {
+  --surface: #F4F6FA;
+  --surface-raised: #FFFFFF;
+  --fg: #1E2B5E;
+  --fg-strong: #101B40;
+  --fg-muted: #4A566D;
+  --fg-faint: #5A6780;
+  --line: rgba(30, 43, 94, 0.15);
+  --line-strong: rgba(30, 43, 94, 0.28);
+  --accent: var(--color-moss-700);
+  --accent-soft: var(--color-moss-600);
+}
+
+[data-theme="light"] .tone-light {
+  --surface: #EEF1F7;
+  --surface-raised: #FFFFFF;
+  --fg: var(--color-ink);
+  --fg-strong: #050B16;
+  --fg-muted: var(--color-mist-600);
+  --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
+  --line: rgba(12, 21, 38, 0.13);
+  --line-strong: rgba(12, 21, 38, 0.24);
+  --accent: var(--color-moss-700);
+  --accent-soft: var(--color-moss-600);
+}
+
+[data-theme="light"] .tone-white {
+  --surface: #FFFFFF;
+  --surface-raised: #F4F6FA;
+}
+
+/**
+ * Type set OVER a photograph.
+ *
+ * `.plate-deep` marks exactly the sections whose background is a darkened
+ * image — the heroes and the closing CTAs. Those sections also carry
+ * `tone-deep`, so without this they would flip to navy-on-near-white in light
+ * mode and the text would sit unreadable on top of a dark photograph. The
+ * photograph does not change with the theme, so neither does the type on it.
+ *
+ * This must come AFTER the tone overrides above to win on source order.
+ */
+[data-theme="light"] .plate-deep {
+  --surface: var(--color-navy-900);
+  --surface-raised: #0E1E3C;
+  --fg: var(--color-paper);
+  --fg-strong: #ffffff;
+  --fg-muted: var(--color-navy-200);
+  --fg-faint: var(--color-navy-300);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --accent: var(--color-moss-400);
+  --accent-soft: var(--color-moss-300);
+}
+
+/**
+ * The header in light mode.
+ *
+ * At rest the header is a transparent overlay — it floats on the hero, which
+ * on every page is a DARKENED PHOTOGRAPH. In dark mode its type is white, so
+ * that works. In light mode the type is navy, and navy on a dark photograph is
+ * unreadable. The photo does not change with the theme, so the header cannot
+ * simply follow it.
+ *
+ * Rather than pin the header's type to white (which then fails the moment a
+ * page opens on a light section), light mode gives it a frosted ground at all
+ * times. The overlay character survives — you can still see the hero moving
+ * underneath — while the type always has something light to sit on.
+ */
+[data-theme="light"] .site-header {
+  background-color: color-mix(in srgb, #FAFBFD 78%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+[data-theme="light"] .site-header.is-scrolled {
+  background-color: color-mix(in srgb, #FAFBFD 92%, transparent);
+}
+
+/* Atmosphere is tuned for a dark ground; on a light one it reads as haze. */
+[data-theme="light"] .bloom-moss,
+[data-theme="light"] .bloom-royal {
+  opacity: 0.28;
+}
+[data-theme="light"] .plate-deep .bloom-moss,
+[data-theme="light"] .plate-deep .bloom-royal {
+  opacity: 1;
+}
+[data-theme="light"] .grain::after {
+  mix-blend-mode: multiply;
+  opacity: 0.14;
+}
+[data-theme="light"] .plate-deep .grain::after,
+[data-theme="light"] .plate-deep.grain::after {
+  mix-blend-mode: overlay;
+  opacity: 0.3;
+}
+
+/* Semantic utilities — components never hard-code a tone-specific colour */
+.text-fg { color: var(--fg); }
+.text-fg-strong { color: var(--fg-strong); }
+.text-muted { color: var(--fg-muted); }
+.text-faint { color: var(--fg-faint); }
+.text-accent { color: var(--accent); }
+
+/**
+ * Faded accent, written by hand rather than generated.
+ *
+ * Tailwind's `text-accent/60` would require `--color-accent` registered in
+ * `@theme`, but theme values are resolved at BUILD time and the accent only
+ * has a value at RUNTIME — it changes with whichever tone band the element
+ * happens to sit in. A build-time token cannot express that, so the alpha
+ * variants are declared explicitly instead.
+ *
+ * These are the four alphas the codebase actually uses. Adding a new one means
+ * adding it here too.
+ */
+.text-accent\/80 { color: color-mix(in srgb, var(--accent) 80%, transparent); }
+.text-accent\/70 { color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.text-accent\/60 { color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.text-accent\/50 { color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.border-line { border-color: var(--line); }
+.border-line-strong { border-color: var(--line-strong); }
+.bg-surface { background-color: var(--surface); }
+.bg-raised { background-color: var(--surface-raised); }
+.divide-line > * + * { border-color: var(--line); }
+
+/* ============================================================================
+   BASE
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+/**
+ * Anchor target on a page that also carries a sticky sub-navigation.
+ *
+ * The global 90px `scroll-padding-top` above already clears the fixed header.
+ * Where a second sticky bar sits under it (see components/sections/StudyNav),
+ * a jumped-to heading would land behind that bar, so its height is added here
+ * per section rather than by raising the global value — which would leave a
+ * dead band at the top of every other page.
+ *
+ * These two values ADD. The scrollport's padding edge is offset by
+ * `scroll-padding-top`, and the target is then aligned by its own
+ * `scroll-margin-top` from that edge. So this is the sub-nav's height alone
+ * (~52px), NOT header + sub-nav — setting the full 8.75rem here lands the
+ * heading 230px down the viewport with a band of dead space above it.
+ */
+.anchor-target {
+  scroll-margin-top: 3.25rem;
+}
+
+body {
+  /* background-COLOR, not the shorthand: the shorthand resets
+     background-image and would wipe the surface wash inherited from the
+     tone class on <body>. */
+  background-color: var(--color-navy-900);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-moss-400);
+  color: var(--color-navy-950);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-moss-400);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 200;
+}
+.skip-link:focus {
+  left: 12px;
+  top: 12px;
+  /* Sized so the focused chip clears 44px, the WCAG 2.5.5 target minimum. At
+     10px of padding it came to about 39px — close enough to look fine and
+     still short, and this is the first thing a keyboard user ever reaches. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--color-moss-400);
+  color: var(--color-navy-950);
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   TYPE — one grotesk. Weight and tracking do the work, not ornament.
+   ========================================================================== */
+
+.d-hero {
+  font-size: clamp(2.5rem, 1.5rem + 4.6vw, 5.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+
+.d-1 {
+  font-size: clamp(2rem, 1.4rem + 2.9vw, 3.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  font-weight: 700;
+}
+
+.d-2 {
+  font-size: clamp(1.65rem, 1.25rem + 1.9vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+  font-weight: 700;
+}
+
+.d-3 {
+  font-size: clamp(1.25rem, 1.1rem + 0.8vw, 1.65rem);
+  line-height: 1.2;
+  letter-spacing: -0.022em;
+  font-weight: 600;
+}
+
+.d-4 {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+/* Accent word — colour and weight, no italic serif flourish */
+/**
+ * The emphasised word in a display line — the site's one recurring flourish.
+ *
+ * `color` is declared FIRST as a real colour and only then overridden by the
+ * clipped gradient. That ordering matters: if `background-clip: text` is
+ * unsupported, or the paint is dropped for any reason, the word falls back to
+ * a solid accent instead of rendering transparent and vanishing off the page.
+ */
+.d-em {
+  color: var(--accent-soft);
+  font-weight: 700;
+  background-image: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Keeps descenders and the italic-ish sweep from being clipped. */
+  padding-inline: 0.03em;
+}
+
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .d-em {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/**
+ * The shine. A slow drift of the gradient across the word — the ramp is
+ * oversized so there is somewhere to travel to.
+ *
+ * 14s and a 25% swing on purpose: fast enough to notice on a second look,
+ * slow enough that it never competes with the reveal animations or pulls the
+ * eye while someone is reading the sentence around it.
+ */
+.d-em {
+  background-size: 190% 100%;
+  background-position: 0% 50%;
+  animation: em-shine 14s var(--ease-in-out-quart) infinite;
+}
+
+@keyframes em-shine {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-em {
+    animation: none;
+    background-position: 25% 50%;
+  }
+}
+
+.lede {
+  font-size: clamp(1rem, 0.95rem + 0.34vw, 1.2rem);
+  line-height: 1.6;
+  letter-spacing: -0.011em;
+  color: var(--fg-muted);
+}
+
+/**
+ * The micro-label: eyebrows, chapter marks, badges, metadata.
+ *
+ * 0.7rem computed to 11.2px, which a usability audit flagged as below the
+ * ~12px floor for readable copy. It is a tracked uppercase label rather than
+ * body text, so the rule is not a perfect fit — but 11px set in +0.16em
+ * tracking really is the smallest thing on the page, and it carries the
+ * chapter numbers and the metadata people scan. 0.75rem is exactly 12px and
+ * costs the design nothing.
+ */
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/**
+ * SENTENCE-CASE VARIANT, for label-sized text that is a SENTENCE.
+ *
+ * Uppercase is a device for short marks — "Study abroad", "6 min read". Run it
+ * across a whole descriptive line and it slows reading measurably, because the
+ * even cap height removes the word-shape cues readers actually use. The hero
+ * standfirst ("European Gateway for Business, Fintech & Talent", 47 characters)
+ * was set in it and got flagged for exactly that.
+ *
+ * This keeps the label size and weight, drops the shouting, and eases the
+ * tracking back to something appropriate for running words rather than for a
+ * two-word mark. Reach for it whenever a label holds more than about three
+ * words; keep `.label` for the marks it was designed for.
+ */
+.label-lead {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ============================================================================
+   ATMOSPHERE
+   ========================================================================== */
+
+.plate {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.plate img {
+  filter: saturate(0.68) contrast(1.03) brightness(0.82);
+}
+
+.plate-deep img {
+  filter: saturate(0.4) contrast(1.1) brightness(0.42);
+}
+
+/* The grade is for photography only. Brand marks and UI imagery placed inside
+   a plate (logo lockups, avatars) must opt out or they render washed out. */
+.plate img.no-grade,
+.plate-deep img.no-grade {
+  filter: none;
+}
+
+.plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-navy-950) 10%, transparent) 58%,
+    color-mix(in srgb, var(--color-navy-950) 52%, transparent) 100%
+  );
+}
+
+.plate-deep::after {
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--color-navy-950) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-navy-950) 74%, transparent) 48%,
+      color-mix(in srgb, var(--color-navy-900) 58%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-navy-950) 66%, transparent) 0%,
+      color-mix(in srgb, var(--color-navy-950) 20%, transparent) 40%,
+      color-mix(in srgb, var(--color-navy-950) 86%, transparent) 100%
+    );
+}
+
+.bloom-moss {
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--color-moss-400) 18%, transparent) 0%, transparent 68%);
+  filter: blur(30px);
+}
+
+.bloom-royal {
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--color-navy-500) 42%, transparent) 0%, transparent 70%);
+  filter: blur(36px);
+}
+
+/* Graticule adapts to the tone it sits on */
+.graticule {
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--fg) 6%, transparent) 0 1px,
+    transparent 1px 120px
+  );
+}
+
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--fg) 5%, transparent) 0 1px,
+    transparent 1px 7px
+  );
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
+}
+
+.mask-b {
+  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+}
+.mask-radial {
+  -webkit-mask-image: radial-gradient(ellipse 74% 62% at 50% 42%, #000 38%, transparent 100%);
+  mask-image: radial-gradient(ellipse 74% 62% at 50% 42%, #000 38%, transparent 100%);
+}
+.mask-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 11%, #000 89%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 11%, #000 89%, transparent);
+}
+
+/* Gradient hairline used to separate tone bands */
+.edge-top {
+  position: relative;
+}
+.edge-top::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  /* Blue → teal → green, faded at both ends so it reads as a lit seam
+     between bands rather than a drawn rule. */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--brand-blue) 55%, transparent) 22%,
+    color-mix(in srgb, var(--brand-teal) 70%, transparent) 50%,
+    color-mix(in srgb, var(--brand-green) 55%, transparent) 78%,
+    transparent 100%
+  );
+}
+
+/* ----------------------------------------------------------------- accents */
+
+/** Brand-gradient fill for small surfaces: rules, bars, active markers. */
+.grad-brand {
+  background-image: var(--grad-brand);
+}
+
+/**
+ * Gradient hairline under an active item.
+ * Used by the header nav marker and the Study Abroad sub-nav.
+ */
+.grad-rule {
+  background-image: var(--grad-brand);
+}
+
+/**
+ * The meridian rail's progress line. Runs blue at the top through to green as
+ * you descend, then fades — so the page's own scroll traces the mark's two
+ * hues rather than a single flat green stripe.
+ */
+.meridian-line {
+  background-image: linear-gradient(
+    to bottom,
+    var(--brand-blue) 0%,
+    var(--brand-teal) 45%,
+    color-mix(in srgb, var(--brand-green) 75%, transparent) 80%,
+    transparent 100%
+  );
+}
+
+/* ============================================================================
+   MOTION
+   ========================================================================== */
+
+.route-dash {
+  stroke-dasharray: 4 8;
+  animation: flow 1.6s linear infinite;
+}
+@keyframes flow { to { stroke-dashoffset: -12; } }
+
+@keyframes beacon {
+  0% { r: 3; opacity: 0.85; }
+  70% { r: 15; opacity: 0; }
+  100% { r: 15; opacity: 0; }
+}
+.beacon { animation: beacon 3.4s var(--ease-out-expo) infinite; }
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+.breathe { animation: breathe 3s var(--ease-out-quint) infinite; }
+
+@keyframes drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+.drift { animation: drift 58s linear infinite; }
+
+/* Slow gradient wash for hero / CTA grounds */
+@keyframes sheen-pan {
+  0% { transform: translate3d(-8%, 0, 0) scale(1.05); }
+  50% { transform: translate3d(8%, 2%, 0) scale(1.12); }
+  100% { transform: translate3d(-8%, 0, 0) scale(1.05); }
+}
+.sheen-pan { animation: sheen-pan 26s ease-in-out infinite; }
+
+.draw {
+  background-image: linear-gradient(currentColor 0 0);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.55s var(--ease-out-expo);
+}
+.draw:hover,
+.group:hover .draw { background-size: 100% 1px; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.rail {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* ============================================================================
+   FORM CONTROLS — shared by the public forms and the portal
+   ========================================================================== */
+
+.field {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  /*
+    0.85rem vertical keeps the control at ~48px tall. Below that it is under
+    the touch minimum on a phone, and these forms are filled in on phones.
+    16px type is deliberate too: iOS Safari zooms the whole page in on focus
+    for anything smaller, which throws the layout sideways mid-form.
+  */
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.field::placeholder { color: var(--fg-faint); }
+.field:focus {
+  border-color: var(--color-moss-400);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.field[aria-invalid="true"] { border-color: #f87171; }
+
+.field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  /* 0.72rem is 11.5px — small-caps with heavy tracking at that size is hard
+     to read as a form label, which is the one thing that must be scannable. */
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .route-dash, .beacon, .breathe, .drift, .sheen-pan { animation: none !important; }
+}
+
+/**
+ * Review marquee.
+ *
+ * The track renders the review list twice and travels exactly -50%, so the
+ * restart lands the second copy precisely where the first began — the loop has
+ * no visible seam rather than a fast one. `will-change` keeps a long, slow
+ * translation on the compositor instead of repainting every frame.
+ */
+@keyframes review-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.marquee-track {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes review-marquee {
+    from { transform: none; }
+    to { transform: none; }
+  }
+}
+
+/**
+ * The Atlas landmass.
+ *
+ * Painted through a mask of the real coastline (public/brand/world-mask.png),
+ * with the brand ramp running west to east — blue, teal, green — which happens
+ * to trace the corridor the section is about.
+ *
+ * Two ramps rather than one with opacity: a tint bright enough to read on navy
+ * washes out on near-white, and one dark enough for near-white disappears into
+ * navy. Each theme gets values chosen against its own ground.
+ */
+.world-land {
+  background-image: linear-gradient(
+    105deg,
+    rgba(61, 113, 201, 0.62) 0%,
+    rgba(47, 174, 147, 0.52) 48%,
+    rgba(114, 196, 60, 0.46) 100%
+  );
+  -webkit-mask-image: url("/brand/world-mask.png");
+  mask-image: url("/brand/world-mask.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+[data-theme="light"] .world-land {
+  background-image: linear-gradient(
+    105deg,
+    rgba(39, 87, 168, 0.5) 0%,
+    rgba(16, 120, 107, 0.44) 48%,
+    rgba(62, 122, 34, 0.42) 100%
+  );
+}
+
+/* ═══════════════════════════════════════════════════════ STATUS PILL TONES ═
+ *
+ * Status colour, defined once and theme-aware.
+ *
+ * These used to be Tailwind utilities like `text-sky-300` chosen while the site
+ * was dark by default. Light is the default now, and a 300-weight colour on a
+ * near-white ground is close to unreadable — a status badge nobody can read is
+ * worse than no badge, because the reader assumes they have understood it.
+ *
+ * Each tone therefore has a LIGHT definition on bare :root and a DARK one under
+ * [data-theme="dark"], so the same class is legible either way. Semantic names,
+ * not colour names: mapping a status to `--pill-warn` survives a palette change
+ * in a way `text-amber-300` does not.
+ */
+:root {
+  --pill-neutral-fg: #5A6478;  --pill-neutral-bd: rgba(90,100,120,0.30);  --pill-neutral-bg: rgba(90,100,120,0.07);
+  --pill-info-fg:    #1D5FA8;  --pill-info-bd:    rgba(29,95,168,0.34);   --pill-info-bg:    rgba(29,95,168,0.09);
+  --pill-work-fg:    #3E4CA8;  --pill-work-bd:    rgba(62,76,168,0.34);   --pill-work-bg:    rgba(62,76,168,0.09);
+  --pill-warn-fg:    #8A5A00;  --pill-warn-bd:    rgba(180,120,0,0.40);   --pill-warn-bg:    rgba(212,150,0,0.12);
+  --pill-ok-fg:      #2F6B22;  --pill-ok-bd:      rgba(60,130,40,0.38);   --pill-ok-bg:      rgba(80,160,50,0.11);
+  --pill-danger-fg:  #B42318;  --pill-danger-bd:  rgba(180,35,24,0.36);   --pill-danger-bg:  rgba(180,35,24,0.09);
+}
+
+:root[data-theme="dark"] {
+  --pill-neutral-fg: #A9B4C8;  --pill-neutral-bd: rgba(169,180,200,0.28); --pill-neutral-bg: rgba(169,180,200,0.08);
+  --pill-info-fg:    #7CC0FF;  --pill-info-bd:    rgba(124,192,255,0.34); --pill-info-bg:    rgba(124,192,255,0.10);
+  --pill-work-fg:    #A7B0FF;  --pill-work-bd:    rgba(167,176,255,0.34); --pill-work-bg:    rgba(167,176,255,0.10);
+  --pill-warn-fg:    #F6C556;  --pill-warn-bd:    rgba(246,197,86,0.38);  --pill-warn-bg:    rgba(246,197,86,0.11);
+  --pill-ok-fg:      #9BE07A;  --pill-ok-bd:      rgba(155,224,122,0.36); --pill-ok-bg:      rgba(155,224,122,0.11);
+  --pill-danger-fg:  #FF9C93;  --pill-danger-bd:  rgba(255,156,147,0.36); --pill-danger-bg:  rgba(255,156,147,0.10);
+}
+
+.pill {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pill-neutral { color: var(--pill-neutral-fg); border-color: var(--pill-neutral-bd); background: var(--pill-neutral-bg); }
+.pill-info    { color: var(--pill-info-fg);    border-color: var(--pill-info-bd);    background: var(--pill-info-bg); }
+.pill-work    { color: var(--pill-work-fg);    border-color: var(--pill-work-bd);    background: var(--pill-work-bg); }
+.pill-warn    { color: var(--pill-warn-fg);    border-color: var(--pill-warn-bd);    background: var(--pill-warn-bg); }
+.pill-ok      { color: var(--pill-ok-fg);      border-color: var(--pill-ok-bd);      background: var(--pill-ok-bg); }
+.pill-danger  { color: var(--pill-danger-fg);  border-color: var(--pill-danger-bd);  background: var(--pill-danger-bg); }
+
+/* ══════════════════════════════════════════════════════ ACCENT INK (TEXT) ═
+ *
+ * `--accent` is tuned for MARKS — dots, rules, icons, fills — where WCAG's
+ * 3:1 non-text threshold applies. Used as TEXT on an accent-tinted ground it
+ * measured 4.09:1 against the 4.5:1 body-text requirement: the active sidebar
+ * row, which is the one row a reader must be able to identify.
+ *
+ * `--accent-ink` is the same hue carried far enough to pass as text. Marks keep
+ * using `--accent`; anything that has to be READ uses this.
+ */
+:root { --accent-ink: #2C5E18; }
+:root[data-theme="dark"] { --accent-ink: var(--color-moss-300); }
+
+.tone-deep  { --accent-ink: var(--color-moss-300); }
+.tone-soft  { --accent-ink: #2C5E18; }
+.tone-light { --accent-ink: #2C5E18; }
+.tone-white { --accent-ink: #2C5E18; }
+:root[data-theme="dark"] .tone-soft,
+:root[data-theme="dark"] .tone-light,
+:root[data-theme="dark"] .tone-white { --accent-ink: var(--color-moss-300); }
+
+.text-accent-ink { color: var(--accent-ink); }
+
+/* ══════════════════════════════════════════ PATHWAY POPUP — SHORT VIEWPORTS ═
+ *
+ * The popup's compact layout was gated on WIDTH (`sm:`), which is the wrong
+ * axis for the case that actually broke it. A phone in LANDSCAPE is wide and
+ * short — 844x390, 800x360 — so every `sm:` rule fired and it rendered the
+ * full desktop treatment into 390px of height. The panel is height-capped, so
+ * nothing overflowed the screen; instead the fixed head and foot ate the lot
+ * and the card region collapsed to 64-87px. Measured on three landscape
+ * profiles: what you saw was a sliver of three photographs and not one card
+ * title. Bounded, but useless.
+ *
+ * So the compact treatment is driven by HEIGHT here, independently of width.
+ * Below 560px of viewport height the head gives up its lede and its display
+ * scale, the padding tightens, and the cards revert to the thumbnail-beside-
+ * the-words row — the same row the narrow-width layout uses, reached by the
+ * other axis. Three of them then cost about 90px total instead of 350px.
+ *
+ * WHY THIS IS CSS AND NOT `[@media(max-height:560px)]:` UTILITIES. It touches
+ * seven elements and has to beat `sm:` utilities that are already applying at
+ * these widths. Two-class selectors win that on specificity regardless of
+ * source order, which an arbitrary variant does not — it would be a single
+ * class racing Tailwind's own, decided by emission order.
+ *
+ * 560px is chosen to sit clear of the shortest PORTRAIT phone in use (568px),
+ * so this never fires on a phone held upright.
+ */
+@media (max-height: 560px) {
+  .pathway-popup .pp-head {
+    padding-top: 0.75rem;
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+
+  /* Supporting copy, not the offer. The three cards say the same thing. */
+  .pathway-popup .pp-lede { display: none; }
+
+  .pathway-popup .pp-title {
+    font-size: 1.35rem;
+    line-height: 1.15;
+    margin-top: 0.25rem;
+  }
+
+  .pathway-popup .pp-cards {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  /* The row layout, reached by height rather than by width. */
+  .pathway-popup .pp-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .pathway-popup .pp-thumb {
+    width: 4.5rem;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-xs);
+  }
+
+  .pathway-popup .pp-body { padding: 0; }
+
+  .pathway-popup .pp-foot {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* ══════════════════════════════════════ PATHWAY POPUP — HEIGHT CAP + CLOSE ═
+ *
+ * ⚠ THE `vh` LINE IS A FALLBACK AND MUST STAY ABOVE THE `dvh` LINE.
+ *
+ * The cap used to be a lone Tailwind `max-h-[calc(100dvh-1.5rem)]`. `dvh`
+ * needs Safari iOS 15.4+ or Chrome 108+; anywhere older — an ageing Android,
+ * or the in-app browsers Instagram and Facebook open links in — the whole
+ * declaration is INVALID, so the browser throws it away and the panel is left
+ * with no height limit whatsoever. That is not a degraded layout, it is the
+ * original bug back in full: a panel far taller than the screen, centred, with
+ * its close button off the top edge and the backdrop completely covered. Body
+ * scroll is locked and a phone has no Escape key, so the visitor cannot get
+ * out except by reloading. It was reported from a real handset after emulator
+ * testing passed, because every emulator here supports `dvh`.
+ *
+ * Two declarations of the same property is the whole point: browsers keep the
+ * last one they can parse. Old engines stop at `vh` and still get a working
+ * cap; new ones take `dvh` and also handle the collapsing URL bar. Never
+ * "tidy" this into a single line.
+ *
+ * The mobile cap is deliberately TIGHTER than the desktop one. Leaving a
+ * margin of backdrop visible around the panel is what makes it read as a card
+ * over the page rather than a new screen, and it keeps a reliable area to tap
+ * outside to dismiss — a second way out that does not depend on hitting a
+ * small control in the corner.
+ */
+.pathway-popup {
+  max-height: calc(100vh - 2rem);
+}
+@supports (max-height: 100dvh) {
+  .pathway-popup {
+    max-height: calc(100dvh - 2rem);
+  }
+}
+
+@media (max-width: 639px) {
+  .pathway-popup {
+    /* ~40px of visible backdrop above and below. */
+    max-height: calc(100vh - 5rem);
+  }
+
+  @supports (max-height: 100dvh) {
+    .pathway-popup {
+      max-height: calc(100dvh - 5rem);
+    }
+  }
+
+  /* Clear the larger touch control so a heading line never runs under it. */
+  .pathway-popup .pp-head {
+    padding-left: 3.75rem;
+    padding-right: 3.75rem;
+  }
+}
+
+/*
+ * A BIGGER, SOLIDER CLOSE CONTROL WHEREVER THE INPUT IS A FINGER.
+ *
+ * It was a 36px box with a hairline border, a 1.5px stroke and the panel's own
+ * background — on the light theme, over a light panel, it read as decoration
+ * rather than as the way out. Reported from a real handset as "cannot dismiss
+ * it", which is as much about not FINDING the control as not hitting it. Now
+ * 44px square (WCAG 2.5.5 met by the drawn box itself, not only by the
+ * pseudo-element), circular, with a stronger border and a shadow so it
+ * separates from whatever sits behind it.
+ *
+ * Keyed on pointer:coarse rather than on a width. Width was the wrong axis here
+ * for the same reason it was wrong for the layout: a phone in landscape is
+ * 844px wide, so a max-width gate left the very devices that need a finger
+ * target on the 36px mouse-sized one. What decides this is whether the visitor
+ * is pointing with a finger, which is exactly what this query asks.
+ */
+@media (pointer: coarse) {
+  .pathway-popup .pp-close {
+    top: 0.5rem;
+    right: 0.5rem;
+    height: 2.75rem;
+    width: 2.75rem;
+    border-radius: 9999px;
+    border-color: var(--line-strong, var(--line));
+    box-shadow: 0 6px 18px -6px rgb(0 0 0 / 0.45);
+  }
+
+  .pathway-popup .pp-close-icon {
+    height: 1.05rem;
+    width: 1.05rem;
+    stroke-width: 2;
+  }
+}
+
+/* ══════════════════════════════════════════════════ HERO — TYPE LEGIBILITY ═
+ *
+ * The corridor map (RouteField) occupies the right 62% of the hero at high
+ * opacity, and its arcs and city labels are the brightest marks in the frame.
+ * Where they run under the headline and lede they compete with the type for
+ * the same attention, which a usability audit picked up as the message being
+ * harder to parse than it should be.
+ *
+ * This lays a scrim between the artwork and the type: opaque at the left edge
+ * where the words live, gone by the point the map becomes the subject. It is
+ * angled rather than straight so it follows the diagonal the composition
+ * already has, and it uses the tone token rather than a fixed navy so it works
+ * in both themes.
+ */
+.hero-scrim {
+  background-image: linear-gradient(
+    100deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--surface) 82%, transparent) 30%,
+    color-mix(in srgb, var(--surface) 40%, transparent) 48%,
+    transparent 66%
+  );
+}
+/* ═══════════════════════════════════════════════ INK FOR TYPE OVER PHOTOS ═
+ *
+ * Type set over a photograph cannot use the tone tokens — the image, not the
+ * CSS background, is the real ground under it. The pattern in use was
+ * `text-white/70` and `text-white/80`, which is the one thing the design notes
+ * in README explicitly rule out: an alpha lands at whatever contrast the
+ * photograph underneath happens to give, and it also multiplies the number of
+ * distinct text colours on the page (a usability audit counted 16, and three
+ * of them were the same white at three opacities).
+ *
+ * These are the same intent expressed as SOLID colours, so the contrast is a
+ * known quantity and the palette stays countable. `.plate` already grades the
+ * photograph dark, so both sit comfortably above 4.5:1 on it.
+ */
+.ink-on-photo      { color: #FFFFFF; }
+.ink-on-photo-soft { color: #D7DEEA; }

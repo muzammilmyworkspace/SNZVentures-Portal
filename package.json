@@ -1,0 +1,36 @@
+{
+  "name": "snzv-portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:status": "node scripts/migrate.mjs --dry",
+    "db:bootstrap": "node scripts/bootstrap-admin.mjs",
+    "db:verify": "node scripts/verify-schema.mjs",
+    "db:doctor": "node scripts/db-doctor.mjs",
+    "check:config": "node scripts/check-config.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.0",
+    "motion": "^13.1.0",
+    "next": "16.3.0",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

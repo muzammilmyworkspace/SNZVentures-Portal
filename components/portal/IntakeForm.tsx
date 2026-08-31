@@ -1,0 +1,554 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type {
+  IntakeDefinition,
+  IntakeField,
+  IntakeStep,
+} from "@/lib/portal/intake";
+import { cn } from "@/lib/utils";
+
+/**
+ * THE MULTI-STEP INTAKE FORM
+ * ---------------------------------------------------------------------------
+ * Rendered entirely from the definition in lib/portal/intake.ts, which is the
+ * same file the API validates against. A field cannot exist here without
+ * existing there, so the form and its rules cannot drift.
+ *
+ * BEHAVIOUR THIS FORM IS BUILT AROUND
+ *
+ *  • One step on screen at a time. Nine steps of questions shown at once is
+ *    the thing that makes people abandon an application.
+ *  • Nothing is ever lost. Every step change saves a draft, and the resume
+ *    point comes back from the server, so closing the tab mid-form is safe.
+ *  • Client-side validation only ever GUIDES. The server re-checks everything;
+ *    this exists so someone learns about a missing field before a round trip,
+ *    not as the boundary.
+ *  • The final step lists what is still missing, with a link straight to the
+ *    step that holds it. "Some fields are invalid" with no location is the
+ *    most common way a long form becomes unfinishable.
+ */
+
+type Answers = Record<string, unknown>;
+type Status = "draft" | "submitted" | "under_review" | "accepted" | "returned";
+
+/* ----------------------------------------------------------------- fields */
+
+function FieldControl({
+  field,
+  value,
+  onChange,
+  invalid,
+}: {
+  field: IntakeField;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  invalid: boolean;
+}) {
+  const id = `f-${field.key}`;
+  const described = field.hint ? `${id}-hint` : undefined;
+  const common = {
+    id,
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": described,
+    className: "field",
+  };
+
+  if (field.type === "textarea") {
+    return (
+      <textarea
+        {...common}
+        rows={4}
+        maxLength={field.max}
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="field min-h-28 resize-y"
+      />
+    );
+  }
+
+  if (field.type === "select") {
+    return (
+      <select
+        {...common}
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">Select…</option>
+        {field.options?.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.type === "multiselect") {
+    const selected = Array.isArray(value) ? (value as string[]) : [];
+    return (
+      /*
+        Checkboxes rather than a <select multiple>. Multi-select boxes are
+        close to unusable on a phone — they need a modifier key most touch
+        keyboards do not have — and this form is filled in on phones.
+      */
+      <div
+        role="group"
+        aria-labelledby={`${id}-label`}
+        aria-describedby={described}
+        className="flex flex-wrap gap-2"
+      >
+        {field.options?.map((o) => {
+          const on = selected.includes(o);
+          return (
+            <label
+              key={o}
+              className={cn(
+                "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border px-3.5 text-[0.85rem] transition-colors",
+                on
+                  ? "border-moss-400/70 bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent"
+                  : "border-line text-muted hover:border-moss-400/40 hover:text-fg"
+              )}
+            >
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={on}
+                onChange={() =>
+                  onChange(on ? selected.filter((s) => s !== o) : [...selected, o])
+                }
+              />
+              <span
+                aria-hidden
+                className={cn(
+                  "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border",
+                  on ? "border-moss-400 bg-moss-400" : "border-line"
+                )}
+              >
+                {on && (
+                  <svg viewBox="0 0 10 10" className="h-2 w-2 text-navy-950">
+                    <path
+                      d="M1 5l2.5 2.5L9 2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </span>
+              {o}
+            </label>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <input
+      {...common}
+      type={field.type}
+      maxLength={field.max}
+      value={String(value ?? "")}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={field.placeholder}
+    />
+  );
+}
+
+function Field({
+  field,
+  value,
+  onChange,
+  invalid,
+}: {
+  field: IntakeField;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  invalid: boolean;
+}) {
+  const id = `f-${field.key}`;
+  return (
+    <div>
+      <label
+        id={`${id}-label`}
+        htmlFor={field.type === "multiselect" ? undefined : id}
+        className="field-label"
+      >
+        {field.label}
+        {field.required && (
+          <>
+            {" "}
+            {/*
+              RED, and theme-aware.
+
+              It was the brand green, which is the same colour this interface
+              uses for "done", "approved" and "on track" — so the one mark
+              meaning "you must fill this in" was drawn in the palette's
+              reassuring colour and did not read as a requirement at all.
+
+              `text-red-300` alone is too pale on the light theme to carry
+              meaning, so the darker red is the base and the pale one is the
+              override, the same pairing ErrorNote uses in AuthForms.
+            */}
+            <span
+              aria-hidden
+              className="font-semibold text-[#D92D20] dark:text-red-300 [html[data-theme=dark]_&]:text-red-300"
+            >
+              *
+            </span>
+            <span className="sr-only">(required)</span>
+          </>
+        )}
+      </label>
+      <FieldControl field={field} value={value} onChange={onChange} invalid={invalid} />
+      {field.hint && (
+        <p id={`${id}-hint`} className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
+          {field.hint}
+        </p>
+      )}
+      {invalid && (
+        <p role="alert" className="mt-1.5 text-[0.8rem] text-red-300">
+          This one is required.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- the wizard */
+
+const isBlank = (f: IntakeField, v: unknown) =>
+  Array.isArray(v) ? v.length === 0 : v === undefined || v === null || String(v).trim() === "";
+
+function missingIn(step: IntakeStep, answers: Answers) {
+  return step.fields.filter((f) => f.required && isBlank(f, answers[f.key]));
+}
+
+export function IntakeForm({
+  definition,
+  initialAnswers,
+  initialStep,
+  status,
+}: {
+  definition: IntakeDefinition;
+  initialAnswers: Answers;
+  initialStep: number;
+  status: Status;
+}) {
+  const router = useRouter();
+  const steps = definition.steps;
+
+  const [answers, setAnswers] = useState<Answers>(initialAnswers);
+  // Resume where they stopped, clamped in case the form gained or lost a step
+  // since the draft was written.
+  const [index, setIndex] = useState(() =>
+    Math.min(Math.max(initialStep, 0), steps.length - 1)
+  );
+  const [touched, setTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(status !== "draft");
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const step = steps[index];
+  const gaps = useMemo(() => (touched ? missingIn(step, answers) : []), [touched, step, answers]);
+
+  const set = useCallback((key: string, v: unknown) => {
+    setAnswers((a) => ({ ...a, [key]: v }));
+    setSavedAt(null);
+  }, []);
+
+  /**
+   * Move focus to the step heading on every change of step.
+   * Without this a keyboard or screen-reader user presses "Next" and focus
+   * stays on a button that now belongs to a different step — the new questions
+   * are simply never announced.
+   */
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [index]);
+
+  const save = useCallback(
+    async (stepIndex: number, resumeAt = stepIndex, silent = false) => {
+      if (submitted) return true;
+      if (!silent) setSaving(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/portal/intake", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          // `step` says which questions these answers are; `resumeAt` says
+          // where to reopen. They are only the same for a draft save.
+          body: JSON.stringify({ step: stepIndex, resumeAt, answers }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          setError(data.error ?? "We couldn't save your progress.");
+          return false;
+        }
+        setSavedAt(new Date().toISOString());
+        return true;
+      } catch {
+        setError("Network problem — your answers are still on screen. Try again.");
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [answers, submitted]
+  );
+
+  async function next() {
+    setTouched(true);
+    if (missingIn(step, answers).length) return;
+    // Answers belong to `index`; the resume point moves on because it is done.
+    const ok = await save(index, index + 1);
+    if (!ok) return;
+    setTouched(false);
+    setIndex((i) => Math.min(i + 1, steps.length - 1));
+  }
+
+  function back() {
+    setTouched(false);
+    setIndex((i) => Math.max(i - 1, 0));
+  }
+
+  /** Everything still missing, anywhere in the form, with its step. */
+  const outstanding = useMemo(
+    () =>
+      steps.flatMap((s, i) =>
+        missingIn(s, answers).map((f) => ({ step: i, stepTitle: s.title, label: f.label }))
+      ),
+    [steps, answers]
+  );
+
+  async function submit() {
+    setTouched(true);
+    if (outstanding.length) {
+      setError("Some required answers are still missing — they're listed below.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/portal/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setError(data.error ?? "We couldn't submit this form.");
+        setSaving(false);
+        return;
+      }
+      setSubmitted(true);
+      router.refresh();
+    } catch {
+      setError("Network problem. Your answers are saved — try submitting again.");
+      setSaving(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-moss-400/30 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] p-6 sm:p-8">
+        <p className="label text-accent">Received</p>
+        <h2 className="mt-3 text-[1.35rem] font-bold tracking-[-0.02em] text-fg-strong">
+          Your {definition.title.toLowerCase()} is with us.
+        </h2>
+        <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">
+          An advisor reads it and comes back to you with the next step. You can
+          keep uploading documents in the meantime — that is usually what moves
+          things fastest.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/portal/documents"
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+          >
+            Upload documents
+          </Link>
+          <Link
+            href="/portal/journey"
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+          >
+            Track progress
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const percent = Math.round(((index + 1) / steps.length) * 100);
+  const onLast = index === steps.length - 1;
+
+  return (
+    <div>
+      {/* Progress */}
+      <div className="mb-7">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="label text-faint">
+            Step {index + 1} of {steps.length}
+          </p>
+          <p className="text-[0.8rem] text-faint" aria-live="polite">
+            {saving ? "Saving…" : savedAt ? "Progress saved" : " "}
+          </p>
+        </div>
+        <div
+          className="mt-3 h-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--fg)_10%,transparent)]"
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Form progress"
+        >
+          <div
+            className="h-full rounded-full bg-moss-400 transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        {/* Step rail — jumping back is allowed, jumping ahead is not, because
+            a later step may depend on an answer that has not been given. */}
+        <ol className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
+          {steps.map((s, i) => (
+            <li key={s.key}>
+              <button
+                type="button"
+                disabled={i > index}
+                onClick={() => {
+                  setTouched(false);
+                  setIndex(i);
+                }}
+                className={cn(
+                  // -my-2/py-2 keeps the rail visually tight while giving each
+                  // step a real hit box; these are jump targets, not labels.
+                  "-my-2 inline-flex min-h-11 items-center py-2 text-[0.8rem] transition-colors",
+                  i === index && "font-semibold text-accent",
+                  i < index && "text-muted hover:text-fg",
+                  i > index && "cursor-default text-faint opacity-50"
+                )}
+              >
+                {i + 1}. {s.title}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Step */}
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-[1.35rem] font-bold tracking-[-0.02em] text-fg-strong outline-none sm:text-[1.5rem]"
+      >
+        {step.title}
+      </h2>
+      <p className="mt-2 max-w-xl text-[0.9rem] leading-relaxed text-muted">{step.blurb}</p>
+
+      <div className="mt-7 grid gap-5 sm:grid-cols-2">
+        {step.fields.map((f) => (
+          <div
+            key={f.key}
+            className={cn(
+              (f.type === "textarea" || f.type === "multiselect") && "sm:col-span-2"
+            )}
+          >
+            <Field
+              field={f}
+              value={answers[f.key]}
+              onChange={(v) => set(f.key, v)}
+              invalid={gaps.some((g) => g.key === f.key)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-6 rounded-[var(--radius-sm)] border border-red-400/40 bg-red-500/10 px-4 py-3 text-[0.85rem] text-red-200"
+        >
+          {error}
+        </p>
+      )}
+
+      {/* On the last step, name what is missing and where it lives. */}
+      {onLast && touched && outstanding.length > 0 && (
+        <div className="mt-6 rounded-[var(--radius-sm)] border border-line p-4">
+          <p className="label text-faint">Still needed</p>
+          <ul className="mt-3 space-y-1.5">
+            {outstanding.map((o) => (
+              <li key={`${o.step}-${o.label}`} className="text-[0.85rem] text-muted">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTouched(false);
+                    setIndex(o.step);
+                  }}
+                  className="text-left underline underline-offset-4 transition-colors hover:text-accent"
+                >
+                  {o.label}
+                </button>
+                <span className="text-faint"> — step {o.step + 1}, {o.stepTitle}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-6">
+        {index > 0 && (
+          <button
+            type="button"
+            onClick={back}
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+          >
+            Back
+          </button>
+        )}
+
+        {onLast ? (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={saving}
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-6 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-60"
+          >
+            {saving ? "Submitting…" : "Submit application"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={next}
+            disabled={saving}
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-6 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save & continue"}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => save(index)}
+          disabled={saving}
+          className="label min-h-11 px-2 text-muted transition-colors hover:text-fg disabled:opacity-60"
+        >
+          Save as draft
+        </button>
+      </div>
+
+      <p className="mt-4 text-[0.75rem] text-faint">
+        Your answers are saved as you go. You can close this and come back to it.
+      </p>
+    </div>
+  );
+}

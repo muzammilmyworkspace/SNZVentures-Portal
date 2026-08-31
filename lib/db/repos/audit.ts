@@ -1,0 +1,107 @@
+import { db, safeQuery } from "../client";
+
+/**
+ * AUDIT LOG — append-only.
+ *
+ * NEVER pass credentials, tokens, password hashes or secrets in `meta`.
+ * The helper strips a denylist of keys as a backstop, but the rule is enforced
+ * at the call site: log identifiers and outcomes, not payloads.
+ */
+
+const FORBIDDEN = /(password|secret|token|api[_-]?key|authorization|cookie|hash)/i;
+
+function scrub(meta?: Record<string, unknown>): Record<string, unknown> | null {
+  if (!meta) return null;
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(meta)) {
+    if (FORBIDDEN.test(k)) continue;
+    if (typeof v === "string" && v.length > 500) continue;
+    clean[k] = v;
+  }
+  return Object.keys(clean).length ? clean : null;
+}
+
+export type AuditAction =
+  | "auth.login"
+  | "auth.login_failed"
+  | "auth.logout"
+  | "auth.register"
+  | "auth.password_reset_requested"
+  | "auth.password_reset"
+  | "auth.email_verified"
+  | "user.role_changed"
+  | "user.suspended"
+  | "user.activated"
+  | "case.created"
+  | "case.status_changed"
+  | "case.advisor_assigned"
+  | "document.uploaded"
+  | "document.reviewed"
+  | "document.deleted"
+  | "document.downloaded"
+  | "staff.assigned"
+  | "staff.unassigned"
+  // Operational layer (003)
+  | "message.sent"
+  | "intake.submitted"
+  | "intake.status_changed"
+  | "note.added"
+  | "note.deleted"
+  // Student consent (005). The entry records THAT an undertaking was accepted
+  // and which version; the consents table holds the signature and address.
+  | "consent.accepted"
+  | "task.status_changed"
+  | "appointment.requested"
+  | "admin.action";
+
+export async function audit(entry: {
+  action: AuditAction;
+  actorId?: string | null;
+  actorEmail?: string | null;
+  entity?: string;
+  entityId?: string;
+  meta?: Record<string, unknown>;
+  ip?: string;
+}) {
+  // Never let an audit write break the operation it is recording.
+  await safeQuery(async () => {
+    await db()`
+      INSERT INTO audit_logs (actor_id, actor_email, action, entity, entity_id, meta, ip)
+      VALUES (${entry.actorId ?? null}, ${entry.actorEmail ?? null}, ${entry.action},
+              ${entry.entity ?? null}, ${entry.entityId ?? null},
+              ${scrub(entry.meta) as never}, ${entry.ip ?? null})
+    `;
+    return true;
+  }, false);
+}
+
+export type AuditRow = {
+  id: string;
+  actorEmail: string | null;
+  action: string;
+  entity: string | null;
+  entityId: string | null;
+  meta: Record<string, unknown> | null;
+  ip: string | null;
+  createdAt: string;
+};
+
+export async function listAudit(limit = 100, action?: string): Promise<AuditRow[]> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT * FROM audit_logs
+      WHERE (${action ?? null}::text IS NULL OR action = ${action ?? null})
+      ORDER BY created_at DESC LIMIT ${Math.min(limit, 500)}
+    `;
+    return rows.map((r) => ({
+      id: String(r.id),
+      actorEmail: r.actor_email ? String(r.actor_email) : null,
+      action: String(r.action),
+      entity: r.entity ? String(r.entity) : null,
+      entityId: r.entity_id ? String(r.entity_id) : null,
+      meta: (r.meta as Record<string, unknown>) ?? null,
+      ip: r.ip ? String(r.ip) : null,
+      createdAt: new Date(r.created_at as string).toISOString(),
+    }));
+  }, []);
+}
