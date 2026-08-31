@@ -93,6 +93,10 @@ export function paymentDeclarationBody(f: PaymentDeclarationFacts): string[] {
 
 /** Fee purposes, exactly as the paper form lists them. */
 export const FEE_TYPES = [
+  // The upfront payment that starts the file. It is the first thing most
+  // students pay, so it leads the list rather than sitting beneath options
+  // that only become relevant later in the process.
+  "Process initiation fee",
   "University application fee",
   "Tuition deposit / first instalment",
   "Registration fee",
@@ -110,6 +114,77 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 export const CURRENCIES = ["EUR", "USD", "GBP", "PKR", "AED", "INR"] as const;
+
+/* ────────────────────────────────────────────────────── field validation ─ */
+
+/**
+ * ONE SET OF RULES, used by the dialog AND by the API.
+ *
+ * These were written twice — once in the browser to show a message, once on
+ * the server to make the decision — and two copies of a rule are two rules
+ * that drift. Exported so the check that shows the error and the check that
+ * refuses the request are physically the same function.
+ */
+
+/**
+ * Passport numbers: 6–12 characters, letters and digits only.
+ *
+ * There is no single global format. ICAO 9303 fixes the machine-readable zone
+ * at nine characters but leaves each state to decide what goes in it, and
+ * several issue shorter or longer human-readable numbers. So this rejects what
+ * is certainly wrong — a two-character typo, a pasted sentence, spaces and
+ * punctuation — without pretending to know every scheme. A stricter rule would
+ * reject real passports, which is the worse failure: it stops a genuine
+ * applicant with no way around it.
+ */
+export function passportError(value: string): string | null {
+  const v = value.trim().toUpperCase();
+  if (!v) return "Enter your passport number.";
+  if (!/^[A-Z0-9]+$/.test(v))
+    return "A passport number is letters and digits only — no spaces or dashes.";
+  if (v.length < 6) return "That looks too short for a passport number.";
+  if (v.length > 12) return "That looks too long for a passport number.";
+  return null;
+}
+
+/**
+ * A date of birth that is a real date, in a plausible year.
+ *
+ * A five-digit year gets through a shape check. `<input type="date">` does not
+ * cap what you type into its year box, so 20255 and 202555 both arrive as
+ * well-formed values, and a regex that only counts digit groups waves them
+ * past. The RANGE check below is what actually catches it.
+ *
+ * The round-trip comparison catches the other class of fake date: 2026-02-30
+ * parses, and Date silently rolls it forward to 2 March. Re-serialising and
+ * comparing is the only way to notice.
+ */
+export function dobError(value: string): string | null {
+  const v = value.trim();
+  if (!v) return "Enter your date of birth.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Enter a valid date of birth.";
+
+  const d = new Date(`${v}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "That is not a real date.";
+  if (d.toISOString().slice(0, 10) !== v) return "That is not a real date.";
+
+  const years = (Date.now() - d.getTime()) / 31_557_600_000;
+  if (years < 16) return "Please check that date — it makes you under 16.";
+  if (years > 100) return "Please check that date.";
+  return null;
+}
+
+/**
+ * Bounds for the picker itself, so the browser refuses an impossible year
+ * before anyone has to be told about it. The validator above still runs —
+ * `min`/`max` are a convenience, and a form post never has to honour them.
+ */
+export const DOB_MIN = new Date(Date.now() - 100 * 31_557_600_000)
+  .toISOString()
+  .slice(0, 10);
+export const DOB_MAX = new Date(Date.now() - 16 * 31_557_600_000)
+  .toISOString()
+  .slice(0, 10);
 
 /** `EUR 150.00` — one formatter, used by the screen, the record and the email. */
 export function formatAmount(amount: string | number, currency: string): string {

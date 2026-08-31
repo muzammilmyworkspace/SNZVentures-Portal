@@ -59,3 +59,4 @@ next-env.d.ts
 # Client-supplied source photographs — large originals, imported via
 # scripts/import-client-images.mjs into public/images as optimised WebP.
 /Images
+migrations.sql

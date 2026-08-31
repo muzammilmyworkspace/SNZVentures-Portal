@@ -6,6 +6,8 @@ import {
   PAYMENT_CONSENT_TITLE,
   paymentDeclarationBody,
   formatAmount,
+  passportError,
+  dobError,
 } from "@/lib/portal/payment-consent";
 import { DetailsFields, PaymentFields, type Facts, type SetFact } from "./FeeFields";
 import { cn } from "@/lib/utils";
@@ -107,9 +109,13 @@ export function FeeDialog({
   function problem(): string | null {
     if (step === "details") {
       if (!f.name.trim()) return "Enter your full name.";
-      if (!f.passport.trim()) return "Enter your passport number.";
+      // The same functions the API uses, so the message shown here and the
+      // decision made there cannot disagree about what is valid.
+      const passport = passportError(f.passport);
+      if (passport) return passport;
       if (!f.nationality.trim()) return "Enter your nationality.";
-      if (!f.dob) return "Enter your date of birth.";
+      const dob = dobError(f.dob);
+      if (dob) return dob;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()))
         return "Enter a valid email address.";
       if (!f.phone.trim()) return "Enter a contact number.";
@@ -364,15 +370,46 @@ function ReadIt({
   onAgree: (v: boolean) => void;
 }) {
   const body = paymentDeclarationBody(facts);
+  const [read, setRead] = useState(false);
+
+  /*
+    THE AGREEMENT BOX HAS TO BE REACHABLE WITHOUT HUNTING FOR IT.
+
+    The declaration ran at full height, so the tick box sat below the fold of
+    an already-scrolling dialog — reported as simply not knowing it was there.
+    Two changes, both from the source document's own behaviour:
+
+      • the document scrolls INSIDE a fixed-height box, so the box below it is
+        always on screen;
+      • a note on the document says "Scroll to the end" and changes when it has
+        been, which is the only honest way to ask someone to confirm they read
+        something.
+
+    The tick is not disabled until then. Blocking the control teaches people to
+    scrub the scrollbar to the bottom without reading, which is worse than
+    asking plainly.
+  */
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="label text-faint">The declaration</p>
+        <p className={cn("text-[0.75rem] font-medium", read ? "text-accent" : "text-faint")}>
+          {read ? "Read to the end" : "Scroll to the end ↓"}
+        </p>
+      </div>
+
       {/*
         The declaration is set on a WHITE sheet in both themes. It is a legal
         document that will be printed and filed, and one that changes colour
         with a UI preference reads as part of the interface rather than as the
         thing being agreed to.
       */}
-      <div className="rounded-[var(--radius-md)] border border-line bg-white p-6 text-[#101b40] sm:p-8">
+      <div
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) setRead(true);
+        }}
+        className="max-h-[45vh] overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-line bg-white p-6 text-[#101b40] sm:p-8">
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#3e7a22]">Form A</p>
         <h3 className="mt-1 text-[1.25rem] font-extrabold tracking-[-0.03em]">
           {PAYMENT_CONSENT_TITLE}

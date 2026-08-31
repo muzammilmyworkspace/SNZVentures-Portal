@@ -13,7 +13,9 @@
     "db:verify": "node scripts/verify-schema.mjs",
     "db:doctor": "node scripts/db-doctor.mjs",
     "check:config": "node scripts/check-config.mjs",
-    "verify:gate": "node --experimental-strip-types scripts/verify-gate.mjs"
+    "verify:gate": "node --experimental-strip-types scripts/verify-gate.mjs",
+    "verify:fields": "node --experimental-strip-types scripts/verify-fields.mjs",
+    "db:bundle": "node scripts/sql-bundle.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

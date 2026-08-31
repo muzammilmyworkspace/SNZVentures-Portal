@@ -1288,3 +1288,57 @@ p { text-wrap: pretty; }
  */
 .ink-on-photo      { color: #FFFFFF; }
 .ink-on-photo-soft { color: #D7DEEA; }
+/* ══════════════════════════════════════════════════ SELECTS IN A .field ═
+ *
+ * A <select> carrying `.field` was unreadable when opened.
+ *
+ * `.field` sets a TRANSPARENT background — color-mix against --fg at 4% — which
+ * is right for a text input sitting on a themed panel. An <option> is drawn by
+ * the operating system, not by the page, and it inherits that transparency:
+ * on the dark theme the list rendered as near-white system chrome with white
+ * text on it. The value was there; you simply could not read it.
+ *
+ * Options therefore need an OPAQUE background of their own. This is the same
+ * fix the source HTML applies, for the same reason.
+ *
+ * The native arrow has the matching problem — it is drawn in the system's own
+ * ink and disappears against a dark control — so it is replaced with one drawn
+ * in the theme's colour. `appearance:none` is what makes that possible, and it
+ * has to come with explicit padding-right or the caret sits on top of a long
+ * option's text.
+ */
+select.field {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  cursor: pointer;
+}
+
+:root select.field {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='7'><path d='M1 1l4.5 4.5L10 1' fill='none' stroke='%235a6780' stroke-width='1.6' stroke-linecap='round'/></svg>");
+}
+:root[data-theme="dark"] select.field,
+.tone-deep select.field {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='7'><path d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23afc7ee' stroke-width='1.6' stroke-linecap='round'/></svg>");
+}
+
+/* The opaque list. --raised is a real colour in every tone, not a mix. */
+select.field option {
+  background: var(--raised);
+  color: var(--fg);
+}
+
+/*
+ * Date inputs have the same invisible-ink problem with their calendar button.
+ * `color-scheme` tells the browser which set of native controls to draw, which
+ * fixes the picker, the spinners and the placeholder in one declaration.
+ */
+input[type="date"].field {
+  color-scheme: light;
+}
+:root[data-theme="dark"] input[type="date"].field,
+.tone-deep input[type="date"].field {
+  color-scheme: dark;
+}

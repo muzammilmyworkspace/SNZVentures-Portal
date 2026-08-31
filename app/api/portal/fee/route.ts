@@ -18,6 +18,8 @@ import {
   FEE_TYPES,
   PAYMENT_METHODS,
   CURRENCIES,
+  passportError,
+  dobError,
 } from "@/lib/portal/payment-consent";
 import { studentStage } from "@/lib/portal/stage";
 
@@ -134,9 +136,12 @@ export async function POST(request: Request) {
     up written verbatim into a signed declaration.
   */
   if (name.length < 2) return bad("Enter your full name.");
-  if (!passport) return bad("Enter your passport number.");
+  // The same functions the dialog uses. One rule, not two copies of one.
+  const passportBad = passportError(passport);
+  if (passportBad) return bad(passportBad);
   if (!nationality) return bad("Enter your nationality.");
-  if (dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return bad("Enter a valid date of birth.");
+  const dobBad = dobError(dob);
+  if (dobBad) return bad(dobBad);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return bad("Enter a valid email address.");
   if (!phone) return bad("Enter a contact number.");
   if (!city) return bad("Enter your city and country.");

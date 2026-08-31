@@ -4,6 +4,8 @@ import {
   FEE_TYPES,
   PAYMENT_METHODS,
   CURRENCIES,
+  DOB_MIN,
+  DOB_MAX,
 } from "@/lib/portal/payment-consent";
 
 /**
@@ -105,11 +107,17 @@ export function DetailsFields({ f, set }: { f: Facts; set: SetFact }) {
         <F label="Father's / guardian's name" optional="optional">
           <input className="field" value={f.father} onChange={(e) => set("father", e.target.value)} />
         </F>
-        <F label="Passport number">
+        <F label="Passport number" hint="6–12 letters and digits, no spaces.">
           <input
             className="field uppercase"
             value={f.passport}
-            onChange={(e) => set("passport", e.target.value.toUpperCase())}
+            maxLength={12}
+            onChange={(e) =>
+              // Stripped as it is typed rather than rejected afterwards: a
+              // pasted number often carries a space or a dash from wherever it
+              // was copied, and silently cleaning that is kinder than an error.
+              set("passport", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+            }
             placeholder="JW557261"
           />
         </F>
@@ -122,7 +130,21 @@ export function DetailsFields({ f, set }: { f: Facts; set: SetFact }) {
           />
         </F>
         <F label="Date of birth">
-          <input type="date" className="field" value={f.dob} onChange={(e) => set("dob", e.target.value)} />
+          {/*
+            min/max stop the browser accepting an impossible year. The date
+            control does not cap what is typed into its year box on its own, so
+            without these a five-digit year arrives as a well-formed value.
+            `dobError` still checks it — these bounds are a convenience, and a
+            form post is under no obligation to honour them.
+          */}
+          <input
+            type="date"
+            className="field"
+            min={DOB_MIN}
+            max={DOB_MAX}
+            value={f.dob}
+            onChange={(e) => set("dob", e.target.value)}
+          />
         </F>
         <F label="Email" optional="your signed copy goes here">
           <input
