@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
@@ -26,6 +27,8 @@ const LEAD: Record<string, { eyebrow: string; lead: string }> = {
 };
 
 export default async function ApplicationPage() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/application");
   const { session } = await requireUser("/portal/application");
 
   const pathway = PATHWAY_FOR_ROLE[session.role as keyof typeof PATHWAY_FOR_ROLE];

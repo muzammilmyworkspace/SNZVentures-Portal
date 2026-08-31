@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import {
@@ -13,6 +14,8 @@ import { getCases } from "@/lib/portal/data";
 import { getClientHistory } from "@/lib/db/repos/operations";
 
 export default async function Page() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/cases");
   const { session } = await requireUser();
 
   if (!isDatabaseConfigured()) {

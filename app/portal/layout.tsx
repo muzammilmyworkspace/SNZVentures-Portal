@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth/session";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import * as repo from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
+import { studentStage, pathOpen, lockReason } from "@/lib/portal/stage";
+import { navFor, portalRoleFor } from "@/lib/portal/roles";
 
 export const metadata: Metadata = {
   title: "Client Portal",
@@ -51,8 +53,37 @@ export default async function PortalLayout({ children }: { children: React.React
     ? await repo.getSidebarBadges(session.userId, session.role)
     : {};
 
+  /*
+    THE GATE, RESOLVED ONCE PER NAVIGATION.
+
+    Only students have one — a job seeker or a business has no fee stage, so
+    asking for it would be a wasted round trip on every page they open.
+
+    This produces the LIST of locked hrefs rather than passing the stage down.
+    PortalShell is a client component; handing it a stage would mean shipping
+    the stage rules to the browser and keeping two copies of them in step. A
+    list of strings cannot drift from the rules that produced it.
+  */
+  let lockedPaths: string[] = [];
+  let lockNote: string | null = null;
+
+  if (session.role === "student" && isDatabaseConfigured()) {
+    const { stage } = await studentStage(session.userId);
+    lockNote = lockReason(stage);
+    lockedPaths = navFor[portalRoleFor(session.role)]
+      .flatMap((g) => g.items)
+      .map((i) => i.href)
+      .filter((href) => !pathOpen(href, stage));
+  }
+
   return (
-    <PortalShell name={session.name} role={session.role} badges={badges}>
+    <PortalShell
+      name={session.name}
+      role={session.role}
+      badges={badges}
+      lockedPaths={lockedPaths}
+      lockNote={lockNote}
+    >
       {children}
     </PortalShell>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { isStorageConfigured } from "@/lib/storage";
@@ -45,6 +46,8 @@ const STATUS_LABEL: Record<string, string> = {
 const ACTIONABLE = new Set(["rejected", "needs_update"]);
 
 export default async function DocumentsPage() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/documents");
   const { session } = await requireUser("/portal/documents");
 
   if (!isDatabaseConfigured()) {

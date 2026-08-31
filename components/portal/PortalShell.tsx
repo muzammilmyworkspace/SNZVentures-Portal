@@ -59,12 +59,26 @@ export function PortalShell({
   name,
   role,
   badges = {},
+  lockedPaths = [],
+  lockNote,
 }: {
   children: React.ReactNode;
   name: string;
   role: Role;
   /** Live counts, computed on the server. Absent or zero renders nothing. */
   badges?: Badges;
+  /**
+   * Routes this visitor cannot reach yet.
+   *
+   * Computed on the SERVER from lib/portal/stage and passed down. Greying a
+   * link out here is decoration only — every gated page guards itself, so
+   * typing the URL gets the same answer as clicking. This exists so the
+   * student can see the shape of what is coming rather than meeting a
+   * redirect with no explanation.
+   */
+  lockedPaths?: string[];
+  /** One line saying why, shown on hover and to screen readers. */
+  lockNote?: string | null;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -119,6 +133,37 @@ export function PortalShell({
             {g.items.map((item) => {
               const on = isActive(item.href);
               const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
+              const locked = lockedPaths.includes(item.href);
+
+              /*
+                A LOCKED ITEM IS A SPAN, NOT A DISABLED LINK.
+
+                Rendering it as an <a> and cancelling the click leaves it
+                keyboard-focusable, announced as a link, and openable in a new
+                tab from the context menu — three ways to reach a page it
+                claims to block. A span with aria-disabled says the true thing
+                to everyone and cannot be followed by anyone.
+              */
+              if (locked) {
+                return (
+                  <li key={item.href + item.label}>
+                    <span
+                      aria-disabled="true"
+                      title={lockNote ?? undefined}
+                      className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-[var(--radius-sm)] px-3 text-[0.9rem] text-faint opacity-60"
+                    >
+                      <Icon name={item.icon} />
+                      <span className="flex-1">{item.label}</span>
+                      <svg viewBox="0 0 14 14" aria-hidden className="h-3.5 w-3.5 shrink-0">
+                        <rect x="2.5" y="6" width="9" height="6.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                        <path d="M4.6 6V4.4a2.4 2.4 0 0 1 4.8 0V6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                      </svg>
+                      <span className="sr-only">Locked. {lockNote ?? ""}</span>
+                    </span>
+                  </li>
+                );
+              }
+
               return (
                 <li key={item.href + item.label}>
                   <Link

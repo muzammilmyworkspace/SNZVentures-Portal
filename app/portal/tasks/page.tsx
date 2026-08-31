@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import {
@@ -12,6 +13,8 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { getTasks } from "@/lib/portal/data";
 
 export default async function Page() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/tasks");
   const { session } = await requireUser();
 
   if (!isDatabaseConfigured()) {

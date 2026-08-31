@@ -1,10 +1,13 @@
 import { requireUser } from "@/lib/auth/guard";
+import { requireOpen } from "@/lib/portal/gate";
 import * as store from "@/lib/auth/store";
 import { PROFILE_FIELDS } from "@/lib/portal/data";
 import { PortalHeading } from "@/components/portal/Pieces";
 import { ProfileForm } from "@/components/portal/ProfileForm";
 
 export default async function ProfilePage() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/profile");
   const { session } = await requireUser("/portal/profile");
 
   const user = await store.findById(session.userId);

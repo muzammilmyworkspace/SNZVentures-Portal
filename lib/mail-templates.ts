@@ -105,3 +105,113 @@ If this wasn't you, ignore this email. Your password has not changed and nobody 
 
   return { subject: "Reset your SnZ Ventures password", text, html };
 }
+
+/* ------------------------------------------------- student fee & application */
+
+/**
+ * One body shape for the three portal milestones.
+ *
+ * They differ only in wording and in what the button says, and three separate
+ * near-identical templates is three places to forget a change. `cta` is
+ * optional because one of these emails has nowhere useful to send anyone yet.
+ */
+function milestone(opts: {
+  heading: string;
+  greetingName: string;
+  paragraphs: string[];
+  cta?: { label: string; url: string };
+  footnote?: string;
+}): { subject: string; text: string; html: string } {
+  const body = opts.paragraphs
+    .map(
+      (p) =>
+        `<p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:1.65;">${esc(p)}</p>`
+    )
+    .join("");
+
+  const button = opts.cta
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+<tr><td style="background:${MOSS};border-radius:8px;">
+<a href="${esc(opts.cta.url)}" style="display:inline-block;padding:13px 26px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;">${esc(opts.cta.label)}</a>
+</td></tr></table>
+<p style="margin:14px 0 0;color:${MUTED};font-size:13px;line-height:1.6;word-break:break-all;">
+Or paste this into your browser:<br>${esc(opts.cta.url)}</p>`
+    : "";
+
+  const foot = opts.footnote
+    ? `<p style="margin:18px 0 0;color:${MUTED};font-size:13px;line-height:1.6;">${esc(opts.footnote)}</p>`
+    : "";
+
+  const html = shell(`<tr><td style="padding:28px;">
+<h1 style="margin:0 0 16px;color:${INK};font-size:21px;font-weight:800;letter-spacing:-0.02em;">${esc(opts.heading)}</h1>
+<p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:1.65;">Hello ${esc(opts.greetingName)},</p>
+${body}${button}${foot}
+</td></tr>`);
+
+  const text = [
+    opts.heading,
+    "",
+    `Hello ${opts.greetingName},`,
+    "",
+    ...opts.paragraphs,
+    ...(opts.cta ? ["", opts.cta.label + ":", opts.cta.url] : []),
+    ...(opts.footnote ? ["", opts.footnote] : []),
+    "",
+    "SnZ Ventures",
+  ].join("\n");
+
+  return { subject: opts.heading, text, html };
+}
+
+/** Sent the moment staff mark a fee verified. This is the unlock. */
+export function feeVerifiedEmail(opts: { name: string; portalUrl: string; amount: string }) {
+  return milestone({
+    heading: "Your fee is verified — your application is open",
+    greetingName: opts.name,
+    paragraphs: [
+      `We've checked your receipt for ${opts.amount} against our records and confirmed it. Thank you.`,
+      "Your application form is now unlocked in the portal, along with the rest of your file. It saves as you go, so you do not have to finish it in one sitting.",
+      "Fill it in with your passport open beside you — a spelling that differs from your passport is the most common reason a university sends an application back.",
+    ],
+    cta: { label: "Open your application", url: `${opts.portalUrl}/portal/application` },
+  });
+}
+
+/**
+ * Sent when staff refuse a fee.
+ *
+ * The reason is the entire point of this email. "There was a problem" with no
+ * detail produces a support message asking what the problem was, which is a
+ * day lost for both sides.
+ */
+export function feeRejectedEmail(opts: { name: string; portalUrl: string; reason: string }) {
+  return milestone({
+    heading: "We need another look at your payment receipt",
+    greetingName: opts.name,
+    paragraphs: [
+      "We could not confirm your payment from the receipt you sent. Here is what our team found:",
+      opts.reason,
+      "Please open the portal and submit it again with that corrected. Nothing else you have entered is lost.",
+    ],
+    cta: { label: "Resubmit your receipt", url: `${opts.portalUrl}/portal/student` },
+    footnote: "If you think this is a mistake, reply to this email and we will look again.",
+  });
+}
+
+/** Sent on submission of the application form. */
+export function applicationSubmittedEmail(opts: {
+  name: string;
+  portalUrl: string;
+  reference: string;
+}) {
+  return milestone({
+    heading: "Your application is with us",
+    greetingName: opts.name,
+    paragraphs: [
+      `We have your completed application. Your reference is ${opts.reference} — quote it in any message about this file.`,
+      "There is one step left: a consent and undertaking to sign, which covers what our service includes and confirms your documents are genuine. It is waiting in the portal and takes a minute.",
+      "An advisor will read your file and come back to you within two working days. If anything is missing they will ask you once, not repeatedly.",
+    ],
+    cta: { label: "Sign the final consent", url: `${opts.portalUrl}/portal/application` },
+  });
+}

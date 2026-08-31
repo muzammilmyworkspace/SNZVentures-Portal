@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/guard";
+import { requireOpen } from "@/lib/portal/gate";
 import { JOURNEYS, type Role } from "@/lib/auth/types";
 import {
   PortalHeading,
@@ -10,6 +11,8 @@ const isClientRole = (r: Role): r is "student" | "professional" | "business" =>
   r === "student" || r === "professional" || r === "business";
 
 export default async function JourneyPage() {
+  // Locked until the fee is verified. See lib/portal/gate.ts.
+  await requireOpen("/portal/journey");
   const { session } = await requireUser();
 
   const journey = isClientRole(session.role) ? JOURNEYS[session.role] : null;
