@@ -211,12 +211,7 @@ export function PortalShell({
               </span>
             </button>
 
-            <Link href="/" className="label -my-3 hidden min-h-11 items-center gap-2 py-3 text-faint transition-colors hover:text-fg sm:inline-flex">
-              <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-2.5 w-2.5">
-                <path d="M11 6H2m0 0l3.5-3.5M2 6l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Back to site
-            </Link>
+            {/* "Back to site" removed — see the note in AuthShell. */}
 
             <p className="min-w-0 flex-1 truncate text-[0.85rem] text-faint lg:text-right">
               <span className="font-medium text-fg">{name}</span>

@@ -170,15 +170,14 @@ export function AuthShell({
               </span>
             </Link>
 
-            <Link
-              href="/"
-              className="label group ml-auto inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-line px-4 text-muted transition-colors hover:border-moss-400/60 hover:text-accent"
-            >
-              <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-2.5 w-2.5 transition-transform duration-300 group-hover:-translate-x-0.5">
-                <path d="M11 6H2m0 0l3.5-3.5M2 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Back to home
-            </Link>
+            {/*
+              "Back to home" removed when the portal moved to its own origin.
+              It pointed at "/", which on this host is the portal root, not the
+              marketing site — so the one thing its label promised was the one
+              thing it could not do. Sending it to snzventures.com instead would
+              be worse: a link off the application, in the masthead of a
+              sign-in screen, is exactly where it should not be.
+            */}
           </div>
 
           <h1 className="d-1 text-fg-strong">{title}</h1>
