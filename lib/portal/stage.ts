@@ -25,13 +25,8 @@
 
 import { db, safeQuery, isDatabaseConfigured } from "@/lib/db/client";
 
-export type StudentStage =
-  | "fee_due"
-  | "fee_review"
-  | "fee_rejected"
-  | "application"
-  | "consent_due"
-  | "complete";
+import type { StudentStage } from "./stage-rules";
+export type { StudentStage };
 
 export type StageInfo = {
   stage: StudentStage;
@@ -95,79 +90,14 @@ export async function studentStage(userId: string): Promise<StageInfo> {
 
 /* ------------------------------------------------------------- what opens */
 
-const ORDER: StudentStage[] = [
-  "fee_due",
-  "fee_rejected",
-  "fee_review",
-  "application",
-  "consent_due",
-  "complete",
-];
-
-/**
- * Routes that stay open at EVERY stage.
- *
- * A locked student who cannot reach us is a student who emails a competitor
- * instead, so Messages and Notifications are never gated. Settings stays open
- * because a password change must not depend on having paid, and the dashboard
- * is where the fee dialog lives — locking it would lock the door and leave the
- * key inside.
- */
-const ALWAYS_OPEN = [
-  "/portal",
-  "/portal/student",
-  "/portal/messages",
-  "/portal/notifications",
-  "/portal/settings",
-  "/portal/support",
-];
-
-/** Opens once the fee is verified. */
-const NEEDS_FEE = [
-  "/portal/application",
-  "/portal/journey",
-  "/portal/cases",
-  "/portal/documents",
-  "/portal/tasks",
-  "/portal/universities",
-  "/portal/scholarships",
-  "/portal/appointments",
-  "/portal/profile",
-];
-
-export function stageAtLeast(stage: StudentStage, min: StudentStage): boolean {
-  return ORDER.indexOf(stage) >= ORDER.indexOf(min);
-}
-
-/** True when the fee has been checked and passed. */
-export const feeCleared = (stage: StudentStage) => stageAtLeast(stage, "application");
-
-/**
- * Is this path open at this stage?
- *
- * Unknown paths default to OPEN. That is deliberate: a page added later should
- * not silently become unreachable for every student because someone forgot to
- * list it. Gating is opt-in and visible in NEEDS_FEE above, where it can be
- * read, rather than implied by absence.
- */
-export function pathOpen(path: string, stage: StudentStage): boolean {
-  const match = (list: string[]) =>
-    list.some((p) => path === p || path.startsWith(`${p}/`));
-  if (match(ALWAYS_OPEN)) return true;
-  if (match(NEEDS_FEE)) return feeCleared(stage);
-  return true;
-}
-
-/** One line for the visitor, explaining why a locked thing is locked. */
-export function lockReason(stage: StudentStage): string | null {
-  switch (stage) {
-    case "fee_due":
-      return "Complete your fee verification to open the rest of your portal.";
-    case "fee_review":
-      return "We're checking your receipt. This usually takes one working day.";
-    case "fee_rejected":
-      return "There's a problem with your fee verification — please resubmit it.";
-    default:
-      return null;
-  }
-}
+/*
+  The rules live in ./stage-rules, which imports nothing, so `npm run
+  verify:gate` can assert them directly with no database and no server. They
+  are re-exported here so every existing import site keeps working.
+*/
+export {
+  stageAtLeast,
+  feeCleared,
+  pathOpen,
+  lockReason,
+} from "./stage-rules";
