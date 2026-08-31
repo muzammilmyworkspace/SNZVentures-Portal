@@ -44,7 +44,9 @@ export type FieldType =
   /** The whole application, played back before it is sent. */
   | "review"
   /** The Student Consent & Undertaking, in full, to be read before signing. */
-  | "consent";
+  | "consent"
+  /** The document & attestation checklist. Holds the applicant's own ticks. */
+  | "checklist";
 
 /**
  * Show this field only when another answer says so.

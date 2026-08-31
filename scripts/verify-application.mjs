@@ -14,6 +14,14 @@ import { STUDY_APPLICATION } from "../lib/application/definition.ts";
 import { fieldVisible, optionsFor, DECORATIVE } from "../lib/application/types.ts";
 import { documentsFor, filenamePrefix } from "../lib/application/documents.ts";
 import { buildMotivation } from "../lib/application/motivation.ts";
+import {
+  ADMISSION_CHECKLIST,
+  VISA_CHECKLIST,
+  groupsFor,
+  februaryRequirement,
+  checklistProgress,
+  itemIdsFor,
+} from "../lib/application/checklist.ts";
 
 let failures = 0;
 const fail = (m) => { failures++; console.log(`  FAIL  ${m}`); };
@@ -24,8 +32,17 @@ const all = steps.flatMap((s) => s.fields);
 const byKey = new Map();
 
 console.log("\n=== structure ===");
-if (steps.length !== 10) fail(`expected 10 sections, found ${steps.length}`);
-else ok("ten sections");
+if (steps.length !== 11) fail(`expected 11 sections, found ${steps.length}`);
+else ok("eleven sections");
+
+/* The checklist explains what a document must BE; section 09 is where it is
+   uploaded. Reading it afterwards is reading it too late — an upload with the
+   wrong attestation starts again from the Board office. */
+const checklistAt = steps.findIndex((s) => s.key === "checklist");
+const documentsAt = steps.findIndex((s) => s.key === "documents");
+if (checklistAt === -1) fail("there is no checklist section");
+else if (checklistAt > documentsAt) fail("the checklist comes after the uploads it governs");
+else ok("the checklist comes before the uploads");
 
 /* The undertaking must be LAST. It authorises us to send the file, so it is
    signed on the finished thing — a signature taken before the final section
@@ -126,6 +143,85 @@ if (!letter.includes("Three.")) fail("an answered question is missing from the d
 if (letter.includes("undefined")) fail("an unanswered question leaked into the draft");
 if (!letter.trimEnd().endsWith("Ada Lovelace")) fail("the draft is not signed");
 ok("the draft skips unanswered questions and signs off");
+
+/* ── the document checklist ─────────────────────────────────────────── */
+console.log("\n=== checklist ===");
+
+const BACHELOR = "Bachelor's degree (undergraduate)";
+const MASTER = "Master's degree (postgraduate)";
+const FEB = "Spring / February 2027";
+const AUTUMN = "Autumn / September 2026";
+
+/* Every id has to be unique across BOTH lists — they share one map of ticks,
+   so a collision would silently tick two different requirements at once. */
+const everyId = [
+  ...itemIdsFor(ADMISSION_CHECKLIST, MASTER),
+  ...itemIdsFor(VISA_CHECKLIST, MASTER),
+];
+const clash = everyId.filter((id, i) => everyId.indexOf(id) !== i);
+if (clash.length) fail(`checklist ids collide: ${[...new Set(clash)].join(", ")}`);
+else ok(`${everyId.length} checklist items, every id unique across both lists`);
+
+/* A Bachelor's applicant is not asked about a Master's degree they do not have. */
+const forBachelor = groupsFor(ADMISSION_CHECKLIST, BACHELOR).map((g) => g.id);
+const forMaster = groupsFor(ADMISSION_CHECKLIST, MASTER).map((g) => g.id);
+if (forBachelor.includes("master")) fail("a Bachelor's applicant is shown the Master's group");
+if (!forMaster.includes("master")) fail("a Master's applicant is not shown the Master's group");
+if (!forBachelor.includes("ssc") || !forBachelor.includes("hssc")) {
+  fail("the school groups are missing for a Bachelor's applicant");
+}
+ok(`bachelor sees ${forBachelor.length} groups, master ${forMaster.length}`);
+
+/* The February rule must appear only for February, and must name the
+   applicant's OWN last qualification rather than restating the general rule. */
+if (februaryRequirement(AUTUMN, BACHELOR) !== null) {
+  fail("the February requirement shows for an autumn intake");
+}
+const febBachelor = februaryRequirement(FEB, BACHELOR);
+const febMaster = februaryRequirement(FEB, MASTER);
+if (!febBachelor) fail("no February requirement for a February Bachelor's applicant");
+else if (!/Intermediate/i.test(febBachelor.document)) {
+  fail(`February/Bachelor's names "${febBachelor.document}" as the last qualification`);
+}
+if (!febMaster) fail("no February requirement for a February Master's applicant");
+else if (!/Bachelor/i.test(febMaster.document)) {
+  fail(`February/Master's names "${febMaster.document}" as the last qualification`);
+}
+if (febBachelor && febMaster && febBachelor.document === febMaster.document) {
+  fail("both levels are told the same document needs apostilling");
+}
+ok("the February rule names the right document for each level");
+
+/* Attestation chains are the part that sends applications back. */
+const chainOf = (id) =>
+  ADMISSION_CHECKLIST.groups.find((g) => g.id === id)?.attestation?.chain.join(" → ");
+for (const [id, expected] of [
+  ["ssc", "Board → IBCC → MOFA"],
+  ["hssc", "Board → IBCC → MOFA"],
+  ["bachelor", "HEC → MOFA"],
+  ["master", "HEC → MOFA"],
+]) {
+  if (chainOf(id) !== expected) fail(`${id} attestation reads "${chainOf(id)}", expected "${expected}"`);
+}
+if (ADMISSION_CHECKLIST.groups.find((g) => g.id === "passport")?.attestation) {
+  fail("the passport group claims an attestation it does not need");
+}
+ok("attestation chains are as the document states");
+
+/* Progress counts only what applies. */
+const ids = itemIdsFor(ADMISSION_CHECKLIST, BACHELOR);
+const empty = checklistProgress(ADMISSION_CHECKLIST, BACHELOR, {});
+if (empty.done !== 0 || empty.percent !== 0) fail("an untouched checklist is not at zero");
+const everyTick = Object.fromEntries(ids.map((id) => [id, true]));
+const full = checklistProgress(ADMISSION_CHECKLIST, BACHELOR, everyTick);
+if (full.percent !== 100) fail(`a fully ticked checklist reads ${full.percent}%`);
+/* Ticking a Master's item must not move a Bachelor's applicant's bar. */
+const strayed = checklistProgress(ADMISSION_CHECKLIST, BACHELOR, {
+  ...everyTick,
+  "master-certificate": true,
+});
+if (strayed.total !== full.total) fail("an inapplicable tick changed the total");
+ok("progress counts only the groups that apply");
 
 console.log(
   failures === 0

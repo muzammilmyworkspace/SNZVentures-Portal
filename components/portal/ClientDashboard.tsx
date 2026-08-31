@@ -15,6 +15,13 @@ import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/inta
 import { studentStage } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
+import {
+  ADMISSION_CHECKLIST,
+  VISA_CHECKLIST,
+  checklistProgress,
+  februaryRequirement,
+  groupsFor,
+} from "@/lib/application/checklist";
 import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import { roleContext, portalRoleFor } from "@/lib/portal/roles";
 import {
@@ -81,6 +88,29 @@ export async function ClientDashboard({ session }: { session: Session }) {
 
   const applicationProgress =
     pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data) : null;
+
+  /*
+    THE CHECKLIST, ON THE DASHBOARD.
+
+    "Which documents do I need?" is the question we are asked most, and the
+    answer used to be a PDF somebody had to find and send. It is on the first
+    screen now, with the applicant's own progress against it, so the question
+    answers itself before it is asked.
+  */
+  const answers = (intake?.data ?? {}) as Record<string, unknown>;
+  const applyLevel = String(answers.applyLevel ?? "");
+  const ticked = (answers.checklist ?? {}) as Record<string, unknown>;
+  const admissionDocs = role === "student" ? checklistProgress(ADMISSION_CHECKLIST, applyLevel, ticked) : null;
+  const visaDocs = role === "student" ? checklistProgress(VISA_CHECKLIST, applyLevel, ticked) : null;
+  const february = role === "student" ? februaryRequirement(String(answers.intake ?? ""), applyLevel) : null;
+
+  /* The groups still holding something outstanding, named. */
+  const outstandingGroups =
+    role === "student"
+      ? groupsFor(ADMISSION_CHECKLIST, applyLevel)
+          .filter((g) => !g.items.every((i) => ticked[i.id] === true))
+          .map((g) => g.title)
+      : [];
   const required = REQUIRED_DOCUMENTS[role] ?? [];
 
   const openTasks = tasks.filter((t) => t.status !== "done");
@@ -327,6 +357,70 @@ export async function ClientDashboard({ session }: { session: Session }) {
           )}
         </Panel>
       </div>
+
+      {admissionDocs && visaDocs && (
+        <Panel
+          className="mt-5"
+          title="Document checklist"
+          action={<CardLink href="/portal/application">Open the checklist</CardLink>}
+        >
+          {february && (
+            <p className="mb-4 rounded-[var(--radius-sm)] border border-moss-400/50 bg-moss-400/[0.08] px-4 py-3 text-[0.86rem] leading-relaxed text-fg">
+              <strong className="font-semibold">February intake:</strong> {february.document} must
+              be Apostilled / Legalized. It is the step that most often holds a February
+              application up, so start it early.
+            </p>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { label: "Admission & attestation", p: admissionDocs },
+              { label: "Visa & residence", p: visaDocs },
+            ].map(({ label, p }) => (
+              <div key={label} className="rounded-[var(--radius-sm)] border border-line p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[0.86rem] font-semibold text-fg">{label}</span>
+                  <span className="font-mono text-[0.74rem] text-accent">
+                    {p.done}/{p.total}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+                  <div
+                    className="h-full rounded-full bg-moss-400 transition-[width] duration-500"
+                    style={{ width: `${p.percent}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {outstandingGroups.length > 0 ? (
+            <div className="mt-4 border-t border-line pt-4">
+              <p className="label mb-2 text-[0.6rem] text-faint">Still to gather</p>
+              <ul className="flex flex-wrap gap-2">
+                {outstandingGroups.slice(0, 6).map((title) => (
+                  <li
+                    key={title}
+                    className="rounded-full border border-line px-2.5 py-1 text-[0.78rem] text-muted"
+                  >
+                    {title}
+                  </li>
+                ))}
+                {outstandingGroups.length > 6 && (
+                  <li className="px-1 py-1 text-[0.78rem] text-faint">
+                    +{outstandingGroups.length - 6} more
+                  </li>
+                )}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-4 border-t border-line pt-4 text-[0.84rem] leading-relaxed text-moss-300">
+              Everything on the admission list is ticked. Attestation stamps take weeks, so having
+              them ready is most of the work.
+            </p>
+          )}
+        </Panel>
+      )}
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
         <Panel title={casesLabel} action={<CardLink href="/portal/cases">View all</CardLink>}>

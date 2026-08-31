@@ -15,6 +15,7 @@ import { DIAL_CODES } from "@/lib/application/reference";
 import { dateProblem, resolveBound } from "@/lib/application/dates";
 import { ReviewSummary } from "@/components/application/ReviewSummary";
 import { UndertakingDoc } from "@/components/application/UndertakingDoc";
+import { ChecklistBoard } from "@/components/application/ChecklistBoard";
 import {
   applyMask,
   RadioPills,
@@ -305,6 +306,7 @@ const isBlank = (f: IntakeField, v: unknown) => {
     );
   }
   if (f.type === "documents") return false; // decided across steps, not here
+  if (f.type === "checklist") return false; // the applicant's own tracking
   if (Array.isArray(v)) return v.length === 0;
   return v === undefined || v === null || String(v).trim() === "";
 };
@@ -697,6 +699,13 @@ export function IntakeForm({
                         String(answers.givenName ?? "")
                       )}
                       value={(answers[f.key] as Record<string, string>) ?? {}}
+                      onChange={(next) => set(f.key, next)}
+                    />
+                  ) : f.type === "checklist" ? (
+                    <ChecklistBoard
+                      applyLevel={String(answers.applyLevel ?? "")}
+                      intake={String(answers.intake ?? "")}
+                      value={(answers[f.key] as Record<string, boolean>) ?? {}}
                       onChange={(next) => set(f.key, next)}
                     />
                   ) : f.type === "consent" ? (

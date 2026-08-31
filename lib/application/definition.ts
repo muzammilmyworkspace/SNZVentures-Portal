@@ -812,6 +812,18 @@ export const STUDY_APPLICATION: IntakeDefinition = {
 
     /* ═══════════════════════════════════════════════════ 08 ═══ */
     {
+      key: "checklist",
+      title: "Document checklist",
+      blurb: "What each document has to be, before you scan it",
+      intro:
+        "This is the question we are asked most, so it lives here rather than in a PDF somebody has to send you. It shows only what applies to what you are applying for, and it remembers what you have ticked. Read it before section 09 — a document uploaded without the right attestation has to be done again from the beginning, and the stamps take weeks.",
+      fields: [
+        { key: "checklist", label: "Your documents", type: "checklist", wide: true },
+      ],
+    },
+
+    /* ═══════════════════════════════════════════════════ 09 ═══ */
+    {
       key: "documents",
       title: "Documents",
       blurb: "Your document file",
