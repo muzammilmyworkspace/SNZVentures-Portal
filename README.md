@@ -7,6 +7,8 @@ PostgreSQL.
 This repository is the portal and nothing else. The public marketing site lives
 separately in **SNZV-Website** (snzventures.com).
 
+Repository: `muzammilmyworkspace/SNZVentures-Portal`
+
 ## Getting started
 
 ```bash
@@ -124,7 +126,7 @@ cannot `CREATE EXTENSION`.
 
 ## Shared with the marketing site
 
-These files also exist in **SNZV-Website** and were copied here when the portal
+These files also exist in **SNZV-Website** (`muzammilmyworkspace/SNZV-Website`) and were copied here when the portal
 was split out. There is no shared package, so a change to one does **not**
 reach the other — if you edit any of these, decide whether the other repo needs
 the same edit:
