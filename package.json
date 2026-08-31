@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run db:deploy && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/migrate.mjs",
@@ -19,7 +19,8 @@
     "db:gen": "node scripts/gen-schema-module.mjs",
     "verify:migrator": "node --experimental-strip-types scripts/verify-migrator.mjs",
     "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:application && npm run verify:migrator && npm run db:verify",
-    "verify:application": "node --experimental-strip-types scripts/verify-application.mjs"
+    "verify:application": "node --experimental-strip-types scripts/verify-application.mjs",
+    "db:deploy": "node scripts/db-deploy.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
