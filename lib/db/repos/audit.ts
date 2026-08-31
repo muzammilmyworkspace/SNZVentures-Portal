@@ -43,6 +43,11 @@ export type AuditAction =
   | "document.downloaded"
   | "staff.assigned"
   | "staff.unassigned"
+  // Schema applied from the admin area (009). A migration changes the shape
+  // of every table under it and cannot be undone from the UI, so both the
+  // successful runs and the refused ones are recorded with who pressed it.
+  | "schema.applied"
+  | "schema.failed"
   // Fee verification (007). The student declares, staff decide, and the
   // decision is what unlocks the rest of the portal — so all three are
   // recorded, not just the approval.

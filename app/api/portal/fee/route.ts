@@ -22,6 +22,7 @@ import {
   dobError,
 } from "@/lib/portal/payment-consent";
 import { studentStage } from "@/lib/portal/stage";
+import { classifyFault } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -185,6 +186,7 @@ export async function POST(request: Request) {
   try {
     const stored = await putObject(buildKey(session.userId, file.name), buffer, file.type);
     documentId = await repo.createDocument({
+      storageProvider: stored.provider,
       ownerId: session.userId, // never from the request
       name: `Payment receipt — ${university}`.slice(0, 120),
       category: "Payment",
@@ -249,15 +251,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, id: feeId });
   } catch (error) {
+    /*
+      A missing table and a dropped connection both land here, and only one
+      of them is worth retrying. Saying which turns an unanswerable red box
+      into something the student can act on and staff can find.
+    */
+    const fault = classifyFault(error);
     // eslint-disable-next-line no-console
-    console.error("[fee] submission failed:", error);
+    console.error(`[fee] submission failed (${fault.kind}):`, fault.detail);
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "We couldn't record that just now. Please try again, or send your receipt to info@snzventures.com.",
-      },
-      { status: 500 }
+      { ok: false, error: fault.message, kind: fault.kind },
+      { status: fault.status }
     );
   }
 }

@@ -15,7 +15,10 @@
     "check:config": "node scripts/check-config.mjs",
     "verify:gate": "node --experimental-strip-types scripts/verify-gate.mjs",
     "verify:fields": "node --experimental-strip-types scripts/verify-fields.mjs",
-    "db:bundle": "node scripts/sql-bundle.mjs"
+    "db:bundle": "node scripts/sql-bundle.mjs",
+    "db:gen": "node scripts/gen-schema-module.mjs",
+    "verify:migrator": "node --experimental-strip-types scripts/verify-migrator.mjs",
+    "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:migrator && npm run db:verify"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

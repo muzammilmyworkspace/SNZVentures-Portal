@@ -36,6 +36,7 @@ export type DocumentRow = {
   category: string;
   status: string;
   storageKey: string | null;
+  storageProvider: string | null;
   mimeType: string | null;
   sizeBytes: number | null;
   /**
@@ -264,6 +265,7 @@ function mapDocument(r: Record<string, unknown>): DocumentRow {
     category: String(r.category),
     status: String(r.status),
     storageKey: r.storage_key ? String(r.storage_key) : null,
+    storageProvider: r.storage_provider ? String(r.storage_provider) : null,
     mimeType: r.mime_type ? String(r.mime_type) : null,
     sizeBytes: r.size_bytes ? Number(r.size_bytes) : null,
     reviewNote: r.review_note ? String(r.review_note) : null,
@@ -276,14 +278,18 @@ export async function createDocument(input: {
   name: string;
   category: string;
   storageKey: string;
+  /* Written alongside the key, never inferred later. See migration 009. */
+  storageProvider: string;
   mimeType: string;
   sizeBytes: number;
   caseId?: string | null;
 }) {
   const rows = await db()`
-    INSERT INTO documents (owner_id, case_id, name, category, status, storage_key, mime_type, size_bytes)
+    INSERT INTO documents (owner_id, case_id, name, category, status, storage_key,
+                           storage_provider, mime_type, size_bytes)
     VALUES (${input.ownerId}, ${input.caseId ?? null}, ${input.name}, ${input.category},
-            'uploaded', ${input.storageKey}, ${input.mimeType}, ${input.sizeBytes})
+            'uploaded', ${input.storageKey}, ${input.storageProvider},
+            ${input.mimeType}, ${input.sizeBytes})
     RETURNING id
   `;
   return String(rows[0].id);

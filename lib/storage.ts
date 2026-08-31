@@ -18,21 +18,102 @@
 
 import { createHmac, createHash } from "node:crypto";
 
-export type StoredObject = { key: string; size: number; contentType: string };
+export type StoredObject = {
+  key: string;
+  size: number;
+  contentType: string;
+  /** The store that actually holds it. Persist this with the key. */
+  provider: Transport;
+};
 
-export function storageTransport(): "supabase" | "blob" | "s3" | "none" {
-  /*
-    Supabase first, because this project already HAS Supabase.
+export type Transport = "supabase" | "blob" | "s3" | "none";
 
-    The alternatives each mean onboarding a second vendor for something the
-    existing one does: a private bucket with server-issued signed URLs. Using
-    it needs one key from a dashboard the operator already has open, and no new
-    account, billing relationship or region decision.
-  */
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) return "supabase";
+/**
+ * IS THIS CREDENTIAL ONE SUPABASE WILL ACCEPT?
+ *
+ * Shape only — whether the key is valid, current or has the right grants is
+ * Supabase's business, not something we can know without asking it.
+ *
+ * This exists because "the variable is set" and "the variable is usable" are
+ * different questions, and picking a transport on the first one is how a
+ * mistyped key silently disables uploads. Supabase takes two credential
+ * formats: the legacy service_role JWT (three dot-separated base64url
+ * segments) and the newer `sb_secret_…` key. Anything else — a project ref, a
+ * database password, a hex string pasted into the wrong box — is not a key,
+ * and every request made with it comes back "Invalid Compact JWS".
+ */
+function supabaseKeyLooksUsable(key: string | undefined): boolean {
+  if (!key) return false;
+  if (key.startsWith("sb_secret_")) return key.length > "sb_secret_".length + 8;
+  const parts = key.split(".");
+  return parts.length === 3 && parts.every((p) => p.length > 0) && key.startsWith("eyJ");
+}
+
+function supabaseUrlLooksUsable(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * WHICH STORE WE WRITE TO NOW.
+ *
+ * Supabase first, because this project already HAS Supabase: the alternatives
+ * each mean onboarding a second vendor for something the existing one does.
+ *
+ * But only when its credentials are actually of the right shape. Before, a
+ * malformed service-role key still selected Supabase and permanently shadowed
+ * a working Blob token sitting right behind it — every upload failed with a
+ * 403 from a vendor the operator had configured correctly somewhere else. A
+ * transport that cannot possibly authenticate is not a transport; fall past it.
+ */
+export function storageTransport(): Transport {
+  if (
+    supabaseUrlLooksUsable(process.env.SUPABASE_URL) &&
+    supabaseKeyLooksUsable(process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ) {
+    return "supabase";
+  }
   if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
   if (process.env.S3_BUCKET && process.env.S3_ACCESS_KEY_ID) return "s3";
   return "none";
+}
+
+/**
+ * What an operator needs to see on the health page: which transport is live,
+ * and — importantly — which ones were configured but rejected, with the reason.
+ * Silently falling back is right for the request; hiding it is not.
+ */
+export function storageDiagnosis(): {
+  active: Transport;
+  notes: string[];
+} {
+  const notes: string[] = [];
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (url || key) {
+    if (!supabaseUrlLooksUsable(url)) {
+      notes.push(
+        url
+          ? "SUPABASE_URL is not an https URL. It should look like https://<project-ref>.supabase.co"
+          : "SUPABASE_URL is not set."
+      );
+    }
+    if (!supabaseKeyLooksUsable(key)) {
+      notes.push(
+        key
+          ? "SUPABASE_SERVICE_ROLE_KEY is not a service-role credential. Expected a JWT starting `eyJ` or a key starting `sb_secret_`. Supabase rejects anything else with \"Invalid Compact JWS\"."
+          : "SUPABASE_SERVICE_ROLE_KEY is not set."
+      );
+    }
+  }
+  if (!process.env.BLOB_READ_WRITE_TOKEN) notes.push("BLOB_READ_WRITE_TOKEN is not set.");
+
+  return { active: storageTransport(), notes };
 }
 
 /**
@@ -151,7 +232,7 @@ export async function putObject(
     if (!res.ok) {
       throw new Error(`Supabase upload failed: ${res.status} ${await res.text().catch(() => "")}`);
     }
-    return { key, size: body.length, contentType };
+    return { key, size: body.length, contentType, provider: "supabase" };
   }
 
   if (transport === "blob") {
@@ -172,12 +253,12 @@ export async function putObject(
      * objects) configure the S3 transport instead; that is the recommended
      * production setup and is what the runbook documents.
      */
-    return { key: res.pathname, size: body.length, contentType };
+    return { key: res.pathname, size: body.length, contentType, provider: "blob" };
   }
 
   if (transport === "s3") {
     await s3Fetch("PUT", key, body, contentType);
-    return { key, size: body.length, contentType };
+    return { key, size: body.length, contentType, provider: "s3" };
   }
 
   throw new Error("No storage transport configured.");
@@ -185,9 +266,20 @@ export async function putObject(
 
 /* ------------------------------------------------------------------ read */
 
-/** Short-lived link. Callers MUST authorise before calling this. */
-export async function getSignedUrl(key: string, expiresSeconds = 120): Promise<string> {
-  const transport = storageTransport();
+/**
+ * Short-lived link. Callers MUST authorise before calling this.
+ *
+ * `provider` is the transport that WROTE the object, read back from its row.
+ * It falls back to the configured one only for rows written before we recorded
+ * it — signing a Blob object with Supabase's API yields a confident 404, which
+ * is a much harder failure to read than an honest one.
+ */
+export async function getSignedUrl(
+  key: string,
+  expiresSeconds = 120,
+  provider?: Transport | null
+): Promise<string> {
+  const transport = provider && provider !== "none" ? provider : storageTransport();
 
   if (transport === "supabase") {
     const res = await fetch(
@@ -217,8 +309,8 @@ export async function getSignedUrl(key: string, expiresSeconds = 120): Promise<s
   throw new Error("No storage transport configured.");
 }
 
-export async function deleteObject(key: string): Promise<void> {
-  const transport = storageTransport();
+export async function deleteObject(key: string, provider?: Transport | null): Promise<void> {
+  const transport = provider && provider !== "none" ? provider : storageTransport();
   if (transport === "supabase") {
     await fetch(`${supabaseBase()}/storage/v1/object/${SUPABASE_BUCKET}/${encodeURI(key)}`, {
       method: "DELETE",

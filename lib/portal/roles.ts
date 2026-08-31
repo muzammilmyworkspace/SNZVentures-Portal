@@ -45,7 +45,19 @@ export type IconKey =
   | "jobs" | "interviews" | "requests" | "services" | "users" | "activity"
   | "tasks";
 
-export type NavItem = { href: string; label: string; icon: IconKey; badgeKey?: BadgeKey };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: IconKey;
+  badgeKey?: BadgeKey;
+  /**
+   * Restrict to specific underlying roles. advisor, admin and super_admin all
+   * resolve to the "admin" nav, but a few destinations guard tighter than the
+   * nav does — and a menu item that bounces you to a redirect is worse than
+   * one that is not there.
+   */
+  roles?: Role[];
+};
 
 /**
  * Navigation per audience.
@@ -188,6 +200,12 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       group: "Account",
       items: [
         { href: "/portal/admin/audit", label: "Audit log", icon: "activity" },
+        {
+          href: "/portal/admin/schema",
+          label: "Database & storage",
+          icon: "settings",
+          roles: ["super_admin"],
+        },
         { href: "/portal/settings", label: "Settings", icon: "settings" },
       ],
     },

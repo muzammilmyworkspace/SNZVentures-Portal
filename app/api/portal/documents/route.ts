@@ -78,6 +78,7 @@ export async function POST(request: Request) {
     const stored = await putObject(key, buffer, file.type);
 
     const id = await repo.createDocument({
+      storageProvider: stored.provider,
       ownerId: session.userId, // never from the request body
       name: label || file.name,
       category,

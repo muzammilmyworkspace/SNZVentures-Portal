@@ -47,7 +47,7 @@ export async function GET(
   }
 
   try {
-    const url = await getSignedUrl(doc.storageKey, 120);
+    const url = await getSignedUrl(doc.storageKey, 120, doc.storageProvider as never);
     await audit({
       action: "document.downloaded",
       actorId: session.userId,
@@ -87,7 +87,7 @@ export async function DELETE(
   }
 
   try {
-    if (doc.storageKey) await deleteObject(doc.storageKey);
+    if (doc.storageKey) await deleteObject(doc.storageKey, doc.storageProvider as never);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[documents] object delete failed:", error);

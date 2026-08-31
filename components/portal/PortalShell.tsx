@@ -85,7 +85,9 @@ export function PortalShell({
   const [signingOut, setSigningOut] = useState(false);
 
   const portalRole = portalRoleFor(role);
-  const groups = navFor[portalRole];
+  const groups = navFor[portalRole]
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || i.roles.includes(role)) }))
+    .filter((g) => g.items.length > 0);
   const home = homeFor(role);
 
   useEffect(() => setMenuOpen(false), [pathname]);
