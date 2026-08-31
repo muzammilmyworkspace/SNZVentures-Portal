@@ -17,6 +17,8 @@
  * Callers that must not hard-fail should check `mailConfigured()` first.
  */
 
+import { env, envOr } from "./env";
+
 export type MailMessage = {
   to?: string;
   subject: string;
@@ -47,8 +49,8 @@ export function mailTransport(): "resend" | "webhook" | "none" {
 }
 
 export async function sendMail(message: MailMessage): Promise<void> {
-  const to = message.to ?? process.env.MAIL_TO ?? DEFAULT_TO;
-  const from = process.env.MAIL_FROM ?? `SnZ Ventures <noreply@snzventures.com>`;
+  const to = message.to ?? env("MAIL_TO") ?? DEFAULT_TO;
+  const from = envOr("MAIL_FROM", "SnZ Ventures <noreply@snzventures.com>");
 
   const transport = mailTransport();
 

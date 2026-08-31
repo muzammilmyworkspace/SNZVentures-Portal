@@ -8,6 +8,7 @@
  *   npm run verify:fields
  */
 import { passportError, dobError } from "../lib/portal/payment-consent.ts";
+import { env, envOr, envSet } from "../lib/env.ts";
 
 let failures = 0;
 function expect(label, actual, shouldPass) {
@@ -65,6 +66,36 @@ console.log("\n=== dates of birth ===");
   [year(120), false],       // over 100
   [year(0), false],         // today
 ].forEach(([v, ok]) => expect(`reject "${v}"`, dobError(v), ok));
+
+/* ── environment reads ──────────────────────────────────────────────────
+   A dashboard happily saves a variable with nothing in it. `??` keeps that
+   empty string, and the blank bucket name it produced turned every storage
+   URL into a 404 that blamed the bucket. Executed, not assumed. */
+console.log("\n=== environment reads ===");
+const cases = [
+  ["unset", undefined, undefined, "fallback", false],
+  ["empty", "", undefined, "fallback", false],
+  ["whitespace", "   ", undefined, "fallback", false],
+  ["tab and newline", "\t\n", undefined, "fallback", false],
+  ["a value", "bucket-name", "bucket-name", "bucket-name", true],
+  ["padded value", "  bucket-name  ", "bucket-name", "bucket-name", true],
+];
+for (const [label, raw, wantEnv, wantOr, wantSet] of cases) {
+  if (raw === undefined) delete process.env.__PROBE;
+  else process.env.__PROBE = raw;
+
+  const gotEnv = env("__PROBE");
+  const gotOr = envOr("__PROBE", "fallback");
+  const gotSet = envSet("__PROBE");
+
+  if (gotEnv !== wantEnv || gotOr !== wantOr || gotSet !== wantSet) {
+    failures++;
+    console.log(
+      `  FAIL  ${label}: env=${JSON.stringify(gotEnv)} envOr=${JSON.stringify(gotOr)} envSet=${gotSet}`
+    );
+  }
+}
+delete process.env.__PROBE;
 
 console.log(
   failures === 0

@@ -17,6 +17,7 @@
  */
 
 import { createHmac, createHash } from "node:crypto";
+import { env, envOr, envSet } from "./env";
 
 export type StoredObject = {
   key: string;
@@ -72,13 +73,13 @@ function supabaseUrlLooksUsable(url: string | undefined): boolean {
  */
 export function storageTransport(): Transport {
   if (
-    supabaseUrlLooksUsable(process.env.SUPABASE_URL) &&
-    supabaseKeyLooksUsable(process.env.SUPABASE_SERVICE_ROLE_KEY)
+    supabaseUrlLooksUsable(env("SUPABASE_URL")) &&
+    supabaseKeyLooksUsable(env("SUPABASE_SERVICE_ROLE_KEY"))
   ) {
     return "supabase";
   }
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
-  if (process.env.S3_BUCKET && process.env.S3_ACCESS_KEY_ID) return "s3";
+  if (envSet("BLOB_READ_WRITE_TOKEN")) return "blob";
+  if (envSet("S3_BUCKET") && envSet("S3_ACCESS_KEY_ID")) return "s3";
   return "none";
 }
 
@@ -92,8 +93,8 @@ export function storageDiagnosis(): {
   notes: string[];
 } {
   const notes: string[] = [];
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = env("SUPABASE_URL");
+  const key = env("SUPABASE_SERVICE_ROLE_KEY");
 
   if (url || key) {
     if (!supabaseUrlLooksUsable(url)) {
@@ -111,7 +112,7 @@ export function storageDiagnosis(): {
       );
     }
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) notes.push("BLOB_READ_WRITE_TOKEN is not set.");
+  if (!envSet("BLOB_READ_WRITE_TOKEN")) notes.push("BLOB_READ_WRITE_TOKEN is not set.");
 
   return { active: storageTransport(), notes };
 }
@@ -128,14 +129,19 @@ export function storageDiagnosis(): {
  * passport scan readable by anyone who guessed a path, which is the whole
  * thing this exists to prevent.
  */
-const SUPABASE_BUCKET = process.env.SUPABASE_DOCUMENTS_BUCKET ?? "client-documents";
+/*
+  envOr, not ??. A variable saved empty in a dashboard is still a string, so
+  `??` keeps it — and this one lands in the path of every storage URL, which
+  is how "Bucket not found" came to mean "the bucket was never named".
+*/
+const SUPABASE_BUCKET = envOr("SUPABASE_DOCUMENTS_BUCKET", "client-documents");
 
 function supabaseHeaders(): Record<string, string> {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const key = env("SUPABASE_SERVICE_ROLE_KEY")!;
   return { apikey: key, Authorization: `Bearer ${key}` };
 }
 
-const supabaseBase = () => process.env.SUPABASE_URL!.replace(/\/+$/, "");
+const supabaseBase = () => env("SUPABASE_URL")!.replace(/\/+$/, "");
 
 /**
  * Idempotent. Creates the private bucket if it is not there yet.
