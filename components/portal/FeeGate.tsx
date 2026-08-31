@@ -98,6 +98,26 @@ export function FeeGate({
         </Note>
       )}
 
+      {/*
+        THE MOMENT IT OPENS, SAID OUT LOUD.
+
+        This stage rendered nothing at all. Verification is the one event in
+        the whole flow the student has been waiting on, and the way they found
+        out was that some sidebar items had stopped being grey — which is not
+        news arriving, it is news having to be noticed. Somebody who signs in
+        and sees no change concludes nothing happened, and writes to ask.
+      */}
+      {stage === "application" && (
+        <Note
+          tone="action"
+          title="Your fee is verified — the rest of your portal is open"
+          cta={{ label: "Start my application", href: "/portal/application" }}
+        >
+          Thank you. Your application form, documents and journey are all
+          available now.
+        </Note>
+      )}
+
       {stage === "consent_due" && (
         <Note
           tone="action"

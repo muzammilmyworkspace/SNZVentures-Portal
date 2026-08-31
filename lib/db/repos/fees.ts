@@ -145,6 +145,28 @@ export async function liveFeeFor(userId: string): Promise<FeeSubmission | null> 
 }
 
 /**
+ * EVERY submission this student has made, newest first — rejected ones too.
+ *
+ * liveFeeFor() deliberately hides rejected rows, because they are not the
+ * student's current claim. That is right for the gate and wrong for staff
+ * answering "I approved it, why is their portal still shut": the answer is
+ * usually in a row that liveFeeFor cannot see, or in the absence of any row
+ * for the account being looked at.
+ */
+export async function feeHistoryFor(userId: string): Promise<FeeSubmission[]> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT f.*, u.name AS student_name, u.email AS student_email
+      FROM fee_submissions f JOIN users u ON u.id = f.user_id
+      WHERE f.user_id = ${userId}
+      ORDER BY f.created_at DESC
+      LIMIT 20
+    `;
+    return rows.map(map);
+  }, []);
+}
+
+/**
  * The staff queue, newest first, with the pending count in the same round trip.
  * `status = null` means every state, which is what the history view wants.
  */

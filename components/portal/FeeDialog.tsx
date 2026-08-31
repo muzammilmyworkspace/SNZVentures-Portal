@@ -383,18 +383,56 @@ function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null)
         things we check against our bank.
       </p>
 
-      <button
-        type="button"
+      {/*
+        The whole panel was already clickable, and that was the problem: a
+        dashed rectangle with a line of text in it reads as a drop zone or a
+        caption, not as the control you are meant to press. People waited for
+        an upload button that was there the whole time, wearing a disguise.
+
+        So there is now an actual button, styled like every other primary
+        action in the portal. The panel around it still works — a bigger target
+        is a kindness on a phone — but nothing depends on knowing that. A
+        <button> may not be nested inside another, so the outer element is a
+        plain div and the inner one is the real, focusable control.
+      */}
+      <div
+        role="presentation"
         onClick={() => input.current?.click()}
-        className="w-full rounded-[var(--radius-md)] border border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-moss-400/70"
+        className="w-full cursor-pointer rounded-[var(--radius-md)] border border-dashed border-line-strong px-6 py-8 text-center transition-colors hover:border-moss-400/70"
       >
         <span className="block text-[0.95rem] font-semibold text-fg">
-          {file ? "Choose a different file" : "Choose your receipt"}
+          {file ? "Receipt attached" : "Attach your payment receipt"}
         </span>
         <span className="mt-1 block text-[0.82rem] text-faint">
           PDF or image · up to 15 MB
         </span>
-      </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            input.current?.click();
+          }}
+          className="label mt-5 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 16V4" />
+            <path d="m6 10 6-6 6 6" />
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          {file ? "Choose a different file" : "Choose file"}
+        </button>
+      </div>
       <input
         ref={input}
         type="file"

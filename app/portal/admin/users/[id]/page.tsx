@@ -12,6 +12,7 @@ import {
   DataRow,
 } from "@/components/portal/Pieces";
 import { AdminNotes } from "@/components/portal/AdminNotes";
+import { PortalAccess } from "@/components/portal/PortalAccess";
 import * as usersRepo from "@/lib/db/repos/users";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import * as repo from "@/lib/db/repos/portal";
@@ -143,6 +144,13 @@ export default async function AdminUserPage({
 
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_23rem]">
         <div className="space-y-5">
+          {/*
+            Why their portal is open or shut. Students only — nobody else has
+            a fee stage, so for them it would be a panel answering a question
+            that cannot be asked.
+          */}
+          {user.role === "student" && <PortalAccess userId={id} />}
+
           {/* Submitted intake */}
           <Panel
             title={definition ? definition.title : "Intake"}
