@@ -21,6 +21,7 @@ import {
   februaryRequirement,
   checklistProgress,
   itemIdsFor,
+  familyStatus,
 } from "../lib/application/checklist.ts";
 
 let failures = 0;
@@ -222,6 +223,46 @@ const strayed = checklistProgress(ADMISSION_CHECKLIST, BACHELOR, {
 });
 if (strayed.total !== full.total) fail("an inapplicable tick changed the total");
 ok("progress counts only the groups that apply");
+
+/* ── applying with family ───────────────────────────────────────────── */
+console.log("\n=== family ===");
+
+/* The options are the ones section 07 actually offers. If that list is ever
+   reworded, these break — which is the point: familyStatus reads the answer,
+   so a rewording that it does not recognise would silently tell somebody
+   bringing a spouse that they are travelling alone. */
+const dependantsField = STUDY_APPLICATION.steps
+  .flatMap((s) => s.fields)
+  .find((f) => f.key === "dependants");
+if (!dependantsField) fail("section 07 no longer asks who is travelling");
+else {
+  for (const option of dependantsField.options ?? []) {
+    const status = familyStatus(option);
+    const shouldFlag = /spouse/i.test(option);
+    if (status.travellingWithFamily !== shouldFlag) {
+      fail(`"${option}" reads as ${status.travellingWithFamily ? "family" : "alone"}`);
+    }
+    if (shouldFlag && !status.who) fail(`"${option}" flags family but names nobody`);
+    if (!status.headline || !status.body) fail(`"${option}" produces an empty panel`);
+  }
+  ok(`all ${(dependantsField.options ?? []).length} answers map to a family status`);
+}
+
+/* Spouse and children must not be described as a spouse alone. */
+const withChildren = familyStatus("Yes, spouse and children");
+const spouseOnly = familyStatus("Yes, spouse");
+if (withChildren.who === spouseOnly.who) fail("spouse-and-children reads the same as spouse");
+if (!/children/i.test(withChildren.who ?? "")) fail("children are not named");
+ok("who is travelling is named as they told us");
+
+/* Unanswered is not the same as "alone" — it is a prompt to answer. */
+const unanswered = familyStatus("");
+if (unanswered.answered) fail("an empty answer counts as answered");
+if (unanswered.travellingWithFamily) fail("an empty answer assumes family");
+const undecided = familyStatus("Undecided");
+if (!undecided.answered) fail("Undecided is treated as never asked");
+if (undecided.travellingWithFamily) fail("Undecided assumes family");
+ok("unanswered and undecided are handled apart from travelling alone");
 
 console.log(
   failures === 0

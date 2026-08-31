@@ -5,7 +5,7 @@ import {
   ADMISSION_CHECKLIST,
   VISA_CHECKLIST,
   VISA_CASE_NOTE,
-  FAMILY_NOTE,
+  familyStatus,
   groupsFor,
   februaryRequirement,
   checklistProgress,
@@ -221,13 +221,16 @@ function Board({
 export function ChecklistBoard({
   applyLevel,
   intake,
+  dependants = "",
   initialTicks,
 }: {
   applyLevel: string;
   intake: string;
+  /** Who is travelling, from section 07. Drives the family tab. */
+  dependants?: string;
   initialTicks: Record<string, boolean>;
 }) {
-  const [tab, setTab] = useState<"admission" | "visa">("admission");
+  const [tab, setTab] = useState<"admission" | "visa" | "family">("admission");
   const [ticked, setTicked] = useState<Record<string, boolean>>(initialTicks ?? {});
   const [failed, setFailed] = useState<string | null>(null);
 
@@ -261,9 +264,12 @@ export function ChecklistBoard({
   const admission = checklistProgress(ADMISSION_CHECKLIST, applyLevel, ticked);
   const visa = checklistProgress(VISA_CHECKLIST, applyLevel, ticked);
 
+  const family = familyStatus(dependants);
+
   const TABS = [
     { key: "admission" as const, label: "Admission", progress: admission },
     { key: "visa" as const, label: "Visa & residence", progress: visa },
+    { key: "family" as const, label: "With family", progress: null },
   ];
 
   return (
@@ -298,28 +304,38 @@ export function ChecklistBoard({
             )}
           >
             {t.label}
-            <span
-              className={cn(
-                "rounded-full px-1.5 py-0.5 font-mono text-[0.66rem]",
-                t.progress.percent === 100
-                  ? "bg-moss-400 text-navy-950"
-                  : "bg-[color-mix(in_srgb,var(--fg)_10%,transparent)] text-faint"
-              )}
-            >
-              {t.progress.done}/{t.progress.total}
-            </span>
+            {t.progress ? (
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 font-mono text-[0.66rem]",
+                  t.progress.percent === 100
+                    ? "bg-moss-400 text-navy-950"
+                    : "bg-[color-mix(in_srgb,var(--fg)_10%,transparent)] text-faint"
+                )}
+              >
+                {t.progress.done}/{t.progress.total}
+              </span>
+            ) : (
+              /* A dot rather than a count: there is no list to be a fraction
+                 of, and a "0/0" beside it would read as nothing to do. */
+              family.travellingWithFamily && (
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+              )
+            )}
           </button>
         ))}
       </div>
 
-      {tab === "admission" ? (
+      {tab === "admission" && (
         <Board
           checklist={ADMISSION_CHECKLIST}
           applyLevel={applyLevel}
           ticked={ticked}
           onToggle={toggle}
         />
-      ) : (
+      )}
+
+      {tab === "visa" && (
         <div className="space-y-4">
           <Board
             checklist={VISA_CHECKLIST}
@@ -333,14 +349,85 @@ export function ChecklistBoard({
           </p>
 
           {/*
-            Family applications are a different checklist, not a longer one.
-            Saying so here stops somebody working through this list and
-            assuming their spouse is covered by it.
+            A pointer, not the answer. Family had been a grey footnote at the
+            bottom of this tab, which is where people stop reading — somebody
+            could work the whole list and never learn their spouse was not
+            covered by it. It has its own tab now; this is the signpost.
           */}
-          <div className="rounded-[var(--radius-md)] border border-line bg-raised p-4 sm:p-5">
-            <p className="text-[0.9rem] font-semibold text-fg">{FAMILY_NOTE.title}</p>
-            <p className="mt-1.5 text-[0.84rem] leading-relaxed text-muted">{FAMILY_NOTE.body}</p>
+          <button
+            type="button"
+            onClick={() => setTab("family")}
+            className="w-full rounded-[var(--radius-md)] border border-line bg-raised p-4 text-left transition-colors hover:border-moss-400/60 sm:p-5"
+          >
+            <p className="text-[0.9rem] font-semibold text-fg">
+              Bringing a spouse or children?
+            </p>
+            <p className="mt-1.5 text-[0.84rem] leading-relaxed text-muted">
+              This list covers you alone. Their documents are a separate one —{" "}
+              <span className="text-accent underline underline-offset-4">see what applies</span>.
+            </p>
+          </button>
+        </div>
+      )}
+
+      {tab === "family" && (
+        <div className="space-y-4">
+          <div
+            className={cn(
+              "rounded-[var(--radius-md)] border p-5 sm:p-6",
+              family.travellingWithFamily
+                ? "border-amber-300/45 bg-amber-300/[0.07]"
+                : "border-line bg-raised"
+            )}
+          >
+            <p className="text-[1rem] font-semibold text-fg">{family.headline}</p>
+            <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">{family.body}</p>
           </div>
+
+          {/*
+            WE DO NOT LIST FAMILY DOCUMENTS, because we have not been given
+            them. A family visa file turns on which country, which permit
+            category and whose papers; a list invented here would look
+            authoritative and be wrong, which is worse than the PDF this
+            replaces. What it gives instead is the step that actually moves it.
+          */}
+          {family.travellingWithFamily ? (
+            <div className="rounded-[var(--radius-md)] border border-line p-4 sm:p-5">
+              <p className="label mb-2.5 text-[0.6rem] text-faint">What happens next</p>
+              <ol className="space-y-3">
+                {[
+                  `Ask us for the family checklist. We prepare it for ${family.who} specifically, after looking at your case.`,
+                  "Keep working through your own two lists in the meantime — yours is needed either way, and none of it is wasted.",
+                  "Start any police certificates early. They are the slowest document in a family file, and every adult travelling needs their own.",
+                ].map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line font-mono text-[0.62rem] text-faint"
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-[0.86rem] leading-relaxed text-muted">{step}</span>
+                  </li>
+                ))}
+              </ol>
+
+              <a
+                href="/portal/messages"
+                className="label mt-5 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300"
+              >
+                Ask for the family checklist
+              </a>
+            </div>
+          ) : (
+            <div className="rounded-[var(--radius-md)] border border-line p-4 sm:p-5">
+              <p className="text-[0.86rem] leading-relaxed text-muted">
+                {family.answered
+                  ? "Nothing extra to do here."
+                  : "Answer \u201CWill family travel with you?\u201D in section 07 of your application and this page will say what applies to your case."}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

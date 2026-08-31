@@ -21,6 +21,7 @@ import {
   VISA_CHECKLIST,
   checklistProgress,
   februaryRequirement,
+  familyStatus,
   groupsFor,
 } from "@/lib/application/checklist";
 import { LiveRefresh } from "@/components/portal/LiveRefresh";
@@ -110,6 +111,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
   const admissionDocs = role === "student" ? checklistProgress(ADMISSION_CHECKLIST, applyLevel, ticked) : null;
   const visaDocs = role === "student" ? checklistProgress(VISA_CHECKLIST, applyLevel, ticked) : null;
   const february = role === "student" ? februaryRequirement(String(answers.intake ?? ""), applyLevel) : null;
+  const family = role === "student" ? familyStatus(String(answers.dependants ?? "")) : null;
 
   /* The groups still holding something outstanding, named. */
   const outstandingGroups =
@@ -376,6 +378,18 @@ export async function ClientDashboard({ session }: { session: Session }) {
               <strong className="font-semibold">February intake:</strong> {february.document} must
               be Apostilled / Legalized. It is the step that most often holds a February
               application up, so start it early.
+            </p>
+          )}
+
+          {/*
+            Somebody bringing a spouse needs to know the list they are looking
+            at is not their whole list — on the first screen, not three tabs in.
+          */}
+          {family?.travellingWithFamily && (
+            <p className="mb-4 rounded-[var(--radius-sm)] border border-amber-300/40 bg-amber-300/[0.06] px-4 py-3 text-[0.86rem] leading-relaxed text-fg">
+              <strong className="font-semibold">Travelling with family:</strong> these two lists
+              cover you alone. {family.who} need a separate checklist, which we prepare after
+              looking at your case.
             </p>
           )}
 

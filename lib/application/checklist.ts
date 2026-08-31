@@ -248,11 +248,87 @@ export const VISA_CHECKLIST: Checklist = {
 export const VISA_CASE_NOTE =
   "Additional visa documents will be requested according to your individual case and the requirements applicable at the time of visa processing.";
 
-export const FAMILY_NOTE = {
-  title: "Applying with family",
-  body:
-    "This checklist covers a single applicant. If you are applying with a spouse, children or other eligible family members, the complete visa document checklist is provided separately, after an individual consultation and case assessment — the requirements depend on who is travelling with you.",
+/**
+ * APPLYING WITH FAMILY.
+ * ---------------------------------------------------------------------------
+ * The source document says only that a family checklist is "provided
+ * separately after individual consultation and case assessment", and that is
+ * the whole of what it says. So this does not invent one.
+ *
+ * What it does instead is turn that sentence into something a person can act
+ * on. The application already asks who is travelling — section 07 — so this
+ * reads that answer, names them, says plainly that the single-applicant list
+ * does not cover them, and gives them the one step that actually moves it:
+ * asking for theirs.
+ *
+ * A requirement we have not been given is not a requirement we should guess
+ * at. Family visa files turn on which country, which permit category, and
+ * whose documents — inventing a list would be worse than the PDF this
+ * replaces, because it would look authoritative.
+ */
+export type FamilyStatus = {
+  /** True when the single-applicant list is not enough for this person. */
+  travellingWithFamily: boolean;
+  /** Whether they have answered the question at all. */
+  answered: boolean;
+  /** "your spouse", "your spouse and children" — as they told us. */
+  who: string | null;
+  headline: string;
+  body: string;
 };
+
+export function familyStatus(dependants: string): FamilyStatus {
+  const answer = (dependants || "").trim();
+
+  const shared =
+    "The single-applicant checklist does not cover them: what a family file needs " +
+    "depends on which country, which permit category, and whose documents — so it " +
+    "is set with you at a consultation rather than guessed at in advance.";
+
+  if (!answer || /Undecided/i.test(answer)) {
+    return {
+      travellingWithFamily: false,
+      answered: Boolean(answer),
+      who: null,
+      headline: "Are you bringing anyone with you?",
+      body:
+        "Everything here covers you alone. If a spouse or children are coming, tell us in " +
+        "section 07 of your application — their documents are a separate list, and it is " +
+        "much easier to start it early than to add people to a file already in motion.",
+    };
+  }
+
+  if (/spouse and children/i.test(answer)) {
+    return {
+      travellingWithFamily: true,
+      answered: true,
+      who: "your spouse and children",
+      headline: "You told us your spouse and children are coming with you",
+      body: shared,
+    };
+  }
+
+  if (/spouse/i.test(answer)) {
+    return {
+      travellingWithFamily: true,
+      answered: true,
+      who: "your spouse",
+      headline: "You told us your spouse is coming with you",
+      body: shared,
+    };
+  }
+
+  return {
+    travellingWithFamily: false,
+    answered: true,
+    who: null,
+    headline: "You are travelling alone",
+    body:
+      "This checklist is exactly what your case needs. If that changes — a marriage, " +
+      "a decision to bring children — tell your advisor, because it changes the visa " +
+      "file and is far easier to handle before the application is submitted.",
+  };
+}
 
 /* ══════════════════════════════════════════════ what applies to me ═══ */
 

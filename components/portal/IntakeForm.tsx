@@ -711,6 +711,7 @@ export function IntakeForm({
                     <ChecklistBoard
                       applyLevel={String(answers.applyLevel ?? "")}
                       intake={String(answers.intake ?? "")}
+                      dependants={String(answers.dependants ?? "")}
                       initialTicks={checklistTicks}
                     />
                   ) : f.type === "consent" ? (
