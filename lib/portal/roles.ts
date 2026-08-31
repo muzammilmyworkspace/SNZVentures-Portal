@@ -85,12 +85,14 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       ],
     },
     {
+      /*
+        Documents and Tasks used to sit here. Documents are collected inside
+        the application now — section 08, where each slot explains itself and
+        names the file — and a second page listing the same files without that
+        context is just a place to get it wrong. The form is the task list.
+      */
       group: "Your file",
-      items: [
-        { href: "/portal/documents", label: "Documents", icon: "documents", badgeKey: "documents" },
-        { href: "/portal/tasks", label: "Tasks", icon: "tasks", badgeKey: "tasks" },
-        { href: "/portal/profile", label: "Profile", icon: "profile" },
-      ],
+      items: [{ href: "/portal/profile", label: "Profile", icon: "profile" }],
     },
     {
       group: "Contact",

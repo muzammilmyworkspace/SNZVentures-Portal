@@ -18,41 +18,36 @@
  * funding — the wording stays neutral and promises nothing.
  */
 
-export type FieldType = "text" | "email" | "tel" | "date" | "number" | "select" | "multiselect" | "textarea";
+/*
+ * TYPES AND THE STUDENT FORM NOW LIVE IN lib/application.
+ *
+ * The student application outgrew being one definition among three: it needs
+ * conditional questions, repeated blocks, derived text and document slots, and
+ * carrying those types here — beside two forms that use none of them — made
+ * this file the place you had to read to understand any of it.
+ *
+ * They are re-exported so every existing import keeps working. The career and
+ * business intakes are unchanged and still defined below.
+ */
+export type {
+  FieldType,
+  ShowWhen,
+  IntakeField,
+  IntakeStep,
+  IntakeDefinition,
+} from "@/lib/application/types";
+export {
+  PATHWAY_FOR_ROLE,
+  optionsFor,
+  fieldVisible,
+  DECORATIVE,
+} from "@/lib/application/types";
 
-export type IntakeField = {
-  key: string;
-  label: string;
-  type: FieldType;
-  options?: string[];
-  required?: boolean;
-  placeholder?: string;
-  /** Shown under the field. Use it to explain WHY something is asked. */
-  hint?: string;
-  /** Characters. Applied on the server as a hard slice, not just a UI maxlength. */
-  max?: number;
-};
+import type { IntakeField, IntakeStep, IntakeDefinition } from "@/lib/application/types";
+import { optionsFor, fieldVisible, DECORATIVE } from "@/lib/application/types";
+import { STUDY_APPLICATION } from "@/lib/application/definition";
+import { documentsFor } from "@/lib/application/documents";
 
-export type IntakeStep = {
-  key: string;
-  title: string;
-  /** One sentence on what this step is for. Reduces the sense of a wall of fields. */
-  blurb: string;
-  fields: IntakeField[];
-};
-
-export type IntakeDefinition = {
-  pathway: "study" | "career" | "business";
-  title: string;
-  steps: IntakeStep[];
-};
-
-/** Session role → the intake that role fills in. Derived server-side, never posted. */
-export const PATHWAY_FOR_ROLE = {
-  student: "study",
-  professional: "career",
-  business: "business",
-} as const;
 
 /* ------------------------------------------------------ shared fragments */
 
@@ -96,330 +91,6 @@ const PROFICIENCY = ["Beginner (A1)", "Elementary (A2)", "Intermediate (B1)", "U
  * is what your file still needs" — and merging them would make one of the two
  * screens wrong.
  */
-const STUDY_DOCUMENTS = [
-  "Formal passport-size photo (white background)",
-  "NIC — front & back in a single PDF",
-  "Passport — first 4 pages, scanned",
-  "Passport — full copy",
-  "SSC / Matric result card & certificate (attested)",
-  "HSC / FA result card & certificate (attested)",
-  "Professional diploma (if any)",
-  "Bachelor's degree certificate & transcript (attested)",
-  "Master's degree certificate & transcript (attested)",
-  "IELTS or other English proficiency certificate",
-  "English proficiency letter (if applicable)",
-  "Curriculum vitae (Master's applicants)",
-  "Experience certificates (if mentioned in CV)",
-];
-
-/* ------------------------------------------------------------- STUDY (§8) */
-
-/**
- * THE ADMISSION FORM, following SnZ Ventures' own paper document.
- *
- * Section order and wording follow the printed form so that a student who has
- * seen one recognises the other, and so staff reading a submission can put it
- * side by side with a file that arrived on paper.
- *
- * TWO SECTIONS ARE NOT ON THE PAPER FORM and are kept anyway: preferred
- * countries, and how the studies will be funded. The paper form is headed
- * "admission — Lithuania", but the portal advises on several destinations, and
- * funding is the question every immigration authority asks. Dropping questions
- * the business already collects would have been a silent downgrade dressed up
- * as matching a document.
- *
- * WHAT IS REQUIRED IS DELIBERATE. Only fields an application genuinely cannot
- * proceed without carry `required`. Marking optional things required is how a
- * long form starts collecting invented answers — a made-up Skype ID is worse
- * than a blank one, because nobody can tell it is made up.
- */
-const STUDY: IntakeDefinition = {
-  pathway: "study",
-  title: "Student admission application",
-  steps: [
-    {
-      key: "personal",
-      title: "Personal information",
-      blurb: "Exactly as printed in your passport. A mismatch here is the most common reason an application is returned.",
-      fields: [
-        { key: "givenName", label: "Given name", type: "text", required: true, max: 80 },
-        { key: "familyName", label: "Family name", type: "text", required: true, max: 80 },
-        { key: "gender", label: "Gender", type: "select", required: true, options: ["Male", "Female", "Other"] },
-        { key: "citizenship", label: "Citizenship", type: "text", required: true, max: 60 },
-        { key: "passportNumber", label: "Passport number", type: "text", required: true, max: 30 },
-        { key: "passportIssueDate", label: "Passport issue date", type: "date", required: true },
-        {
-          key: "passportExpiryDate",
-          label: "Passport expiry date",
-          type: "date",
-          required: true,
-          hint: "Most institutions expect a passport valid well beyond your intended start date.",
-        },
-        { key: "passportIssuedBy", label: "Issued by", type: "text", required: true, max: 80 },
-        { key: "dateOfBirth", label: "Date of birth", type: "date", required: true },
-        { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, max: 60 },
-        { key: "placeOfBirth", label: "Place of birth", type: "text", required: true, max: 80 },
-      ],
-    },
-    {
-      key: "contact",
-      title: "Contact information",
-      blurb: "Where we and the institution can reach you. Use an address you will still have in a year.",
-      fields: [
-        { key: "contactEmail", label: "Email", type: "email", required: true, max: 120 },
-        { key: "mobile", label: "Mobile number", type: "tel", required: true, max: 40 },
-        { key: "skypeId", label: "Skype ID", type: "text", max: 80, hint: "Optional. Some institutions interview over Skype." },
-        { key: "streetAddress", label: "Street address", type: "text", required: true, max: 160 },
-        { key: "cityRegion", label: "City / province / region", type: "text", required: true, max: 100 },
-        { key: "postalCode", label: "Postal code", type: "text", max: 20 },
-        { key: "country", label: "Country", type: "text", required: true, max: 60 },
-      ],
-    },
-    {
-      key: "emergency",
-      title: "Emergency contact",
-      blurb: "Someone we or the institution can reach if we cannot reach you.",
-      fields: [
-        { key: "emergencyName", label: "Full name", type: "text", required: true, max: 120 },
-        { key: "emergencyPhone", label: "Telephone number", type: "tel", required: true, max: 40 },
-        { key: "emergencyRelation", label: "Relation to applicant", type: "text", required: true, max: 60 },
-      ],
-    },
-    {
-      key: "education",
-      title: "Education background",
-      blurb: "Your most recent or highest qualification. Approximate dates are fine if you are still studying.",
-      fields: [
-        {
-          key: "highestQualification",
-          label: "Highest level of education",
-          type: "select",
-          required: true,
-          options: [
-            "Secondary school (Matric / SSC / O-Level)",
-            "Higher secondary (FA / FSc / HSC / A-Level)",
-            "Diploma",
-            "Bachelor's degree",
-            "Master's degree",
-            "Doctorate",
-          ],
-        },
-        { key: "institution", label: "Institution name", type: "text", required: true, max: 140 },
-        { key: "programName", label: "Program name", type: "text", required: true, max: 140 },
-        { key: "awardedQualification", label: "Awarded qualification / degree", type: "text", required: true, max: 140 },
-        { key: "diplomaTitle", label: "Diploma title", type: "text", max: 140 },
-        { key: "studyStartDate", label: "Start date", type: "date", required: true },
-        { key: "expectedGraduation", label: "Expected graduation date", type: "date", required: true },
-        { key: "programLength", label: "Nominal program length", type: "text", max: 60, placeholder: "e.g. 4 years" },
-        { key: "honours", label: "Honours / distinctions (if any)", type: "text", max: 200 },
-        { key: "institutionCountry", label: "Country of institution", type: "text", required: true, max: 60 },
-        { key: "languageOfInstruction", label: "Language of instruction", type: "text", required: true, max: 60 },
-      ],
-    },
-    {
-      key: "language",
-      title: "Language proficiency",
-      blurb: "Nearly every institution asks for evidence of English. If you have not tested yet, say so — it changes which options are realistic, not whether we can help.",
-      fields: [
-        { key: "nativeLanguage", label: "Native language", type: "text", required: true, max: 60 },
-        { key: "englishTest", label: "English test taken", type: "select", required: true, options: ENGLISH_TESTS },
-        { key: "englishScore", label: "Overall score", type: "text", max: 40 },
-        { key: "englishDate", label: "Date taken", type: "date" },
-        { key: "foreignLanguage1", label: "Other language", type: "text", max: 60 },
-        { key: "foreignLanguage1Level", label: "Proficiency level", type: "select", options: PROFICIENCY },
-        { key: "foreignLanguage1Years", label: "Years of study or use", type: "text", max: 30 },
-        { key: "foreignLanguage2", label: "A further language (if any)", type: "text", max: 60 },
-        { key: "foreignLanguage2Level", label: "Proficiency level", type: "select", options: PROFICIENCY },
-        { key: "foreignLanguage2Years", label: "Years of study or use", type: "text", max: 30 },
-      ],
-    },
-    {
-      key: "employment",
-      title: "Employment history",
-      blurb: "Your most recent position. Leave blank if you have not worked yet — that is common and counts against nobody.",
-      fields: [
-        { key: "companyName", label: "Company name", type: "text", max: 140 },
-        { key: "businessSector", label: "Business sector", type: "text", max: 100 },
-        { key: "positionHeld", label: "Position held", type: "text", max: 100 },
-        { key: "employmentStart", label: "Start date", type: "date" },
-        { key: "employmentEnd", label: "End date", type: "date" },
-        { key: "currentlyEmployed", label: "Currently employed?", type: "select", options: YES_NO },
-      ],
-    },
-    {
-      key: "activities",
-      title: "Activities & residence history",
-      blurb: "Institutions read this. Time abroad also matters to a visa officer, so it is worth stating plainly.",
-      fields: [
-        {
-          key: "keyActivities",
-          label: "Key activities (sports, hobbies, volunteer work)",
-          type: "textarea",
-          max: 800,
-        },
-        {
-          key: "stayedAbroad",
-          label: "Have you stayed abroad for extended periods?",
-          type: "select",
-          required: true,
-          options: YES_NO,
-        },
-        {
-          key: "abroadDetails",
-          label: "If yes — purpose, country and duration",
-          type: "textarea",
-          max: 800,
-        },
-      ],
-    },
-    {
-      key: "motivation",
-      title: "Motivation letter",
-      blurb: "Answer in your own words. These four answers become the basis of the motivation letter that goes with your application, so what you write here matters more than anything else on this form.",
-      fields: [
-        {
-          key: "whyProgram",
-          label: "Why have you chosen this program?",
-          type: "textarea",
-          required: true,
-          max: 1500,
-        },
-        {
-          key: "expectedGain",
-          label: "What do you expect to gain from your studies?",
-          type: "textarea",
-          required: true,
-          max: 1500,
-        },
-        {
-          key: "suitability",
-          label: "Why does your background make you a suitable candidate?",
-          type: "textarea",
-          required: true,
-          max: 1500,
-        },
-        {
-          key: "careerGoals",
-          label: "How will this program help you achieve your goals?",
-          type: "textarea",
-          required: true,
-          max: 1500,
-        },
-      ],
-    },
-    {
-      key: "preferences",
-      title: "Where and how you will study",
-      blurb: "Not on the paper form, and asked because it changes what we can realistically propose.",
-      fields: [
-        {
-          key: "countries",
-          label: "Countries you would consider",
-          type: "multiselect",
-          required: true,
-          options: [
-            "Lithuania", "Latvia", "Estonia", "Poland", "Germany", "Netherlands",
-            "Ireland", "United Kingdom", "Sweden", "Denmark", "Spain", "Italy",
-            "France", "Open to advice",
-          ],
-        },
-        {
-          key: "fundingSource",
-          label: "How will your studies be funded?",
-          type: "select",
-          required: true,
-          options: [
-            "Family support",
-            "Personal savings",
-            "Bank loan",
-            "Employer sponsorship",
-            "Scholarship (applied or hoping to)",
-            "Combination of the above",
-            "Not yet decided",
-          ],
-          hint: "Immigration authorities ask for evidence of this. An honest answer now avoids a refused application later.",
-        },
-        {
-          key: "annualBudget",
-          label: "Approximate budget per year, including living costs",
-          type: "select",
-          options: [
-            "Under €6,000",
-            "€6,000 – €10,000",
-            "€10,000 – €15,000",
-            "€15,000 – €25,000",
-            "Over €25,000",
-            "Not sure yet",
-          ],
-        },
-      ],
-    },
-    {
-      key: "other",
-      title: "Anything else we should know",
-      blurb: "All optional except the last question.",
-      fields: [
-        {
-          key: "medicalInformation",
-          label: "Any medical conditions to disclose?",
-          type: "textarea",
-          max: 800,
-          hint: "Optional, and only shared where an institution or insurer genuinely requires it.",
-        },
-        { key: "additionalRequests", label: "Additional requests", type: "textarea", max: 800 },
-        {
-          key: "informationSource",
-          label: "How did you learn about this study opportunity?",
-          type: "text",
-          required: true,
-          max: 200,
-        },
-      ],
-    },
-    {
-      key: "documents",
-      title: "Documents",
-      blurb: "Tick what you already have. Nothing here is uploaded on this screen — you upload files in Documents, and we will tell you if anything needs replacing.",
-      fields: [
-        {
-          key: "documentsReady",
-          label: "Documents you already hold",
-          type: "multiselect",
-          options: STUDY_DOCUMENTS,
-        },
-        {
-          key: "documentNotes",
-          label: "Anything we should know about your documents?",
-          type: "textarea",
-          max: 800,
-          hint: "Attestation still pending, a name spelled differently, a certificate lost — tell us now rather than later.",
-        },
-      ],
-    },
-    {
-      key: "review",
-      title: "Review & submit",
-      blurb: "Last chance to add anything. You can still talk to us about changes after submitting.",
-      fields: [
-        {
-          key: "additionalInfo",
-          label: "Anything else you would like us to know?",
-          type: "textarea",
-          max: 1200,
-        },
-        {
-          key: "declaration",
-          label: "I confirm the information above is accurate to the best of my knowledge",
-          type: "select",
-          required: true,
-          options: ["Yes, I confirm"],
-          hint: "Institutions and immigration authorities act on what you tell us.",
-        },
-      ],
-    },
-  ],
-};
-
 /* ------------------------------------------------------------ CAREER (§12) */
 
 const CAREER: IntakeDefinition = {
@@ -800,7 +471,7 @@ const BUSINESS: IntakeDefinition = {
   ],
 };
 
-const DEFINITIONS = { study: STUDY, career: CAREER, business: BUSINESS } as const;
+const DEFINITIONS = { study: STUDY_APPLICATION, career: CAREER, business: BUSINESS } as const;
 
 export function intakeFor(pathway: keyof typeof DEFINITIONS): IntakeDefinition {
   return DEFINITIONS[pathway];
@@ -809,11 +480,17 @@ export function intakeFor(pathway: keyof typeof DEFINITIONS): IntakeDefinition {
 /* ------------------------------------------------------------- validation */
 
 /**
- * Whitelist, coerce and (optionally) require.
+ * Whitelist, coerce and (optionally) require. Runs on the SERVER for every
+ * save and every submit.
  *
- * Runs on the SERVER for every save and every submit. Keys the step does not
- * define are dropped rather than rejected — a stale browser tab posting an old
- * field should not fail the whole save, but it must not write that field either.
+ * Keys the step does not define are dropped rather than rejected — a stale
+ * browser tab posting an old field should not fail the whole save, but it must
+ * not write that field either.
+ *
+ * A HIDDEN FIELD IS NOT AN UNANSWERED ONE. Conditional questions are skipped
+ * entirely: not required, not stored, not counted. Otherwise someone who
+ * answered "No" to the visa-refusal question would be held up by the follow-up
+ * asking for the details of a refusal that never happened.
  */
 export function validateStep(
   step: IntakeStep,
@@ -824,22 +501,91 @@ export function validateStep(
   const missing: string[] = [];
 
   for (const field of step.fields) {
-    const raw = answers[field.key];
-    let value: unknown;
+    if (DECORATIVE.has(field.type)) continue;
+    if (!fieldVisible(field, answers)) continue;
 
-    if (field.type === "multiselect") {
-      const list = Array.isArray(raw) ? raw : [];
-      value = list
-        .filter((v): v is string => typeof v === "string")
-        // Only values the question actually offered.
-        .filter((v) => !field.options || field.options.includes(v))
-        .slice(0, 30);
-      if (opts.requireAll && field.required && (value as string[]).length === 0) {
-        missing.push(field.label);
+    const raw = answers[field.key];
+
+    /* ------------------------------------------------ repeated blocks */
+    if (field.type === "repeater") {
+      const rows = Array.isArray(raw) ? raw : [];
+      const cleanRows: Record<string, unknown>[] = [];
+
+      for (const row of rows.slice(0, field.maxItems ?? 20)) {
+        if (!row || typeof row !== "object") continue;
+        const source = row as Record<string, unknown>;
+        const cleanRow: Record<string, unknown> = {};
+        for (const sub of field.item ?? []) {
+          const value = source[sub.key];
+          if (value === undefined || value === null) continue;
+          cleanRow[sub.key] = String(value).trim().slice(0, sub.max ?? 500);
+        }
+        /*
+          A block where every box is empty is not a qualification, it is one
+          somebody opened and walked away from. Dropping it keeps the count
+          honest — otherwise "add another" alone would look like progress.
+        */
+        if (Object.values(cleanRow).some((v) => v !== "")) cleanRows.push(cleanRow);
       }
-      // An empty array is a meaningful "answered, chose nothing" only once the
-      // key exists; don't write it on a save that never touched this field.
+
+      if (raw !== undefined) clean[field.key] = cleanRows;
+
+      if (opts.requireAll) {
+        const min = field.minItems ?? (field.required ? 1 : 0);
+        if (cleanRows.length < min) {
+          missing.push(field.label);
+        } else {
+          for (const [i, row] of cleanRows.entries()) {
+            for (const sub of field.item ?? []) {
+              if (sub.required && !String(row[sub.key] ?? "").trim()) {
+                missing.push(`${field.itemLabel ?? field.label} ${i + 1} — ${sub.label}`);
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    /* ------------------------------------------------- document slots */
+    if (field.type === "documents") {
+      const map =
+        raw && typeof raw === "object" && !Array.isArray(raw)
+          ? (raw as Record<string, unknown>)
+          : {};
+      const cleanMap: Record<string, string> = {};
+      for (const [slot, name] of Object.entries(map).slice(0, 40)) {
+        if (typeof name === "string" && name.trim()) {
+          cleanMap[String(slot).slice(0, 40)] = name.trim().slice(0, 200);
+        }
+      }
+      if (raw !== undefined) clean[field.key] = cleanMap;
+      /*
+        Which slots are required depends on the study level, which lives in a
+        different step. A step validator cannot see it, so completeness of the
+        document file is decided by documentsComplete() instead.
+      */
+      continue;
+    }
+
+    /* ----------------------------------------------------- many-choice */
+    if (field.type === "multiselect") {
+      const offered = optionsFor(field);
+      const list = Array.isArray(raw) ? raw : [];
+      const value = list
+        .filter((v): v is string => typeof v === "string")
+        .filter((v) => !offered.length || offered.includes(v))
+        .slice(0, 30);
+      if (opts.requireAll && field.required && value.length === 0) missing.push(field.label);
       if (raw !== undefined) clean[field.key] = value;
+      continue;
+    }
+
+    /* ----------------------------------------------------------- a box */
+    if (field.type === "checkbox") {
+      const value = raw === true || raw === "true" || raw === "on";
+      if (raw !== undefined) clean[field.key] = value;
+      if (opts.requireAll && field.required && !value) missing.push(field.label);
       continue;
     }
 
@@ -850,10 +596,14 @@ export function validateStep(
 
     const text = String(raw).trim().slice(0, field.max ?? 500);
 
-    if (field.type === "select" && field.options && text && !field.options.includes(text)) {
-      // A value outside the offered set is dropped, not stored.
-      if (opts.requireAll && field.required) missing.push(field.label);
-      continue;
+    /* One choice, whether it is drawn as a dropdown or as pills. */
+    if (field.type === "select" || field.type === "radio") {
+      const offered = optionsFor(field);
+      if (text && offered.length && !offered.includes(text)) {
+        // A value outside the offered set is dropped, not stored.
+        if (opts.requireAll && field.required) missing.push(field.label);
+        continue;
+      }
     }
 
     if (!text) {
@@ -862,32 +612,77 @@ export function validateStep(
       continue;
     }
 
-    value = field.type === "number" ? Number(text) : text;
-    if (field.type === "number" && !Number.isFinite(value as number)) {
-      if (opts.requireAll && field.required) missing.push(field.label);
+    if (field.mustMatch) {
+      const other = String(answers[field.mustMatch] ?? "").trim();
+      if (other && text.toLowerCase() !== other.toLowerCase()) {
+        if (opts.requireAll) missing.push(field.label);
+        continue;
+      }
+    }
+
+    if (field.type === "number") {
+      const n = Number(text);
+      if (!Number.isFinite(n)) {
+        if (opts.requireAll && field.required) missing.push(field.label);
+        continue;
+      }
+      clean[field.key] = n;
       continue;
     }
 
-    clean[field.key] = value;
+    clean[field.key] = text;
   }
 
   return { clean, missing };
 }
 
-/** Percentage of required fields answered, across the whole definition. */
+/**
+ * Is the document file complete?
+ *
+ * Kept out of validateStep because the required slots depend on the study
+ * level chosen in section 01, and a step validator only ever sees its own step.
+ */
+export function documentsComplete(data: Record<string, unknown>): boolean {
+  const held = (data.documents ?? {}) as Record<string, unknown>;
+  return documentsFor(String(data.applyLevel ?? ""))
+    .filter((slot) => slot.required)
+    .every((slot) => Boolean(held[slot.key]));
+}
+
+/** Percentage of required questions answered, across the whole definition. */
 export function intakeCompletion(
   definition: IntakeDefinition,
   data: Record<string, unknown>
 ): { percent: number; answered: number; total: number } {
-  const required = definition.steps.flatMap((s) => s.fields.filter((f) => f.required));
-  if (!required.length) return { percent: 100, answered: 0, total: 0 };
-
-  const answered = required.filter((f) => {
-    const v = data[f.key];
+  const isAnswered = (field: IntakeField): boolean => {
+    const v = data[field.key];
+    if (field.type === "repeater") {
+      const rows = Array.isArray(v) ? v : [];
+      if (rows.length < (field.minItems ?? 1)) return false;
+      return rows.every((row) =>
+        (field.item ?? [])
+          .filter((sub) => sub.required)
+          .every((sub) => String((row as Record<string, unknown>)?.[sub.key] ?? "").trim() !== "")
+      );
+    }
+    if (field.type === "documents") return documentsComplete(data);
+    if (field.type === "checkbox") return v === true;
     if (Array.isArray(v)) return v.length > 0;
     return v !== undefined && v !== null && String(v).trim() !== "";
-  }).length;
+  };
 
+  /*
+    Only what is actually being asked. A question hidden behind a condition the
+    student did not meet is not an unanswered question, and counting it would
+    park the progress bar below 100% for everyone who has nothing to declare.
+  */
+  const required = definition.steps
+    .flatMap((s) => s.fields)
+    .filter((f) => f.required && !DECORATIVE.has(f.type) && fieldVisible(f, data));
+
+  if (!required.length) return { percent: 100, answered: 0, total: 0 };
+
+  const answered = required.filter(isAnswered).length;
   return {
     percent: Math.round((answered / required.length) * 100),
     answered,

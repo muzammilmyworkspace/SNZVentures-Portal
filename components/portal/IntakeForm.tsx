@@ -8,6 +8,21 @@ import type {
   IntakeField,
   IntakeStep,
 } from "@/lib/portal/intake";
+import { optionsFor, fieldVisible, DECORATIVE } from "@/lib/application/types";
+import { buildMotivation } from "@/lib/application/motivation";
+import { filenamePrefix } from "@/lib/application/documents";
+import { DIAL_CODES } from "@/lib/application/reference";
+import { ReviewSummary } from "@/components/application/ReviewSummary";
+import {
+  applyMask,
+  RadioPills,
+  CheckField,
+  NoteBlock,
+  WordCount,
+  Repeater,
+  DocumentSlots,
+  DerivedBlock,
+} from "@/components/application/Fields";
 import { cn } from "@/lib/utils";
 
 /**
@@ -60,13 +75,21 @@ function FieldControl({
     return (
       <textarea
         {...common}
-        rows={4}
+        rows={field.rows ?? 4}
         maxLength={field.max}
         value={String(value ?? "")}
         onChange={(e) => onChange(e.target.value)}
-        className="field min-h-28 resize-y"
+        className={cn("field resize-y", (field.rows ?? 4) > 2 ? "min-h-28" : "min-h-16")}
       />
     );
+  }
+
+  if (field.type === "radio") {
+    return <RadioPills field={field} value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "checkbox") {
+    return <CheckField field={field} value={value} onChange={onChange} />;
   }
 
   if (field.type === "select") {
@@ -77,7 +100,7 @@ function FieldControl({
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="">Select…</option>
-        {field.options?.map((o) => (
+        {optionsFor(field).map((o) => (
           <option key={o} value={o}>
             {o}
           </option>
@@ -100,7 +123,7 @@ function FieldControl({
         aria-describedby={described}
         className="flex flex-wrap gap-2"
       >
-        {field.options?.map((o) => {
+        {optionsFor(field).map((o) => {
           const on = selected.includes(o);
           return (
             <label
@@ -153,9 +176,17 @@ function FieldControl({
       {...common}
       type={field.type}
       maxLength={field.max}
+      /*
+        min/max stop a date control accepting an impossible year. Typing into
+        the year box is not capped on its own, so without these a five-digit
+        year arrives as a perfectly well-formed value.
+      */
+      min={field.dateMin}
+      max={field.dateMax}
       value={String(value ?? "")}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(field.mask ? applyMask(field.mask, e.target.value) : e.target.value)}
       placeholder={field.placeholder}
+      className={cn("field", field.mask && "font-mono tracking-wide")}
     />
   );
 }
@@ -172,11 +203,21 @@ function Field({
   invalid: boolean;
 }) {
   const id = `f-${field.key}`;
+
+  // A note carries no answer, and a checkbox carries its own label inside the
+  // box — giving either the standard label would print the words twice.
+  if (field.type === "note") return <NoteBlock field={field} />;
+  if (field.type === "checkbox") {
+    return <FieldControl field={field} value={value} onChange={onChange} invalid={invalid} />;
+  }
+
+  const labelless = field.type === "radio" || field.type === "multiselect";
+
   return (
     <div>
       <label
         id={`${id}-label`}
-        htmlFor={field.type === "multiselect" ? undefined : id}
+        htmlFor={labelless ? undefined : id}
         className="field-label"
       >
         {field.label}
@@ -206,6 +247,11 @@ function Field({
         )}
       </label>
       <FieldControl field={field} value={value} onChange={onChange} invalid={invalid} />
+      {field.countWords && (
+        <p className="mt-1.5">
+          <WordCount text={String(value ?? "")} />
+        </p>
+      )}
       {field.hint && (
         <p id={`${id}-hint`} className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
           {field.hint}
@@ -220,13 +266,58 @@ function Field({
   );
 }
 
+/**
+ * Split a step's visible fields into the cards the definition asks for.
+ *
+ * Anything before the first named card sits in an unnamed group, so a step
+ * that declares no cards renders exactly as it did before.
+ */
+function groupIntoCards(step: IntakeStep, answers: Answers) {
+  const visible = step.fields.filter((f) => fieldVisible(f, answers));
+  const starts = new Map((step.cards ?? []).map((c) => [c.startsAt, c]));
+
+  const cards: { title?: string; blurb?: string; fields: IntakeField[] }[] = [
+    { fields: [] },
+  ];
+  for (const field of visible) {
+    const opens = starts.get(field.key);
+    if (opens) cards.push({ title: opens.title, blurb: opens.blurb, fields: [] });
+    cards[cards.length - 1].fields.push(field);
+  }
+  return cards.filter((c) => c.fields.length > 0);
+}
+
 /* ------------------------------------------------------------- the wizard */
 
-const isBlank = (f: IntakeField, v: unknown) =>
-  Array.isArray(v) ? v.length === 0 : v === undefined || v === null || String(v).trim() === "";
+const isBlank = (f: IntakeField, v: unknown) => {
+  if (f.type === "checkbox") return v !== true;
+  if (f.type === "repeater") {
+    const rows = Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+    if (rows.length < (f.minItems ?? 1)) return true;
+    return !rows.every((row) =>
+      (f.item ?? [])
+        .filter((sub) => sub.required)
+        .every((sub) => String(row?.[sub.key] ?? "").trim() !== "")
+    );
+  }
+  if (f.type === "documents") return false; // decided across steps, not here
+  if (Array.isArray(v)) return v.length === 0;
+  return v === undefined || v === null || String(v).trim() === "";
+};
 
+/*
+  A question hidden behind a condition the person did not meet is not an
+  unanswered question. Counting it would leave somebody stuck on a step,
+  told something is missing, with nothing on screen to fill in.
+*/
 function missingIn(step: IntakeStep, answers: Answers) {
-  return step.fields.filter((f) => f.required && isBlank(f, answers[f.key]));
+  return step.fields.filter(
+    (f) =>
+      f.required &&
+      !DECORATIVE.has(f.type) &&
+      fieldVisible(f, answers) &&
+      isBlank(f, answers[f.key])
+  );
 }
 
 export function IntakeForm({
@@ -243,7 +334,23 @@ export function IntakeForm({
   const router = useRouter();
   const steps = definition.steps;
 
-  const [answers, setAnswers] = useState<Answers>(initialAnswers);
+  /*
+    Prefilled answers are merged in ONCE, here, and only where the person has
+    not already answered. Doing it in an effect would fight with their typing;
+    doing it on the server would write a default into the database that nobody
+    chose.
+  */
+  const [answers, setAnswers] = useState<Answers>(() => {
+    const seeded: Answers = { ...initialAnswers };
+    for (const s of definition.steps) {
+      for (const f of s.fields) {
+        if (f.defaultValue !== undefined && seeded[f.key] === undefined) {
+          seeded[f.key] = f.defaultValue;
+        }
+      }
+    }
+    return seeded;
+  });
   // Resume where they stopped, clamped in case the form gained or lost a step
   // since the draft was written.
   const [index, setIndex] = useState(() =>
@@ -260,7 +367,22 @@ export function IntakeForm({
   const gaps = useMemo(() => (touched ? missingIn(step, answers) : []), [touched, step, answers]);
 
   const set = useCallback((key: string, v: unknown) => {
-    setAnswers((a) => ({ ...a, [key]: v }));
+    setAnswers((a) => {
+      const next = { ...a, [key]: v };
+      /*
+        Choosing a citizenship fills in the dialling code.
+
+        It is still an ordinary field they can edit afterwards — plenty of
+        people hold one passport and a phone from somewhere else — but the
+        common case is that the two match, and typing "+92" is one more thing
+        to get wrong on a form that already has ninety questions.
+      */
+      if (key === "citizenship") {
+        const dial = DIAL_CODES[String(v)];
+        if (dial) next.dial = dial;
+      }
+      return next;
+    });
     setSavedAt(null);
   }, []);
 
@@ -452,22 +574,87 @@ export function IntakeForm({
         {step.title}
       </h2>
       <p className="mt-2 max-w-xl text-[0.9rem] leading-relaxed text-muted">{step.blurb}</p>
+      {step.intro && (
+        <p className="mt-3 max-w-2xl text-[0.9rem] leading-relaxed text-muted">{step.intro}</p>
+      )}
 
-      <div className="mt-7 grid gap-5 sm:grid-cols-2">
-        {step.fields.map((f) => (
-          <div
-            key={f.key}
+      {/*
+        Grouped into cards, because a step of thirty questions in one run is
+        the thing that makes a form feel endless. The grouping is declared in
+        the definition — a card starts at a named field — so the shape of the
+        form stays in one file rather than being half here and half there.
+      */}
+      <div className="mt-7 space-y-5">
+        {groupIntoCards(step, answers).map((card, ci) => (
+          <section
+            key={card.title ?? ci}
             className={cn(
-              (f.type === "textarea" || f.type === "multiselect") && "sm:col-span-2"
+              card.title &&
+                "rounded-[var(--radius-lg)] border border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] p-5 sm:p-6"
             )}
           >
-            <Field
-              field={f}
-              value={answers[f.key]}
-              onChange={(v) => set(f.key, v)}
-              invalid={gaps.some((g) => g.key === f.key)}
-            />
-          </div>
+            {card.title && <h3 className="label mb-1 text-faint">{card.title}</h3>}
+            {card.blurb && (
+              <p className="mb-4 max-w-2xl text-[0.85rem] leading-relaxed text-muted">
+                {card.blurb}
+              </p>
+            )}
+
+            <div className={cn("grid gap-5 sm:grid-cols-2", card.title && !card.blurb && "mt-4")}>
+              {card.fields.map((f) => (
+                <div
+                  key={f.key}
+                  className={cn(
+                    "min-w-0",
+                    (f.wide ||
+                      f.type === "textarea" ||
+                      f.type === "multiselect" ||
+                      f.type === "repeater" ||
+                      f.type === "documents" ||
+                      f.type === "derived" ||
+                      f.type === "note") &&
+                      "sm:col-span-2"
+                  )}
+                >
+                  {f.type === "repeater" ? (
+                    <>
+                      <label className="field-label">{f.label}</label>
+                      <Repeater
+                        field={f}
+                        rows={Array.isArray(answers[f.key]) ? (answers[f.key] as Record<string, unknown>[]) : []}
+                        onChange={(rows) => set(f.key, rows)}
+                        renderItem={(sub, value, setValue) => (
+                          <Field field={sub} value={value} onChange={setValue} invalid={false} />
+                        )}
+                      />
+                    </>
+                  ) : f.type === "documents" ? (
+                    <DocumentSlots
+                      field={f}
+                      applyLevel={String(answers.applyLevel ?? "")}
+                      prefix={filenamePrefix(
+                        String(answers.familyName ?? ""),
+                        String(answers.givenName ?? "")
+                      )}
+                      value={(answers[f.key] as Record<string, string>) ?? {}}
+                      onChange={(next) => set(f.key, next)}
+                    />
+                  ) : f.type === "review" ? (
+                    <ReviewSummary definition={definition} answers={answers} onEdit={setIndex} />
+                  ) : f.type === "derived" ? (
+                    <DerivedBlock text={buildMotivation(answers)} />
+                  ) : (
+                    <Field
+                      field={f}
+                      value={answers[f.key]}
+                      onChange={(v) => set(f.key, v)}
+                      invalid={gaps.some((g) => g.key === f.key)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
