@@ -12,6 +12,10 @@ import {
 } from "@/lib/portal/data";
 import { getIntake } from "@/lib/db/repos/operations";
 import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/intake";
+import { studentStage } from "@/lib/portal/stage";
+import { flowPosition } from "@/lib/portal/journey-flow";
+import { FlowTrack } from "@/components/portal/FlowTrack";
+import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import { roleContext, portalRoleFor } from "@/lib/portal/roles";
 import {
   PortalHeading,
@@ -62,6 +66,21 @@ export async function ClientDashboard({ session }: { session: Session }) {
 
   const completion = profileCompletion(role, user?.profile ?? {});
   const journey = JOURNEYS[role];
+
+  /*
+    Students have a real position, read from the same rows the gate reads.
+
+    This dashboard drew the seven-stage list with current = -1, waiting for an
+    advisor to set a stage that nothing in the product could set. My Journey
+    was rebuilt around the derived stage and this was not, so the two screens
+    answered "where am I" differently, in adjacent tabs. One component now,
+    one source.
+  */
+  const stageInfo = role === "student" ? await studentStage(session.userId) : null;
+  const position = stageInfo ? flowPosition(stageInfo.stage) : null;
+
+  const applicationProgress =
+    pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data) : null;
   const required = REQUIRED_DOCUMENTS[role] ?? [];
 
   const openTasks = tasks.filter((t) => t.status !== "done");
@@ -124,6 +143,14 @@ export async function ClientDashboard({ session }: { session: Session }) {
 
   return (
     <>
+      {/*
+        Everything on this page is read from the database on the server, and
+        the events that change it happen elsewhere — an advisor verifies a fee,
+        reviews a document, replies to a message. Without this, a student
+        watching the tab sees nothing move and concludes nothing happened.
+      */}
+      <LiveRefresh />
+
       <PortalHeading
         eyebrow={ctx.eyebrow}
         title={`Welcome back, ${firstName}.`}
@@ -194,43 +221,110 @@ export async function ClientDashboard({ session }: { session: Session }) {
           title={role === "business" ? "Where your setup stands" : "Where you are"}
           action={<CardLink href="/portal/journey">See each stage</CardLink>}
         >
-          {/* current = -1 until an advisor sets a stage — the honest default */}
-          <JourneyTrack stages={journey} current={-1} compact />
-          <p className="mt-6 border-t border-line pt-4 text-[0.8rem] leading-relaxed text-faint">
-            Your current stage is set by your advisor as the case progresses.
-          </p>
+          {position ? (
+            <>
+              <FlowTrack
+                current={position.index}
+                waiting={position.waiting}
+                compact
+                completion={position.index >= 2 ? applicationProgress : null}
+              />
+              <p className="mt-5 border-t border-line pt-4 text-[0.8rem] leading-relaxed text-faint">
+                {position.note}
+              </p>
+            </>
+          ) : (
+            <>
+              {/* current = -1 until an advisor sets a stage — the honest default */}
+              <JourneyTrack stages={journey} current={-1} compact />
+              <p className="mt-6 border-t border-line pt-4 text-[0.8rem] leading-relaxed text-faint">
+                Your current stage is set by your advisor as the case progresses.
+              </p>
+            </>
+          )}
         </Panel>
 
-        <Panel title="Profile completion">
-          <ProgressRing
-            value={completion.percent}
-            label={
-              completion.percent === 100
-                ? "Complete — thank you. This makes our assessment far more useful."
-                : `${completion.total - completion.filled} details still to add.`
-            }
-          />
-          {completion.missing.length > 0 && (
-            <ul className="mt-6 space-y-2 border-t border-line pt-5">
-              {completion.missing.slice(0, 4).map((m) => (
-                <li key={m} className="flex items-center gap-2.5 text-[0.85rem] text-muted">
-                  <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-current opacity-50" />
-                  {m}
-                </li>
-              ))}
-              {completion.missing.length > 4 && (
-                <li className="text-[0.8rem] text-faint">
-                  +{completion.missing.length - 4} more
-                </li>
+        {/*
+          FOR A STUDENT THIS MEASURES THE APPLICATION, not the account profile.
+
+          The application is what actually moves, holds ninety-odd answers, and
+          decides whether we can submit anything. The profile is a handful of
+          account details, most of which the application now collects properly
+          — so a ring sitting at 100% while the form was barely started was
+          measuring the wrong thing, and saying so confidently.
+        */}
+        <Panel title={position ? "Application progress" : "Profile completion"}>
+          {position && applicationProgress ? (
+            <>
+              <ProgressRing
+                value={intakeDone ? 100 : applicationProgress.percent}
+                label={
+                  intakeDone
+                    ? "Submitted. Your advisor has it."
+                    : position.index < 2
+                      ? "Opens as soon as your fee is verified."
+                      : `${applicationProgress.answered} of ${applicationProgress.total} required answers.`
+                }
+              />
+              <Link
+                href={position.index >= 2 ? "/portal/application" : "/portal/student"}
+                className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+              >
+                {intakeDone
+                  ? "Review what you sent"
+                  : position.index < 2
+                    ? "Verify your fee first"
+                    : "Continue the application"}
+              </Link>
+
+              {/* The account profile still exists; it is simply not the
+                  headline. Mentioned only when there is something to add. */}
+              {completion.percent < 100 && (
+                <p className="mt-5 border-t border-line pt-4 text-[0.8rem] leading-relaxed text-faint">
+                  Your account profile is {completion.percent}% complete.{" "}
+                  <Link
+                    href="/portal/profile"
+                    className="text-accent underline underline-offset-4"
+                  >
+                    Add the rest
+                  </Link>
+                  .
+                </p>
               )}
-            </ul>
+            </>
+          ) : (
+            <>
+              <ProgressRing
+                value={completion.percent}
+                label={
+                  completion.percent === 100
+                    ? "Complete — thank you. This makes our assessment far more useful."
+                    : `${completion.total - completion.filled} details still to add.`
+                }
+              />
+              {completion.missing.length > 0 && (
+                <ul className="mt-6 space-y-2 border-t border-line pt-5">
+                  {completion.missing.slice(0, 4).map((m) => (
+                    <li key={m} className="flex items-center gap-2.5 text-[0.85rem] text-muted">
+                      <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-current opacity-50" />
+                      {m}
+                    </li>
+                  ))}
+                  {completion.missing.length > 4 && (
+                    <li className="text-[0.8rem] text-faint">
+                      +{completion.missing.length - 4} more
+                    </li>
+                  )}
+                </ul>
+              )}
+              <Link
+                href="/portal/profile"
+                className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+              >
+                Complete profile
+              </Link>
+            </>
           )}
-          <Link
-            href="/portal/profile"
-            className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
-          >
-            Complete profile
-          </Link>
         </Panel>
       </div>
 
