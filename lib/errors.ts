@@ -61,7 +61,7 @@ export function classifyFault(error: unknown): Fault {
     them will start working because somebody pressed the button again.
   */
   if (
-    /Invalid Compact JWS|AccessDenied|Unauthorized|upload failed: 40[13]|sign failed: 40[13]/i.test(
+    /Invalid Compact JWS|AccessDenied|Unauthorized|upload failed: 40[13]|sign failed: 40[13]|NoSuchBucket|Bucket not found|bucket unavailable/i.test(
       detail
     )
   ) {
@@ -70,9 +70,9 @@ export function classifyFault(error: unknown): Fault {
       status: 503,
       detail: `storage: ${detail}`,
       message:
-        "We could not file your upload — our document storage is misconfigured. " +
-        `This is on us, not you. Please email your receipt to ${CONTACT} and we ` +
-        "will attach it by hand.",
+        "We could not file your upload — our document storage is not set up " +
+        `correctly. This is on us, not you. Please email your receipt to ${CONTACT} ` +
+        "and we will attach it by hand.",
     };
   }
 

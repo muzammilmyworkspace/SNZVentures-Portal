@@ -10,6 +10,7 @@ import {
   dobError,
 } from "@/lib/portal/payment-consent";
 import { DetailsFields, PaymentFields, type Facts, type SetFact } from "./FeeFields";
+import { readDraft, writeDraft, clearDraft } from "@/lib/portal/fee-draft";
 import { cn } from "@/lib/utils";
 
 /**
@@ -84,6 +85,44 @@ export function FeeDialog({
   const [receipt, setReceipt] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
+
+  /*
+    RESTORE, THEN SAVE — in that order, and never the other way round.
+
+    Restoring happens in an effect rather than in the useState initialiser
+    because this component is server-rendered too: reading localStorage during
+    the first render makes the server's markup and the client's disagree, and
+    React throws out the hydrated tree. `restored` also gates the save effect,
+    so the empty first render cannot overwrite the draft it is about to load.
+  */
+  const [restored, setRestored] = useState(false);
+  const [resumed, setResumed] = useState(false);
+
+  useEffect(() => {
+    if (!open || restored) return;
+    const draft = readDraft();
+    if (draft) {
+      setF((prev) => ({ ...prev, ...draft.facts }));
+      if (draft.agreed) setAgreed(true);
+      /*
+        A browser cannot give a File back after a reload, so a step past the
+        receipt would be a step with a silently missing attachment. Wind back
+        to the one that asks for it.
+      */
+      const saved = draft.step as Step | undefined;
+      const beyondReceipt = saved === "read" || saved === "sign";
+      if (saved && STEPS.some((x) => x.key === saved)) {
+        setStep(beyondReceipt ? "receipt" : saved);
+      }
+      setResumed(true);
+    }
+    setRestored(true);
+  }, [open, restored]);
+
+  useEffect(() => {
+    if (!open || !restored) return;
+    writeDraft({ facts: f, step, agreed });
+  }, [open, restored, f, step, agreed]);
 
   useEffect(() => {
     if (!open) return;
@@ -165,6 +204,9 @@ export function FeeDialog({
         setBusy(false);
         return;
       }
+      // Submitted and accepted — the draft has served its purpose, and it
+      // holds a passport number. It does not outlive the submission.
+      clearDraft();
       /*
         A full load, not a router refresh. The whole navigation changes shape
         when this succeeds — the stage moves and nav items change state — and
@@ -218,6 +260,30 @@ export function FeeDialog({
             <p className="mb-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] leading-relaxed text-[#B42318] [html[data-theme=dark]_&]:text-red-200">
               <strong>Your last submission was returned.</strong> {rejectionNote}
             </p>
+          )}
+
+          {resumed && (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-moss-400/45 bg-moss-400/10 px-4 py-3">
+              <p className="text-[0.88rem] leading-relaxed text-fg">
+                <strong>We kept what you had typed.</strong> Your signature and
+                receipt are not saved, so those two are asked for again.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  clearDraft();
+                  setF({ ...EMPTY, name: studentName, email: studentEmail });
+                  setAgreed(false);
+                  setSignature(null);
+                  setReceipt(null);
+                  setStep("details");
+                  setResumed(false);
+                }}
+                className="label min-h-11 px-1 text-muted underline underline-offset-4 transition-colors hover:text-fg"
+              >
+                Start fresh
+              </button>
+            </div>
           )}
 
           {step === "details" && <DetailsFields f={f} set={set} />}

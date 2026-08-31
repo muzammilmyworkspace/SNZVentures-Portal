@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { analytics } from "@/lib/analytics";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey } from "@/lib/portal/roles";
+import { clearDraft } from "@/lib/portal/fee-draft";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +103,8 @@ export function PortalShell({
   async function logout() {
     setSigningOut(true);
     analytics.portalLogout();
+    // Any half-filled declaration belongs to the session that started it.
+    clearDraft();
     await fetch("/api/auth/logout", { method: "POST" });
     /*
       A full load, replacing the history entry.

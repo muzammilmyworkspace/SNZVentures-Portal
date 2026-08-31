@@ -137,23 +137,82 @@ function supabaseHeaders(): Record<string, string> {
 
 const supabaseBase = () => process.env.SUPABASE_URL!.replace(/\/+$/, "");
 
-/** Idempotent. Returns true when the bucket exists and is private. */
-export async function ensureSupabaseBucket(): Promise<boolean> {
-  const res = await fetch(`${supabaseBase()}/storage/v1/bucket`, {
-    method: "POST",
-    headers: { ...supabaseHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: SUPABASE_BUCKET,
-      name: SUPABASE_BUCKET,
-      public: false,
-      file_size_limit: MAX_UPLOAD_BYTES,
-    }),
-    cache: "no-store",
-  });
-  // 400 with "already exists" is the normal path on every call after the first.
-  if (res.ok) return true;
+/**
+ * Idempotent. Creates the private bucket if it is not there yet.
+ *
+ * IT REPORTS WHY IT FAILED. This used to return a bare false that every caller
+ * ignored, so a bucket that could not be created produced no error here — just
+ * an upload a moment later answering "Bucket not found", which reads like the
+ * bucket was deleted rather than never made. The reason the create was refused
+ * is the only useful thing in that sequence, and it was the one thing thrown
+ * away.
+ */
+export async function ensureSupabaseBucket(): Promise<{ ok: boolean; detail: string | null }> {
+  let res: Response;
+  try {
+    res = await fetch(`${supabaseBase()}/storage/v1/bucket`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: SUPABASE_BUCKET,
+        name: SUPABASE_BUCKET,
+        public: false,
+        file_size_limit: MAX_UPLOAD_BYTES,
+      }),
+      cache: "no-store",
+    });
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+
+  if (res.ok) return { ok: true, detail: null };
+
   const text = await res.text().catch(() => "");
-  return /already exists|Duplicate/i.test(text);
+  // "Already exists" is the normal path on every call after the first.
+  if (/already exists|Duplicate/i.test(text)) return { ok: true, detail: null };
+
+  return {
+    ok: false,
+    detail: `could not create bucket "${SUPABASE_BUCKET}" (${res.status}): ${text.slice(0, 300)}`,
+  };
+}
+
+/** The bucket this deployment writes to, for the health page. */
+export const supabaseBucketName = () => SUPABASE_BUCKET;
+
+/**
+ * ASK THE STORE, DO NOT READ THE ENVIRONMENT.
+ *
+ * storageDiagnosis() can only see whether variables look right. This makes an
+ * actual call, because every failure that has cost real time here — a key that
+ * was not a key, a bucket that was never created — looked perfectly healthy
+ * from the variables alone.
+ */
+export async function storageProbe(): Promise<{ ok: boolean; detail: string | null }> {
+  const transport = storageTransport();
+  if (transport === "none") return { ok: false, detail: "No usable transport is configured." };
+  if (transport !== "supabase") {
+    // Nothing to probe cheaply; the credential check is all we have.
+    return { ok: true, detail: null };
+  }
+
+  try {
+    const res = await fetch(
+      `${supabaseBase()}/storage/v1/bucket/${encodeURIComponent(SUPABASE_BUCKET)}`,
+      { headers: supabaseHeaders(), cache: "no-store" }
+    );
+    if (res.ok) return { ok: true, detail: null };
+    if (res.status === 404) {
+      const created = await ensureSupabaseBucket();
+      return created.ok
+        ? { ok: true, detail: `Bucket "${SUPABASE_BUCKET}" was missing and has been created.` }
+        : { ok: false, detail: created.detail };
+    }
+    const text = await res.text().catch(() => "");
+    return { ok: false, detail: `${res.status}: ${text.slice(0, 300)}` };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 export function isStorageConfigured(): boolean {
@@ -215,7 +274,10 @@ export async function putObject(
   const transport = storageTransport();
 
   if (transport === "supabase") {
-    await ensureSupabaseBucket();
+    const bucket = await ensureSupabaseBucket();
+    // Uploading into a bucket we know is not there produces a 404 that blames
+    // the upload. Fail on the actual cause instead.
+    if (!bucket.ok) throw new Error(`Supabase bucket unavailable: ${bucket.detail}`);
     const res = await fetch(
       `${supabaseBase()}/storage/v1/object/${SUPABASE_BUCKET}/${encodeURI(key)}`,
       {

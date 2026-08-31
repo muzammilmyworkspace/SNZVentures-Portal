@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/guard";
 import { schemaStatus } from "@/lib/db/migrator";
-import { storageDiagnosis } from "@/lib/storage";
+import { storageDiagnosis, storageProbe, supabaseBucketName } from "@/lib/storage";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { SchemaPanel } from "@/components/portal/SchemaPanel";
 
@@ -23,10 +23,8 @@ export const dynamic = "force-dynamic";
 export default async function SchemaPage() {
   await requireAdmin();
 
-  const [schema, storage] = await Promise.all([
-    schemaStatus(),
-    Promise.resolve(storageDiagnosis()),
-  ]);
+  const [schema, probe] = await Promise.all([schemaStatus(), storageProbe()]);
+  const storage = storageDiagnosis();
 
   const transportLabel: Record<string, string> = {
     supabase: "Supabase Storage",
@@ -60,6 +58,30 @@ export default async function SchemaPage() {
               <strong className="text-fg">
                 {transportLabel[storage.active] ?? storage.active}
               </strong>
+              {storage.active === "supabase" ? (
+                <>
+                  {" · bucket "}
+                  <code className="text-fg">{supabaseBucketName()}</code>
+                </>
+              ) : null}
+            </p>
+
+            {/*
+              The result of an actual call, not a reading of the variables.
+              Both failures that have cost real time here — a key that was not
+              a key, a bucket that was never created — looked perfectly healthy
+              from the variables alone.
+            */}
+            <p
+              className={
+                probe.ok
+                  ? "rounded-[var(--radius-sm)] border border-moss-500/40 bg-moss-500/10 p-4 text-[0.88rem] leading-relaxed text-moss-200"
+                  : "rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-red-200"
+              }
+            >
+              {probe.ok
+                ? (probe.detail ?? "Reached the store, and the bucket is there.")
+                : `Storage did not answer: ${probe.detail ?? "unknown reason"}`}
             </p>
 
             {storage.active === "none" && (

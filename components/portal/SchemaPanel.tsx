@@ -99,7 +99,7 @@ export function SchemaPanel({ initial }: { initial: SchemaStatus }) {
           type="button"
           onClick={apply}
           disabled={busy || !status.reachable || status.pending === 0}
-          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="label inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy
             ? "Applying…"
