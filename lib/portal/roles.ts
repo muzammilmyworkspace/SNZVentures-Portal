@@ -209,6 +209,12 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           icon: "settings",
           roles: ["admin", "super_admin"],
         },
+        {
+          href: "/portal/admin/integrations",
+          label: "Integrations",
+          icon: "settings",
+          roles: ["admin", "super_admin"],
+        },
         { href: "/portal/settings", label: "Settings", icon: "settings" },
       ],
     },

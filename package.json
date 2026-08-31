@@ -18,9 +18,10 @@
     "db:bundle": "node scripts/sql-bundle.mjs",
     "db:gen": "node scripts/gen-schema-module.mjs",
     "verify:migrator": "node --experimental-strip-types scripts/verify-migrator.mjs",
-    "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:application && npm run verify:migrator && npm run db:verify",
+    "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:application && npm run verify:secretbox && npm run verify:migrator && npm run db:verify",
     "verify:application": "node --experimental-strip-types scripts/verify-application.mjs",
-    "db:deploy": "node scripts/db-deploy.mjs"
+    "db:deploy": "node scripts/db-deploy.mjs",
+    "verify:secretbox": "node --experimental-strip-types scripts/verify-secretbox.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

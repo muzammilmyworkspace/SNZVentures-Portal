@@ -48,6 +48,12 @@ export type AuditAction =
   // successful runs and the refused ones are recorded with who pressed it.
   | "schema.applied"
   | "schema.failed"
+  // Google Drive (012). Exporting a client file copies passports and bank
+  // statements out of private storage, and sharing sends them to somebody
+  // outside the portal entirely — both are recorded with who and to whom.
+  | "drive.connected"
+  | "drive.disconnected"
+  | "drive.exported"
   // Fee verification (007). The student declares, staff decide, and the
   // decision is what unlocks the rest of the portal — so all three are
   // recorded, not just the approval.
