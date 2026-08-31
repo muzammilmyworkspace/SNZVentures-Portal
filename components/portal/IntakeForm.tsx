@@ -12,6 +12,7 @@ import { optionsFor, fieldVisible, DECORATIVE } from "@/lib/application/types";
 import { buildMotivation } from "@/lib/application/motivation";
 import { filenamePrefix } from "@/lib/application/documents";
 import { DIAL_CODES } from "@/lib/application/reference";
+import { dateProblem, resolveBound } from "@/lib/application/dates";
 import { ReviewSummary } from "@/components/application/ReviewSummary";
 import { UndertakingDoc } from "@/components/application/UndertakingDoc";
 import {
@@ -197,11 +198,13 @@ function Field({
   value,
   onChange,
   invalid,
+  problem,
 }: {
   field: IntakeField;
   value: unknown;
   onChange: (v: unknown) => void;
   invalid: boolean;
+  problem?: string | null;
 }) {
   const id = `f-${field.key}`;
 
@@ -260,7 +263,7 @@ function Field({
       )}
       {invalid && (
         <p role="alert" className="mt-1.5 text-[0.8rem] text-red-300">
-          This one is required.
+          {problem ?? "This one is required."}
         </p>
       )}
     </div>
@@ -311,14 +314,47 @@ const isBlank = (f: IntakeField, v: unknown) => {
   unanswered question. Counting it would leave somebody stuck on a step,
   told something is missing, with nothing on screen to fill in.
 */
-function missingIn(step: IntakeStep, answers: Answers) {
-  return step.fields.filter(
-    (f) =>
-      f.required &&
-      !DECORATIVE.has(f.type) &&
-      fieldVisible(f, answers) &&
-      isBlank(f, answers[f.key])
-  );
+export type Problem = { field: IntakeField; message: string };
+
+/*
+  "This one is required" was the only thing this could ever say, which made it
+  actively misleading beside a date box the browser had refused to parse — the
+  answer looked present and the form insisted it was absent. Each problem now
+  carries its own sentence.
+*/
+function missingIn(step: IntakeStep, answers: Answers): Problem[] {
+  const out: Problem[] = [];
+
+  for (const f of step.fields) {
+    if (DECORATIVE.has(f.type)) continue;
+    if (!fieldVisible(f, answers)) continue;
+
+    if (f.type === "date") {
+      const bad = dateProblem(
+        String(answers[f.key] ?? ""),
+        { min: resolveBound(f.dateMin), max: resolveBound(f.dateMax) },
+        f.label
+      );
+      if (bad) {
+        out.push({ field: f, message: bad });
+        continue;
+      }
+    }
+
+    if (f.required && isBlank(f, answers[f.key])) {
+      out.push({
+        field: f,
+        message:
+          f.type === "checkbox"
+            ? "Please tick this to continue."
+            : f.type === "repeater"
+              ? "Please complete this section."
+              : "This one is required.",
+      });
+    }
+  }
+
+  return out;
 }
 
 export function IntakeForm({
@@ -427,6 +463,20 @@ export function IntakeForm({
     [answers, submitted]
   );
 
+  /**
+   * Back to the top of the form.
+   *
+   * Saving a draft left the page exactly where it was — usually halfway down a
+   * long section, with the confirmation up in the header where nobody was
+   * looking. The button appeared to do nothing at all, so people pressed it
+   * again. Changing step already moves focus to the heading; a save that stays
+   * on the same step has to move the page itself.
+   */
+  const toTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
+
   async function next() {
     setTouched(true);
     if (missingIn(step, answers).length) return;
@@ -435,18 +485,27 @@ export function IntakeForm({
     if (!ok) return;
     setTouched(false);
     setIndex((i) => Math.min(i + 1, steps.length - 1));
+    toTop();
   }
 
   function back() {
     setTouched(false);
     setIndex((i) => Math.max(i - 1, 0));
+    toTop();
   }
 
   /** Everything still missing, anywhere in the form, with its step. */
   const outstanding = useMemo(
     () =>
       steps.flatMap((s, i) =>
-        missingIn(s, answers).map((f) => ({ step: i, stepTitle: s.title, label: f.label }))
+        missingIn(s, answers).map((p) => ({
+          step: i,
+          stepTitle: s.title,
+          // The field name for a blank, the reason for anything else — a list
+          // that just repeats "Expiry date" three times does not help anyone
+          // find the one that is actually wrong.
+          label: p.message === "This one is required." ? p.field.label : `${p.field.label} — ${p.message}`,
+        }))
       ),
     [steps, answers]
   );
@@ -651,7 +710,8 @@ export function IntakeForm({
                       field={f}
                       value={answers[f.key]}
                       onChange={(v) => set(f.key, v)}
-                      invalid={gaps.some((g) => g.key === f.key)}
+                      invalid={gaps.some((g) => g.field.key === f.key)}
+                      problem={gaps.find((g) => g.field.key === f.key)?.message}
                     />
                   )}
                 </div>
@@ -728,7 +788,10 @@ export function IntakeForm({
 
         <button
           type="button"
-          onClick={() => save(index)}
+          onClick={async () => {
+            await save(index);
+            toTop();
+          }}
           disabled={saving}
           className="label min-h-11 px-2 text-muted transition-colors hover:text-fg disabled:opacity-60"
         >

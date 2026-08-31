@@ -47,6 +47,7 @@ import type { IntakeField, IntakeStep, IntakeDefinition } from "@/lib/applicatio
 import { optionsFor, fieldVisible, DECORATIVE } from "@/lib/application/types";
 import { STUDY_APPLICATION } from "@/lib/application/definition";
 import { documentsFor } from "@/lib/application/documents";
+import { dateProblem, resolveBound } from "@/lib/application/dates";
 
 
 /* ------------------------------------------------------ shared fragments */
@@ -518,7 +519,19 @@ export function validateStep(
         for (const sub of field.item ?? []) {
           const value = source[sub.key];
           if (value === undefined || value === null) continue;
-          cleanRow[sub.key] = String(value).trim().slice(0, sub.max ?? 500);
+          const text = String(value).trim().slice(0, sub.max ?? 500);
+          if (sub.type === "date") {
+            const bad = dateProblem(
+              text,
+              { min: resolveBound(sub.dateMin), max: resolveBound(sub.dateMax) },
+              sub.label
+            );
+            if (bad) {
+              if (opts.requireAll) missing.push(bad);
+              continue;
+            }
+          }
+          cleanRow[sub.key] = text;
         }
         /*
           A block where every box is empty is not a qualification, it is one
@@ -610,6 +623,25 @@ export function validateStep(
       if (opts.requireAll && field.required) missing.push(field.label);
       clean[field.key] = "";
       continue;
+    }
+
+    /*
+      A date control reports an empty string for anything it could not parse,
+      while still SHOWING what was typed. Left unchecked, the form said "this
+      one is required" beside a box with a date visibly in it. Anything that
+      does arrive is checked for real: shape, a day that exists, and the
+      bounds the definition declares.
+    */
+    if (field.type === "date") {
+      const bad = dateProblem(
+        text,
+        { min: resolveBound(field.dateMin), max: resolveBound(field.dateMax) },
+        field.label
+      );
+      if (bad) {
+        if (opts.requireAll) missing.push(bad);
+        continue;
+      }
     }
 
     if (field.mustMatch) {

@@ -1330,6 +1330,44 @@ select.field option {
   color: var(--fg);
 }
 
+/* ═══════════════════════════════════════════════════════ AUTOFILLED ═
+ *
+ * A field the browser filled in for you rendered as a hatched green block with
+ * the text scribbled through — unreadable, and alarming enough that people
+ * assumed the value was wrong.
+ *
+ * Chrome paints autofilled controls with its own background through an
+ * internal pseudo-class, and it does NOT let a page override
+ * `background-color`. Where the page has also set `appearance: none` and a
+ * background-image — which every .field does, for the caret — its paint and
+ * ours composite into that hatching.
+ *
+ * The only reliable way to cover it is an inset box-shadow large enough to
+ * fill the control, which Chrome does honour, plus -webkit-text-fill-color for
+ * the text it also recolours. The absurd transition delay is the standard
+ * companion trick: Chrome re-applies the background on interaction, and a
+ * transition it can never finish keeps ours on screen.
+ *
+ * --raised is used rather than the field's own translucent mix, because a
+ * translucent layer over Chrome's paint still shows it through.
+ */
+.field:-webkit-autofill,
+.field:-webkit-autofill:hover,
+.field:-webkit-autofill:focus,
+.field:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--fg);
+  -webkit-box-shadow: 0 0 0 100px var(--raised) inset;
+  box-shadow: 0 0 0 100px var(--raised) inset;
+  caret-color: var(--fg);
+  border-color: var(--line);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
+/* Focus must still look like focus on an autofilled control. */
+.field:-webkit-autofill:focus {
+  border-color: var(--accent);
+}
+
 /*
  * Date inputs have the same invisible-ink problem with their calendar button.
  * `color-scheme` tells the browser which set of native controls to draw, which
