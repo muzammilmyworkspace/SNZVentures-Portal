@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiRequireSuperAdmin } from "@/lib/auth/guard";
+import { apiRequireAdmin } from "@/lib/auth/guard";
 import { schemaStatus, applyPending } from "@/lib/db/migrator";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
@@ -13,21 +13,27 @@ export const dynamic = "force-dynamic";
  * GET   what is applied and what is pending
  * POST  apply everything pending
  *
- * SUPER ADMIN, NOT ADMIN. Applying a migration rewrites the shape of every
- * table under it, and unlike the rest of the admin area it cannot be undone
- * from the UI. Ordinary admins manage people and cases; changing the database
- * itself is a narrower privilege on purpose.
+ * ADMIN, NOT SUPER ADMIN — deliberately, after weighing it both ways.
  *
- * Migrations are idempotent and recorded, so a second press applies nothing.
+ * The tighter bar looks safer and is not. There is no arbitrary SQL here: the
+ * only thing this can apply is the schema that shipped in the build already
+ * running, in order, each in a transaction, recorded and idempotent. Its blast
+ * radius is "the database catches up to the code on top of it".
+ *
+ * Against that, requiring super_admin risks the failure this screen exists to
+ * end: a deployment whose schema is unapplied and whose operator cannot reach
+ * the one control that would apply it. Locking the fire exit is not a security
+ * improvement. Anyone who is already admin can change roles and suspend
+ * accounts; this is not the sharpest thing in the room.
  */
 export async function GET() {
-  const guard = await apiRequireSuperAdmin();
+  const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   return NextResponse.json({ ok: true, status: await schemaStatus() });
 }
 
 export async function POST(request: Request) {
-  const guard = await apiRequireSuperAdmin();
+  const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
 

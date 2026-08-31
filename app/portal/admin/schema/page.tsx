@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSuperAdmin } from "@/lib/auth/guard";
+import { requireAdmin } from "@/lib/auth/guard";
 import { schemaStatus } from "@/lib/db/migrator";
 import { storageDiagnosis } from "@/lib/storage";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * the product, in words that name the variable.
  */
 export default async function SchemaPage() {
-  await requireSuperAdmin();
+  await requireAdmin();
 
   const [schema, storage] = await Promise.all([
     schemaStatus(),
