@@ -77,32 +77,32 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/cases", label: "Applications", icon: "applications" },
       ],
     },
-    {
-      group: "Explore",
-      items: [
-        { href: "/portal/universities", label: "Universities", icon: "universities" },
-        { href: "/portal/scholarships", label: "Scholarships", icon: "scholarships" },
-      ],
-    },
+
     {
       /*
-        Documents and Tasks used to sit here. Documents are collected inside
-        the application now — section 08, where each slot explains itself and
-        names the file — and a second page listing the same files without that
-        context is just a place to get it wrong. The form is the task list.
+        Explore, Consultations, Documents and Tasks all used to be here.
+
+        Documents are collected inside the application now — section 08, where
+        each slot explains itself and names the file — and a second page
+        listing the same files without that context is just another place to
+        get it wrong. The form is the task list.
+
+        What is left is the route a student actually travels. A menu of eleven
+        items where four are live teaches people to stop reading the menu.
       */
-      group: "Your file",
-      items: [{ href: "/portal/profile", label: "Profile", icon: "profile" }],
-    },
-    {
       group: "Contact",
       items: [
         { href: "/portal/messages", label: "Messages", icon: "messages", badgeKey: "messages" },
-        { href: "/portal/appointments", label: "Consultations", icon: "consultations" },
         { href: "/portal/notifications", label: "Notifications", icon: "activity", badgeKey: "notifications" },
       ],
     },
-    { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
+    {
+      group: "Account",
+      items: [
+        { href: "/portal/profile", label: "Profile", icon: "profile" },
+        { href: "/portal/settings", label: "Settings", icon: "settings" },
+      ],
+    },
   ],
 
   "job-seeker": [

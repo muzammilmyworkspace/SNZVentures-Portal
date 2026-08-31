@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { analytics } from "@/lib/analytics";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey } from "@/lib/portal/roles";
@@ -62,6 +62,7 @@ export function PortalShell({
   badges = {},
   lockedPaths = [],
   lockNote,
+  status = null,
 }: {
   children: React.ReactNode;
   name: string;
@@ -80,6 +81,14 @@ export function PortalShell({
   lockedPaths?: string[];
   /** One line saying why, shown on hover and to screen readers. */
   lockNote?: string | null;
+  /**
+   * Where this person stands, for the header.
+   *
+   * Computed by the layout from the same rows the gate reads, rather than in
+   * here: the shell is a client component, and shipping the stage rules to the
+   * browser would mean keeping two copies of them in step.
+   */
+  status?: { label: string; tone: "ok" | "wait" | "action" } | null;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -91,7 +100,40 @@ export function PortalShell({
     .filter((g) => g.items.length > 0);
   const home = homeFor(role);
 
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => setAccountOpen(false), [pathname]);
+
+  /*
+    A menu that only closes on its own button is a menu people leave open and
+    then click through. Both exits are handled: anywhere else, or Escape.
+  */
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!accountRef.current?.contains(e.target as Node)) setAccountOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAccountOpen(false);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [accountOpen]);
+
+  /*
+    The name of the page you are on, read off the same nav that produced the
+    link. A header that repeats your own name back at you is a header doing
+    nothing; the one thing it can always say is where you are.
+  */
+  const here =
+    groups
+      .flatMap((g) => g.items)
+      .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? null;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -263,17 +305,92 @@ export function PortalShell({
 
             {/* "Back to site" removed — see the note in AuthShell. */}
 
-            <p className="min-w-0 flex-1 truncate text-[0.85rem] text-faint lg:text-right">
-              <span className="font-medium text-fg">{name}</span>
+            {/* Where you are. */}
+            <p className="min-w-0 flex-1 truncate text-[0.9rem] font-semibold text-fg">
+              {here ?? name}
             </p>
 
+            {/*
+              WHAT THE PORTAL IS WAITING ON.
+
+              This bar carried a name the person already knows, across the full
+              width of every page. The one thing worth that space is the answer
+              to "what happens next, and whose move is it" — so it says that,
+              and it says it in a colour that distinguishes their move from
+              ours. It is hidden on small screens, where the dashboard says the
+              same thing with room to explain it.
+            */}
+            {status && (
+              <span
+                className={cn(
+                  "hidden shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[0.78rem] font-medium md:inline-flex",
+                  status.tone === "action" && "border-moss-400/50 bg-moss-400/10 text-accent",
+                  status.tone === "wait" && "border-amber-300/40 bg-amber-300/10 text-amber-200",
+                  status.tone === "ok" && "border-line text-muted"
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    status.tone === "action" && "bg-moss-400",
+                    status.tone === "wait" && "bg-amber-300",
+                    status.tone === "ok" && "bg-muted"
+                  )}
+                />
+                {status.label}
+              </span>
+            )}
+
             <ThemeToggle />
-            <span
-              aria-hidden
-              className="hidden h-9 w-9 items-center justify-center rounded-full border border-line text-[0.7rem] font-semibold text-muted sm:flex"
-            >
-              {initials}
-            </span>
+
+            <div ref={accountRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setAccountOpen((o) => !o)}
+                aria-expanded={accountOpen}
+                aria-haspopup="menu"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-[0.7rem] font-semibold text-muted transition-colors hover:border-moss-400/60 hover:text-fg"
+              >
+                <span className="sr-only">Account</span>
+                <span aria-hidden>{initials}</span>
+              </button>
+
+              {accountOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-[var(--radius-md)] border border-line bg-surface shadow-lg"
+                >
+                  <div className="border-b border-line px-4 py-3">
+                    <p className="truncate text-[0.88rem] font-semibold text-fg">{name}</p>
+                    <p className="label mt-0.5 text-[0.6rem] text-faint">{ROLE_LABEL[role]}</p>
+                  </div>
+                  <Link
+                    role="menuitem"
+                    href="/portal/profile"
+                    className="flex min-h-11 items-center px-4 text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg"
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    href="/portal/settings"
+                    className="flex min-h-11 items-center px-4 text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg"
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={logout}
+                    disabled={signingOut}
+                    className="flex min-h-11 w-full items-center border-t border-line px-4 text-left text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg disabled:opacity-50"
+                  >
+                    {signingOut ? "Signing out…" : "Sign out"}
+                  </button>
+                </div>
+              )}
+            </div>
           </header>
 
           {/* Mobile drawer — a disclosure under the header rather than a shrunk

@@ -31,6 +31,21 @@ export const revalidate = 0;
  * Pages that need a narrower role still call their own guard — this one only
  * establishes that somebody is signed in.
  */
+/**
+ * The header line, per stage.
+ *
+ * Deliberately phrased as WHOSE MOVE IT IS. "Fee review" describes a database
+ * row; "Receipt with us" tells somebody they can stop refreshing.
+ */
+const HEADER_STATUS: Record<string, { label: string; tone: "ok" | "wait" | "action" }> = {
+  fee_due: { label: "Send your receipt", tone: "action" },
+  fee_review: { label: "Receipt with us", tone: "wait" },
+  fee_rejected: { label: "Receipt needs re-sending", tone: "action" },
+  application: { label: "Application open", tone: "action" },
+  consent_due: { label: "Undertaking to sign", tone: "action" },
+  complete: { label: "With your advisor", tone: "ok" },
+};
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   // Through the clearing route — see lib/auth/guard.ts for why not /login.
@@ -66,10 +81,12 @@ export default async function PortalLayout({ children }: { children: React.React
   */
   let lockedPaths: string[] = [];
   let lockNote: string | null = null;
+  let status: { label: string; tone: "ok" | "wait" | "action" } | null = null;
 
   if (session.role === "student" && isDatabaseConfigured()) {
     const { stage } = await studentStage(session.userId);
     lockNote = lockReason(stage);
+    status = HEADER_STATUS[stage];
     lockedPaths = navFor[portalRoleFor(session.role)]
       .flatMap((g) => g.items)
       .map((i) => i.href)
@@ -83,6 +100,7 @@ export default async function PortalLayout({ children }: { children: React.React
       badges={badges}
       lockedPaths={lockedPaths}
       lockNote={lockNote}
+      status={status}
     >
       {children}
     </PortalShell>
