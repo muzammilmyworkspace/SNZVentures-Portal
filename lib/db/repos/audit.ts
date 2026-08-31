@@ -32,6 +32,8 @@ export type AuditAction =
   | "user.role_changed"
   | "user.suspended"
   | "user.activated"
+  | "user.password_reset_link"
+  | "user.deleted"
   | "case.created"
   | "case.status_changed"
   | "case.advisor_assigned"

@@ -188,6 +188,20 @@ export async function setRole(userId: string, role: Role) {
   await db()`UPDATE users SET role = ${role}, updated_at = now() WHERE id = ${userId}`;
 }
 
+/**
+ * Hard delete. Guarded at the call site by super-admin only.
+ *
+ * Every table referencing users cascades, so this removes the person's cases,
+ * documents rows, messages, notifications, consents and fee submissions with
+ * them. The stored OBJECTS are not touched — the rows that point at them go,
+ * so nothing in the application can reach them, but the files remain in the
+ * bucket until cleared separately. Suspension is the reversible option; this
+ * is for a genuine erasure request.
+ */
+export async function deleteUser(userId: string) {
+  await db()`DELETE FROM users WHERE id = ${userId}`;
+}
+
 export async function setStatus(userId: string, status: DbUser["status"]) {
   await db()`UPDATE users SET status = ${status}, updated_at = now() WHERE id = ${userId}`;
 }

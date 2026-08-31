@@ -38,6 +38,13 @@ export function UserTable({
   actorId: string;
 }) {
   const router = useRouter();
+  /*
+    The generated reset link, held per user so two rows cannot show each
+    other's. It is shown ONCE and never stored: it is a live credential for
+    thirty minutes, and putting it anywhere persistent would defeat the point
+    of it being single-use.
+  */
+  const [resetLink, setResetLink] = useState<{ id: string; url: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +63,15 @@ export function UserTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, ...payload }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        link?: string;
+      };
       if (!res.ok) setError(data.error ?? "That action failed.");
-      else startTransition(() => router.refresh());
+      else {
+        if (data.link) setResetLink({ id: userId, url: data.link });
+        startTransition(() => router.refresh());
+      }
     } catch {
       setError("Network problem. Please try again.");
     } finally {
@@ -197,6 +210,77 @@ export function UserTable({
                       >
                         {u.status === "active" ? "Suspend" : "Activate"}
                       </button>
+                    )}
+
+                    {!self && !locked && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => act(u.id, { action: "reset_password" })}
+                          className="label ml-2 rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-muted transition-colors hover:border-moss-400/60 hover:text-accent"
+                        >
+                          Reset link
+                        </button>
+
+                        {actorRole === "super_admin" && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => {
+                              /*
+                                Typed confirmation, not a yes/no box. This
+                                cascades to the person's cases, documents,
+                                messages and consents and cannot be undone, so
+                                it should be impossible to do by reflex on the
+                                wrong row.
+                              */
+                              const typed = window.prompt(
+                                `Permanently delete ${u.name} (${u.email}) and everything attached to them?
+
+This cannot be undone. Suspend instead if you only want to block access.
+
+Type DELETE to confirm.`
+                              );
+                              if (typed === "DELETE") act(u.id, { action: "delete" });
+                            }}
+                            className="label ml-2 rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-muted transition-colors hover:border-red-400/60 hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {resetLink?.id === u.id && (
+                      <div className="mt-3 rounded-[var(--radius-sm)] border border-moss-400/45 bg-moss-400/10 p-3">
+                        <p className="text-[0.78rem] font-semibold text-fg">
+                          Reset link — valid 30 minutes, works once
+                        </p>
+                        <p className="mt-1.5 break-all font-mono text-[0.72rem] leading-relaxed text-muted">
+                          {resetLink.url}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(resetLink.url)}
+                            className="label rounded-[var(--radius-sm)] border border-line px-3 py-1 text-[0.7rem] text-muted hover:text-fg"
+                          >
+                            Copy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetLink(null)}
+                            className="label rounded-[var(--radius-sm)] border border-line px-3 py-1 text-[0.7rem] text-muted hover:text-fg"
+                          >
+                            Hide
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[0.72rem] leading-relaxed text-faint">
+                          Send this to them yourself. It is not emailed, and
+                          making a new one cancels this one.
+                        </p>
+                      </div>
                     )}
                   </td>
                 </tr>

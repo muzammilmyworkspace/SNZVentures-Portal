@@ -5,6 +5,8 @@ import * as portalRepo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import type { Role } from "@/lib/auth/types";
+import * as store from "@/lib/auth/store";
+import { siteUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
 
@@ -138,6 +140,74 @@ export async function POST(request: Request) {
         entity: "user",
         entityId: userId,
         meta: { advisorId },
+        ip,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    /*
+      A RESET LINK, NOT A PASSWORD.
+
+      Passwords are scrypt hashes and cannot be read back — by design, and
+      nothing here weakens that. What an administrator actually needs when
+      somebody is locked out is a way back IN, so this mints the same
+      single-use, 30-minute token the "forgot password" flow uses and hands
+      the link to the operator to pass on.
+
+      That also makes this the answer when no mail transport is configured:
+      the link works whether or not email is going out, which is exactly the
+      situation this feature was built in the middle of.
+
+      Issuing one INVALIDATES any outstanding reset for that account, so an
+      old link a support agent sent yesterday stops working the moment a new
+      one is made.
+    */
+    case "reset_password": {
+      const link = `${siteUrl()}/reset-password?token=${encodeURIComponent(
+        await store.issueToken(userId, "password_reset", 30)
+      )}`;
+      await audit({
+        action: "user.password_reset_link",
+        actorId: session.userId,
+        actorEmail: session.email,
+        entity: "user",
+        entityId: userId,
+        meta: { for: target.email },
+        ip,
+      });
+      return NextResponse.json({ ok: true, link, expiresInMinutes: 30 });
+    }
+
+    /*
+      DELETION IS SUPER-ADMIN ONLY, and it is not reversible.
+
+      Every table that references a user cascades, so this takes their cases,
+      documents, messages, notifications, consents and fee submissions with it.
+      For a client who has sent us passport scans that is usually what erasure
+      is supposed to mean — but it is also why an ordinary admin cannot do it
+      from a dropdown next to "suspend".
+
+      Suspension is the reversible one and is what most situations want; this
+      exists for a genuine erasure request. The stored OBJECTS are not removed
+      here: the rows pointing at them go, so nothing in the app can reach them,
+      but the files stay in the bucket until they are cleared separately. Saying
+      so plainly beats implying a completeness this cannot deliver.
+    */
+    case "delete": {
+      if (session.role !== "super_admin") {
+        return NextResponse.json(
+          { ok: false, error: "Only a super administrator can delete an account." },
+          { status: 403 }
+        );
+      }
+      await usersRepo.deleteUser(userId);
+      await audit({
+        action: "user.deleted",
+        actorId: session.userId,
+        actorEmail: session.email,
+        entity: "user",
+        entityId: userId,
+        meta: { email: target.email, role: target.role },
         ip,
       });
       return NextResponse.json({ ok: true });
