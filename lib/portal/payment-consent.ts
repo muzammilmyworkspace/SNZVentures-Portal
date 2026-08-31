@@ -22,6 +22,9 @@ export const PAYMENT_CONSENT_TITLE = "Payment Authorization & Declaration";
 
 export type PaymentDeclarationFacts = {
   name: string;
+  passport: string;
+  nationality: string;
+  city: string;
   university: string;
   programme?: string | null;
   feeType: string;
@@ -55,8 +58,14 @@ export const PAYMENT_CLAUSES: string[] = [
 export function paymentDeclarationBody(f: PaymentDeclarationFacts): string[] {
   const out: string[] = [];
 
+  /*
+    The opening sentence names the signatory the way the paper form does —
+    passport, nationality and residence. A declaration that does not identify
+    who is declaring is not one, and these are the three identifiers an
+    institution matches a transfer against.
+  */
   out.push(
-    `I, ${f.name}, confirm that I have applied for admission to ${f.university}` +
+    `I, ${f.name}, holder of passport ${f.passport}, a national of ${f.nationality} residing at ${f.city}, confirm that I have applied for admission to ${f.university}` +
       (f.programme ? ` for the programme ${f.programme}` : "") +
       "."
   );

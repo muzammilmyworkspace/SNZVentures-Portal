@@ -71,6 +71,10 @@ export default async function AdminFeesPage() {
                   payerName={f.payerName}
                   payerRelation={f.payerRelation}
                   signedName={f.signedName}
+                  passport={f.declarantPassport}
+                  nationality={f.declarantNationality}
+                  city={f.declarantCity}
+                  phone={f.declarantPhone}
                   submittedAt={f.createdAt}
                   receiptDocumentId={f.receiptDocumentId}
                 />

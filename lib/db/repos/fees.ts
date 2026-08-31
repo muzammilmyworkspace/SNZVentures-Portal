@@ -33,6 +33,10 @@ export type FeeSubmission = {
   receiptDocumentId: string | null;
   signedName: string;
   signedAt: string;
+  declarantPassport: string | null;
+  declarantNationality: string | null;
+  declarantCity: string | null;
+  declarantPhone: string | null;
   status: FeeStatus;
   reviewedAt: string | null;
   reviewNote: string | null;
@@ -58,6 +62,10 @@ const map = (r: Record<string, unknown>): FeeSubmission => ({
   receiptDocumentId: r.receipt_document_id ? String(r.receipt_document_id) : null,
   signedName: String(r.signed_name),
   signedAt: new Date(r.signed_at as string).toISOString(),
+  declarantPassport: r.declarant_passport ? String(r.declarant_passport) : null,
+  declarantNationality: r.declarant_nationality ? String(r.declarant_nationality) : null,
+  declarantCity: r.declarant_city ? String(r.declarant_city) : null,
+  declarantPhone: r.declarant_phone ? String(r.declarant_phone) : null,
   status: r.status as FeeStatus,
   reviewedAt: r.reviewed_at ? new Date(r.reviewed_at as string).toISOString() : null,
   reviewNote: r.review_note ? String(r.review_note) : null,
@@ -66,6 +74,17 @@ const map = (r: Record<string, unknown>): FeeSubmission => ({
 
 export async function createFeeSubmission(input: {
   userId: string;
+  // Identity AS DECLARED. A copy, not a join to profiles — a signed document
+  // has to keep saying what it said on the day. See migration 008.
+  declarantName: string;
+  declarantFather?: string | null;
+  declarantPassport: string;
+  declarantNationality: string;
+  declarantDob?: string | null;
+  declarantEmail: string;
+  declarantPhone: string;
+  declarantCity: string;
+  declarantAddress?: string | null;
   university: string;
   programme?: string | null;
   feeType: string;
@@ -89,7 +108,10 @@ export async function createFeeSubmission(input: {
       user_id, university, programme, fee_type, currency, amount, method,
       txn_ref, pay_date, third_party, payer_name, payer_relation,
       receipt_document_id, signature_png, signed_name, consent_version,
-      ip, user_agent
+      ip, user_agent,
+      declarant_name, declarant_father, declarant_passport, declarant_nationality,
+      declarant_dob, declarant_email, declarant_phone, declarant_city,
+      declarant_address
     ) VALUES (
       ${input.userId}, ${input.university}, ${input.programme ?? null},
       ${input.feeType}, ${input.currency}, ${input.amount}, ${input.method},
@@ -97,7 +119,12 @@ export async function createFeeSubmission(input: {
       ${input.payerName ?? null}, ${input.payerRelation ?? null},
       ${input.receiptDocumentId ?? null}, ${input.signaturePng ?? null},
       ${input.signedName}, ${input.consentVersion},
-      ${input.ip ?? null}, ${input.userAgent ?? null}
+      ${input.ip ?? null}, ${input.userAgent ?? null},
+      ${input.declarantName}, ${input.declarantFather ?? null},
+      ${input.declarantPassport}, ${input.declarantNationality},
+      ${input.declarantDob ?? null}, ${input.declarantEmail},
+      ${input.declarantPhone}, ${input.declarantCity},
+      ${input.declarantAddress ?? null}
     )
     RETURNING id
   `;

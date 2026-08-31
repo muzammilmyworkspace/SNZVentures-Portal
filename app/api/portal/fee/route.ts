@@ -98,6 +98,18 @@ export async function POST(request: Request) {
 
   const str = (k: string, max = 200) => String(form.get(k) ?? "").trim().slice(0, max);
 
+  // Identity — panel 2 of the source document.
+  const name = str("name", 120);
+  const father = str("father", 120);
+  const passport = str("passport", 40).toUpperCase();
+  const nationality = str("nationality", 60);
+  const dob = str("dob", 10);
+  const email = str("email");
+  const phone = str("phone", 40);
+  const city = str("city");
+  const address = str("address", 400);
+
+  // The payment — panel 3.
   const university = str("university");
   const programme = str("programme");
   const feeType = str("feeType", 60);
@@ -109,12 +121,25 @@ export async function POST(request: Request) {
   const thirdParty = form.get("thirdParty") === "true";
   const payerName = str("payerName");
   const payerRelation = str("payerRelation", 80);
-  const signedName = str("signedName", 120);
+  const signedName = str("signedName", 120) || name;
   const signaturePng = String(form.get("signaturePng") ?? "");
 
   /* -------------------------------------------------- validation, server-side */
 
   const bad = (error: string) => NextResponse.json({ ok: false, error }, { status: 400 });
+
+  /*
+    Re-validated here, not just in the dialog. The browser is not the place
+    this is decided: anything can post to this endpoint, and these values end
+    up written verbatim into a signed declaration.
+  */
+  if (name.length < 2) return bad("Enter your full name.");
+  if (!passport) return bad("Enter your passport number.");
+  if (!nationality) return bad("Enter your nationality.");
+  if (dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return bad("Enter a valid date of birth.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return bad("Enter a valid email address.");
+  if (!phone) return bad("Enter a contact number.");
+  if (!city) return bad("Enter your city and country.");
 
   if (!university) return bad("Enter the institution you applied to.");
   if (!(FEE_TYPES as readonly string[]).includes(feeType)) return bad("Choose what the fee is for.");
@@ -165,6 +190,15 @@ export async function POST(request: Request) {
 
     const feeId = await fees.createFeeSubmission({
       userId: session.userId,
+      declarantName: name,
+      declarantFather: father || null,
+      declarantPassport: passport,
+      declarantNationality: nationality,
+      declarantDob: dob || null,
+      declarantEmail: email,
+      declarantPhone: phone,
+      declarantCity: city,
+      declarantAddress: address || null,
       university,
       programme: programme || null,
       feeType,

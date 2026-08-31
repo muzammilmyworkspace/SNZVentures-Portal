@@ -34,6 +34,7 @@ export default async function Page({
         stage={stage}
         rejectionNote={rejectionNote}
         studentName={session.name}
+        studentEmail={session.email}
         lockedPath={locked ?? null}
         justSubmitted={fee === "submitted"}
       />

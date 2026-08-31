@@ -2,51 +2,66 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FEE_TYPES,
-  PAYMENT_METHODS,
-  CURRENCIES,
   PAYMENT_CLAUSES,
   PAYMENT_CONSENT_TITLE,
   paymentDeclarationBody,
   formatAmount,
 } from "@/lib/portal/payment-consent";
+import { DetailsFields, PaymentFields, type Facts, type SetFact } from "./FeeFields";
 import { cn } from "@/lib/utils";
 
 /**
- * FEE VERIFICATION — Form A, as a dialog over the dashboard.
+ * FORM A — PAYMENT AUTHORIZATION & DECLARATION.
  *
- * The student declares the payment, attaches the receipt, reads the
- * declaration with their own answers written into it, signs, and submits.
+ * The student has already paid before they reach the portal: a query comes in,
+ * we explain the process, the fee is paid upfront, and only then do they get a
+ * sign-up link. So the very first thing here asks for the receipt of a payment
+ * that has already happened, and nothing else opens until we have checked it.
  *
- * WHY A DIALOG AND NOT A PAGE
- * It is the first thing that happens after sign-in and the only thing that can
- * happen until it is done. A page would need a route that every other route
- * redirects to, and a student who navigated away would be looking at a portal
- * of dead links with no explanation. Here the dashboard stays visible
- * underneath — they can see what they are unlocking.
+ * THE FIELDS ARE THE SOURCE DOCUMENT'S, NOT MINE. Both of its field sets are
+ * here — identity and payment — with its labels, hints and optional/required
+ * split. See the note in FeeFields.tsx. The one addition is the receipt step,
+ * which the paper form has no equivalent of because paper is handed over in
+ * person.
  *
- * IT IS DISMISSIBLE. Not because the gate is optional, but because someone who
- * does not have their receipt to hand should be able to look around, message
- * an advisor and come back. The lock is enforced on the server; this dialog is
- * only the way through it.
+ * WHY A DIALOG
+ * It is the first thing after sign-in and the only thing that can happen until
+ * it is done. A page would need every other route redirecting to it, and a
+ * student who navigated away would face a portal of dead links. Here the
+ * dashboard stays visible underneath — they can see what they are unlocking.
+ *
+ * It is dismissible. Not because the step is optional, but because someone
+ * without their receipt to hand must be able to look around and message an
+ * advisor. The lock is enforced on the server; this is only the way through it.
  */
 
-type Step = "details" | "receipt" | "read" | "sign";
+type Step = "details" | "payment" | "receipt" | "read" | "sign";
 
-const STEPS: { key: Step; n: string; label: string }[] = [
-  { key: "details", n: "01", label: "The payment" },
-  { key: "receipt", n: "02", label: "Your receipt" },
-  { key: "read", n: "03", label: "Read it" },
-  { key: "sign", n: "04", label: "Sign" },
+const STEPS: { key: Step; label: string }[] = [
+  { key: "details", label: "Your details" },
+  { key: "payment", label: "The payment" },
+  { key: "receipt", label: "Your receipt" },
+  { key: "read", label: "Read it" },
+  { key: "sign", label: "Sign" },
 ];
+
+const EMPTY: Facts = {
+  name: "", father: "", passport: "", nationality: "", dob: "",
+  email: "", phone: "", city: "", address: "",
+  university: "", programme: "", feeType: "", currency: "EUR", amount: "",
+  method: "", txnRef: "", payDate: "",
+  thirdParty: false, payerName: "", payerRelation: "",
+};
 
 export function FeeDialog({
   studentName,
+  studentEmail,
   open,
   onClose,
   rejectionNote,
 }: {
   studentName: string;
+  studentEmail: string;
   open: boolean;
   onClose: () => void;
   rejectionNote?: string | null;
@@ -54,30 +69,20 @@ export function FeeDialog({
   const [step, setStep] = useState<Step>("details");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
-  const [f, setF] = useState({
-    university: "",
-    programme: "",
-    feeType: "",
-    currency: "EUR",
-    amount: "",
-    method: "",
-    txnRef: "",
-    payDate: "",
-    thirdParty: false,
-    payerName: "",
-    payerRelation: "",
-    signedName: "",
-  });
-  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) =>
-    setF((p) => ({ ...p, [k]: v }));
+  /*
+    Seeded from the account, because the person filling this in is the person
+    who signed up — asking them to retype their own name and email under a
+    heading that says "as on passport" invites a mismatch between the two. They
+    can still correct either; the passport is what the declaration must match.
+  */
+  const [f, setF] = useState<Facts>({ ...EMPTY, name: studentName, email: studentEmail });
+  const set: SetFact = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
   const [receipt, setReceipt] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
 
-  /* ---------------------------------------------------------- scroll lock */
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -94,40 +99,48 @@ export function FeeDialog({
 
   if (!open) return null;
 
+  const idx = STEPS.findIndex((s) => s.key === step);
   const amountLabel = formatAmount(f.amount, f.currency);
 
   /* --------------------------------------------------------- step gating */
-  function detailsValid(): string | null {
-    if (!f.university.trim()) return "Enter the institution you applied to.";
-    if (!f.feeType) return "Choose what the fee is for.";
-    const n = Number(f.amount.replace(/,/g, ""));
-    if (!isFinite(n) || n <= 0) return "Enter the amount as a number.";
-    if (!f.method) return "Choose how you sent it.";
-    if (f.thirdParty && (!f.payerName.trim() || !f.payerRelation.trim()))
-      return "Enter the payer's name and their relationship to you.";
+
+  function problem(): string | null {
+    if (step === "details") {
+      if (!f.name.trim()) return "Enter your full name.";
+      if (!f.passport.trim()) return "Enter your passport number.";
+      if (!f.nationality.trim()) return "Enter your nationality.";
+      if (!f.dob) return "Enter your date of birth.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()))
+        return "Enter a valid email address.";
+      if (!f.phone.trim()) return "Enter a contact number.";
+      if (!f.city.trim()) return "Enter your city and country.";
+      return null;
+    }
+    if (step === "payment") {
+      if (!f.university.trim()) return "Enter the institution name.";
+      if (!f.feeType) return "Choose what the fee is for.";
+      const n = Number(f.amount.replace(/,/g, ""));
+      if (!isFinite(n) || n <= 0) return "Enter the amount as a number.";
+      if (!f.method) return "Choose a payment method.";
+      if (f.thirdParty && (!f.payerName.trim() || !f.payerRelation.trim()))
+        return "Enter the payer's name and their relationship to you.";
+      return null;
+    }
+    if (step === "receipt" && !receipt) return "Attach your payment receipt.";
+    if (step === "read" && !agreed) return "Tick the box to confirm you have read it.";
     return null;
   }
 
   function next() {
-    setError(null);
-    if (step === "details") {
-      const bad = detailsValid();
-      if (bad) return setError(bad);
-      return setStep("receipt");
-    }
-    if (step === "receipt") {
-      if (!receipt) return setError("Attach your payment receipt.");
-      return setStep("read");
-    }
-    if (step === "read") {
-      if (!agreed) return setError("Tick the box to confirm you have read it.");
-      return setStep("sign");
-    }
+    const bad = problem();
+    setError(bad);
+    if (bad) return;
+    setStep(STEPS[idx + 1].key);
   }
 
   async function submit() {
     setError(null);
-    if (f.signedName.trim().length < 2) return setError("Type your full name as your signature.");
+    if (f.name.trim().length < 2) return setError("Type your full name as your signature.");
     if (!signature) return setError("Draw your signature in the box.");
     if (!receipt) return setError("Attach your payment receipt.");
 
@@ -137,6 +150,7 @@ export function FeeDialog({
       Object.entries(f).forEach(([k, v]) => fd.append(k, String(v)));
       fd.append("receipt", receipt);
       fd.append("signaturePng", signature);
+      fd.append("signedName", f.name);
 
       const res = await fetch("/api/portal/fee", { method: "POST", body: fd });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
@@ -146,10 +160,10 @@ export function FeeDialog({
         return;
       }
       /*
-        A full reload, not a router refresh. The whole navigation changes shape
-        when this succeeds — the stage moves, nav items unlock or change state —
-        and re-reading it from the server is more honest than patching a cached
-        tree that was rendered for a student at a different stage.
+        A full load, not a router refresh. The whole navigation changes shape
+        when this succeeds — the stage moves and nav items change state — and
+        re-reading it from the server is more honest than patching a cached
+        tree rendered for a student at a different stage.
       */
       window.location.assign("/portal/student?fee=submitted");
     } catch {
@@ -157,8 +171,6 @@ export function FeeDialog({
       setBusy(false);
     }
   }
-
-  const idx = STEPS.findIndex((s) => s.key === step);
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-5">
@@ -170,15 +182,15 @@ export function FeeDialog({
       />
 
       <div
-        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="fee-title"
         className="tone-deep relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface shadow-[0_40px_120px_-30px_rgba(0,0,0,0.8)]"
       >
-        {/* head */}
         <div className="shrink-0 border-b border-line px-5 py-4 sm:px-8 sm:py-5">
-          <p className="label text-accent">Step {idx + 1} of 4 · {STEPS[idx].label}</p>
+          <p className="label text-accent">
+            Step {idx + 1} of {STEPS.length} · {STEPS[idx].label}
+          </p>
           <h2 id="fee-title" className="d-3 mt-1.5 text-fg-strong">
             {PAYMENT_CONSENT_TITLE}
           </h2>
@@ -195,20 +207,23 @@ export function FeeDialog({
           </div>
         </div>
 
-        {/* body */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-6">
-          {rejectionNote && step === "details" && (
+          {rejectionNote && idx === 0 && (
             <p className="mb-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] leading-relaxed text-[#B42318] [html[data-theme=dark]_&]:text-red-200">
               <strong>Your last submission was returned.</strong> {rejectionNote}
             </p>
           )}
 
-          {step === "details" && <Details f={f} set={set} />}
+          {step === "details" && <DetailsFields f={f} set={set} />}
+          {step === "payment" && <PaymentFields f={f} set={set} />}
           {step === "receipt" && <Receipt file={receipt} onFile={setReceipt} />}
           {step === "read" && (
             <ReadIt
               facts={{
-                name: studentName,
+                name: f.name,
+                passport: f.passport,
+                nationality: f.nationality,
+                city: f.city,
                 university: f.university,
                 programme: f.programme || null,
                 feeType: f.feeType,
@@ -224,12 +239,7 @@ export function FeeDialog({
             />
           )}
           {step === "sign" && (
-            <Sign
-              name={f.signedName}
-              onName={(v) => set("signedName", v)}
-              signature={signature}
-              onSignature={setSignature}
-            />
+            <Sign name={f.name} signature={signature} onSignature={setSignature} />
           )}
 
           {error && (
@@ -242,7 +252,6 @@ export function FeeDialog({
           )}
         </div>
 
-        {/* foot */}
         <div className="flex shrink-0 items-center gap-3 border-t border-line bg-surface px-5 py-4 sm:px-8">
           {idx > 0 ? (
             <button
@@ -272,7 +281,13 @@ export function FeeDialog({
             onClick={step === "sign" ? submit : next}
             className="label ml-auto inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
           >
-            {busy ? "Submitting…" : step === "sign" ? "Sign and submit" : "Continue"}
+            {busy
+              ? "Submitting…"
+              : step === "sign"
+                ? "Sign and submit"
+                : step === "receipt"
+                  ? "Review the document"
+                  : "Continue"}
           </button>
         </div>
       </div>
@@ -280,162 +295,17 @@ export function FeeDialog({
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════ steps ═ */
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="field-label">{label}</label>
-      {children}
-      {hint && <p className="mt-1.5 text-[0.75rem] text-faint">{hint}</p>}
-    </div>
-  );
-}
-
-type FormState = {
-  university: string; programme: string; feeType: string; currency: string;
-  amount: string; method: string; txnRef: string; payDate: string;
-  thirdParty: boolean; payerName: string; payerRelation: string; signedName: string;
-};
-
-function Details({
-  f,
-  set,
-}: {
-  f: FormState;
-  set: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <p className="text-[0.9rem] leading-relaxed text-muted">
-        State the fee yourself. Nothing here is pre-filled — the amount on the
-        declaration is the amount you type.
-      </p>
-
-      <Field label="University / institution you applied to">
-        <input
-          className="field"
-          value={f.university}
-          onChange={(e) => set("university", e.target.value)}
-          placeholder="Vilnius Business College"
-        />
-      </Field>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Programme (optional)">
-          <input className="field" value={f.programme} onChange={(e) => set("programme", e.target.value)} />
-        </Field>
-        <Field label="What is this fee for?">
-          <select className="field" value={f.feeType} onChange={(e) => set("feeType", e.target.value)}>
-            <option value="">Select…</option>
-            {FEE_TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Amount you transferred">
-          <div className="flex gap-2">
-            <select
-              aria-label="Currency"
-              className="field w-28 shrink-0"
-              value={f.currency}
-              onChange={(e) => set("currency", e.target.value)}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-            <input
-              className="field"
-              inputMode="decimal"
-              value={f.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="150.00"
-            />
-          </div>
-        </Field>
-        <Field label="How did you send it?">
-          <select className="field" value={f.method} onChange={(e) => set("method", e.target.value)}>
-            <option value="">Select…</option>
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Transfer reference (optional)" hint="Printed on your receipt.">
-          <input className="field" value={f.txnRef} onChange={(e) => set("txnRef", e.target.value)} />
-        </Field>
-        <Field label="Date of transfer (optional)">
-          <input type="date" className="field" value={f.payDate} onChange={(e) => set("payDate", e.target.value)} />
-        </Field>
-      </div>
-
-      <label className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border border-line p-4 transition-colors hover:border-line-strong">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 shrink-0 accent-moss-400"
-          checked={f.thirdParty}
-          onChange={(e) => set("thirdParty", e.target.checked)}
-        />
-        <span>
-          <span className="block text-[0.88rem] font-semibold text-fg">
-            Somebody else is sending the money for me
-          </span>
-          <span className="mt-1 block text-[0.82rem] leading-relaxed text-muted">
-            Their name goes into the declaration so the payment can be matched to your file.
-          </span>
-        </span>
-      </label>
-
-      {f.thirdParty && (
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Name of the person paying">
-            <input className="field" value={f.payerName} onChange={(e) => set("payerName", e.target.value)} />
-          </Field>
-          <Field label="Their relationship to you">
-            <input
-              className="field"
-              value={f.payerRelation}
-              onChange={(e) => set("payerRelation", e.target.value)}
-              placeholder="Brother / Friend"
-            />
-          </Field>
-        </div>
-      )}
-    </div>
-  );
-}
+/* ══════════════════════════════════════════════════════════════ receipt ═ */
 
 function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
-  function take(f: File | undefined) {
-    setErr(null);
-    if (!f) return;
-    if (f.size > 15 * 1024 * 1024) return setErr("That file is over 15 MB. Please compress it.");
-    onFile(f);
-  }
-
   return (
     <div className="space-y-5">
       <p className="text-[0.9rem] leading-relaxed text-muted">
-        A photograph or PDF of the transfer receipt. It must clearly show the{" "}
-        <span className="text-fg">amount</span>, the{" "}
+        A photograph or PDF of the transfer you have already made. It must
+        clearly show the <span className="text-fg">amount</span>, the{" "}
         <span className="text-fg">date</span> and the{" "}
         <span className="text-fg">reference number</span> — those are the three
         things we check against our bank.
@@ -458,7 +328,13 @@ function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null)
         type="file"
         accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
         className="sr-only"
-        onChange={(e) => take(e.target.files?.[0])}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          setErr(null);
+          if (!f) return;
+          if (f.size > 15 * 1024 * 1024) return setErr("That file is over 15 MB. Please compress it.");
+          onFile(f);
+        }}
       />
 
       {file && (
@@ -469,12 +345,14 @@ function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null)
       {err && <p className="text-[0.85rem] text-red-400">{err}</p>}
 
       <p className="text-[0.8rem] leading-relaxed text-faint">
-        Your receipt is stored in private document storage, not on the public
-        site, and is only ever reachable through an authorised link that expires.
+        Your receipt goes into private document storage, never the public site,
+        and is only reachable through an authorised link that expires.
       </p>
     </div>
   );
 }
+
+/* ═════════════════════════════════════════════════════════ read & sign ═ */
 
 function ReadIt({
   facts,
@@ -490,21 +368,20 @@ function ReadIt({
     <div className="space-y-5">
       {/*
         The declaration is set on a WHITE sheet in both themes. It is a legal
-        document that will be printed and filed, and a document that changes
-        colour with a UI preference reads as part of the UI rather than as the
+        document that will be printed and filed, and one that changes colour
+        with a UI preference reads as part of the interface rather than as the
         thing being agreed to.
       */}
       <div className="rounded-[var(--radius-md)] border border-line bg-white p-6 text-[#101b40] sm:p-8">
-        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#3e7a22]">
-          Form A
-        </p>
-        <h3 className="mt-1 text-[1.25rem] font-extrabold tracking-[-0.03em] text-[#101b40]">
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#3e7a22]">Form A</p>
+        <h3 className="mt-1 text-[1.25rem] font-extrabold tracking-[-0.03em]">
           {PAYMENT_CONSENT_TITLE}
         </h3>
 
         <dl className="mt-5 grid gap-3 border-l-2 border-[#72c43c] bg-[#f4f6fa] p-4 sm:grid-cols-2">
           {[
             ["Student", facts.name],
+            ["Passport number", facts.passport],
             ["Institution", facts.university],
             ["Amount authorised", facts.amountLabel],
             ["Purpose", facts.feeType],
@@ -514,7 +391,7 @@ function ReadIt({
               <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#8b93a8]">
                 {k}
               </dt>
-              <dd className="mt-0.5 text-[0.8rem] font-bold text-[#101b40]">{v || "—"}</dd>
+              <dd className="mt-0.5 break-words text-[0.8rem] font-bold">{v || "—"}</dd>
             </div>
           ))}
         </dl>
@@ -545,7 +422,7 @@ function ReadIt({
           onChange={(e) => onAgree(e.target.checked)}
         />
         <span className="text-[0.88rem] leading-relaxed text-fg">
-          I have read this declaration in full and I agree to it.
+          I have read this declaration in full and I agree to its terms.
           <span className="mt-1 block text-[0.82rem] text-muted">
             Ticking this has the same effect as signing it by hand.
           </span>
@@ -555,16 +432,12 @@ function ReadIt({
   );
 }
 
-/* ────────────────────────────────────────────────────────── signature pad ─ */
-
 function Sign({
   name,
-  onName,
   signature,
   onSignature,
 }: {
   name: string;
-  onName: (v: string) => void;
   signature: string | null;
   onSignature: (v: string | null) => void;
 }) {
@@ -597,9 +470,10 @@ function Sign({
   }, []);
 
   /*
-    The canvas has no measurable size until it is laid out, and a canvas sized
-    in CSS pixels on a 3x screen is a blurred signature on a legal document.
-    Sizing to devicePixelRatio and redrawing on resize keeps it sharp.
+    A canvas sized in CSS pixels on a 3x screen is a blurred signature on a
+    legal document, so it is sized to devicePixelRatio and redrawn on resize.
+    It also has no measurable size until laid out, which is why this runs in an
+    effect rather than at first render.
   */
   const fit = useCallback(() => {
     const c = canvas.current;
@@ -622,28 +496,25 @@ function Sign({
     const r = canvas.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
-
-  function commit() {
-    if (!strokes.current.length) return onSignature(null);
-    onSignature(canvas.current!.toDataURL("image/png"));
-  }
+  const commit = () =>
+    onSignature(strokes.current.length ? canvas.current!.toDataURL("image/png") : null);
 
   return (
     <div className="space-y-5">
       <p className="text-[0.9rem] leading-relaxed text-muted">
-        Sign with your finger, a stylus or the mouse. The date, time and device
-        are recorded with it as proof of signing.
+        Sign with your finger, a stylus or the mouse. The date, time, timezone
+        and device are recorded with it as proof of signing, and a copy is filed
+        with your submission.
       </p>
 
-      <div>
-        <label className="field-label">Full name, as your signature</label>
-        <input
-          className="field"
-          value={name}
-          onChange={(e) => onName(e.target.value)}
-          placeholder="Type your full name"
-          autoComplete="name"
-        />
+      <div className="rounded-[var(--radius-sm)] border border-line bg-raised p-4">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-faint">
+          Signing as
+        </p>
+        <p className="mt-1 text-[1rem] font-semibold text-fg">{name || "—"}</p>
+        <p className="mt-1 text-[0.78rem] text-faint">
+          Taken from your details. Go back to step 1 to correct it.
+        </p>
       </div>
 
       <div
@@ -691,7 +562,7 @@ function Sign({
             }}
             className="label min-h-9 rounded-[var(--radius-sm)] border border-line px-3 text-[0.7rem] text-muted transition-colors hover:text-fg"
           >
-            Undo
+            Undo stroke
           </button>
           <button
             type="button"

@@ -22,12 +22,14 @@ export function FeeGate({
   stage,
   rejectionNote,
   studentName,
+  studentEmail,
   lockedPath,
   justSubmitted,
 }: {
   stage: StudentStage;
   rejectionNote: string | null;
   studentName: string;
+  studentEmail: string;
   lockedPath: string | null;
   justSubmitted: boolean;
 }) {
@@ -109,6 +111,7 @@ export function FeeGate({
 
       <FeeDialog
         studentName={studentName}
+        studentEmail={studentEmail}
         open={open}
         onClose={() => setOpen(false)}
         rejectionNote={stage === "fee_rejected" ? rejectionNote : null}

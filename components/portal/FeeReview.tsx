@@ -25,6 +25,10 @@ export function FeeReview(props: {
   payerName: string | null;
   payerRelation: string | null;
   signedName: string;
+  passport: string | null;
+  nationality: string | null;
+  city: string | null;
+  phone: string | null;
   submittedAt: string;
   receiptDocumentId: string | null;
 }) {
@@ -68,6 +72,12 @@ export function FeeReview(props: {
   }
 
   const facts: [string, string | null][] = [
+    // Identity first: matching the receipt to a person is the check, and the
+    // passport number is what an institution reconciles a transfer against.
+    ["Passport", props.passport],
+    ["Nationality", props.nationality],
+    ["Residence", props.city],
+    ["Phone", props.phone],
     ["Amount declared", props.amount],
     ["Institution", props.university],
     ["Purpose", props.feeType],
