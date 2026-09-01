@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/guard";
 import { ROLE_LABEL } from "@/lib/auth/types";
 import { PortalHeading, Panel, BackendRequired } from "@/components/portal/Pieces";
 import { ChangePassword } from "@/components/portal/ChangePassword";
+import { ChangeEmail } from "@/components/portal/ChangeEmail";
 
 export default async function SettingsPage() {
   const { session } = await requireUser();
@@ -22,6 +23,16 @@ export default async function SettingsPage() {
             choosing a new secret.
           */}
           <ChangePassword />
+        </Panel>
+
+        {/*
+          Moving the sign-in address sits beside changing the password, not
+          under "Account" with the read-only details. They are the same kind of
+          thing — the two ways into this account — and separating them is how
+          somebody ends up asking a developer to run an UPDATE.
+        */}
+        <Panel title="Email address">
+          <ChangeEmail current={session.email} />
         </Panel>
 
         <Panel title="Account">

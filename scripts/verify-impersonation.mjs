@@ -82,7 +82,7 @@ check(
 ok("you cannot view as yourself");
 
 console.log("\n=== what stays sealed ===");
-for (const p of ["/api/portal/password", "/api/auth/reset-password", "/api/portal/profile/email"]) {
+for (const p of ["/api/portal/password", "/api/auth/reset-password", "/api/portal/email"]) {
   if (!sealedWhileImpersonating(p)) fail(`${p} is reachable while viewing as somebody`);
 }
 /* Almost everything must stay OPEN — a support view that blocks what the

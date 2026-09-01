@@ -483,6 +483,40 @@ export async function findForSession(
   }, null);
 }
 
+/** Is this address already on an account? Case-insensitive, as sign-in is. */
+export async function emailExists(email: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`SELECT 1 FROM users WHERE lower(email) = lower(${email}) LIMIT 1`;
+    return rows.length > 0;
+  }, false);
+}
+
+/**
+ * Move an account to a new address.
+ *
+ * The new address is marked VERIFIED, because reaching here means the token
+ * sent to it was opened — which is a stronger proof than the sign-up flow
+ * asks for. Marking it unverified would make somebody prove the same thing
+ * twice.
+ *
+ * The unique index on lower(email) is the real guard. The check before this
+ * is a courtesy that produces a readable message; this is what makes a race
+ * impossible.
+ */
+export async function changeEmail(userId: string, email: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE users
+         SET email = ${email}, email_verified = TRUE, updated_at = now()
+       WHERE id = ${userId}
+      RETURNING id
+    `;
+    return rows.length > 0;
+  }, false);
+}
+
 export async function sessionEpoch(userId: string): Promise<number | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {

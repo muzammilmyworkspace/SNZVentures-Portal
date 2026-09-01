@@ -80,7 +80,7 @@ export const REFUSAL_MESSAGE: Record<NonNullable<Refusal>, string> = {
 const SEALED = [
   "/api/portal/password",
   "/api/auth/reset-password",
-  "/api/portal/profile/email",
+  "/api/portal/email",
 ];
 
 export function sealedWhileImpersonating(pathname: string): boolean {

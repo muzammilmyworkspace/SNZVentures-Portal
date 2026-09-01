@@ -61,6 +61,14 @@ export type AuditAction =
   */
   | "user.impersonation_started"
   | "user.impersonation_ended"
+  /*
+    Moving the address an account signs in with. All three are recorded,
+    including the refusal: repeated failures against the current password are
+    what somebody probing a hijacked session looks like.
+  */
+  | "user.email_change_requested"
+  | "user.email_change_refused"
+  | "user.email_changed"
   // Fee verification (007). The student declares, staff decide, and the
   // decision is what unlocks the rest of the portal — so all three are
   // recorded, not just the approval.

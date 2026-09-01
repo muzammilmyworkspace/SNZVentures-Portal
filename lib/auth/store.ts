@@ -82,10 +82,14 @@ export const setEmailVerified = usersRepo.setEmailVerified;
 
 const hashToken = (raw: string) => createHash("sha256").update(raw).digest("hex");
 
+export type TokenKind = "email_verify" | "password_reset" | "email_change";
+
 export async function issueToken(
   userId: string,
-  kind: "email_verify" | "password_reset",
-  ttlMinutes: number
+  kind: TokenKind,
+  ttlMinutes: number,
+  /** What the token is for, when it needs a value — see migration 013. */
+  payload?: string
 ): Promise<string> {
   const raw = randomBytes(32).toString("base64url");
   const expires = new Date(Date.now() + ttlMinutes * 60_000);
@@ -96,8 +100,8 @@ export async function issueToken(
     WHERE user_id = ${userId} AND kind = ${kind} AND used_at IS NULL
   `;
   await db()`
-    INSERT INTO user_tokens (user_id, kind, token_hash, expires_at)
-    VALUES (${userId}, ${kind}, ${hashToken(raw)}, ${expires})
+    INSERT INTO user_tokens (user_id, kind, token_hash, expires_at, payload)
+    VALUES (${userId}, ${kind}, ${hashToken(raw)}, ${expires}, ${payload ?? null})
   `;
   return raw;
 }
@@ -114,10 +118,7 @@ export async function issueToken(
  * Deliberately separate from `consumeToken`: this must not mark anything used,
  * or merely LOADING the page would burn the link.
  */
-export async function isTokenValid(
-  raw: string,
-  kind: "email_verify" | "password_reset"
-): Promise<boolean> {
+export async function isTokenValid(raw: string, kind: TokenKind): Promise<boolean> {
   if (!isDatabaseConfigured() || !raw) return false;
   return safeQuery(async () => {
     const rows = await db()`
@@ -132,10 +133,33 @@ export async function isTokenValid(
   }, false);
 }
 
-export async function consumeToken(
+/**
+ * Consume a token AND read what it carried.
+ *
+ * Separate from consumeToken because that returns only a user id, and an
+ * email change is worthless without the address that was verified. Doing it
+ * in one statement matters: the token must be spent and its value read
+ * atomically, or a retry could apply an address whose token has already gone.
+ */
+export async function consumeTokenWithPayload(
   raw: string,
-  kind: "email_verify" | "password_reset"
-): Promise<string | null> {
+  kind: TokenKind
+): Promise<{ userId: string; payload: string | null } | null> {
+  if (!isDatabaseConfigured()) return null;
+  const rows = await db()`
+    UPDATE user_tokens SET used_at = now()
+    WHERE token_hash = ${hashToken(raw)}
+      AND kind = ${kind}
+      AND used_at IS NULL
+      AND expires_at > now()
+    RETURNING user_id, payload
+  `;
+  return rows[0]
+    ? { userId: String(rows[0].user_id), payload: rows[0].payload ? String(rows[0].payload) : null }
+    : null;
+}
+
+export async function consumeToken(raw: string, kind: TokenKind): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
   const rows = await db()`
     UPDATE user_tokens SET used_at = now()
