@@ -114,6 +114,52 @@ export type DriveExport = {
   fileCount: number;
 };
 
+/**
+ * Is Drive connected, and where did this client's folder go — in ONE query.
+ *
+ * These were two calls behind a Promise.all, which on the `max: 1` pool a
+ * serverless function needs is two SEQUENTIAL round trips. On a page that
+ * already made several, that was the difference between slow and timed out.
+ *
+ * The connection is a single row and the export is at most one, so a cross
+ * join of two scalar subqueries returns both in one trip.
+ */
+export async function drivePanelFor(userId: string): Promise<{
+  connected: boolean;
+  export: DriveExport | null;
+}> {
+  const none = { connected: false, export: null };
+  if (!isDatabaseConfigured()) return none;
+
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT
+        (SELECT refresh_token FROM drive_connection WHERE id = TRUE LIMIT 1) AS refresh_token,
+        e.folder_id, e.folder_url, e.exported_at, e.file_count
+      FROM (SELECT 1) AS one
+      LEFT JOIN drive_exports e ON e.user_id = ${userId}
+      LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row) return none;
+
+    return {
+      // Opened, not merely present: a token sealed under a rotated
+      // AUTH_SECRET is not a connection, and the panel must not offer to
+      // export through one.
+      connected: row.refresh_token ? open(String(row.refresh_token)) !== null : false,
+      export: row.folder_id
+        ? {
+            folderId: String(row.folder_id),
+            folderUrl: String(row.folder_url),
+            exportedAt: new Date(row.exported_at as string).toISOString(),
+            fileCount: Number(row.file_count ?? 0),
+          }
+        : null,
+    };
+  }, none);
+}
+
 export async function exportFor(userId: string): Promise<DriveExport | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {

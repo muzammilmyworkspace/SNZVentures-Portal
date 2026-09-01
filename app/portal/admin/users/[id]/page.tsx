@@ -14,8 +14,7 @@ import {
 import { AdminNotes } from "@/components/portal/AdminNotes";
 import { PortalAccess } from "@/components/portal/PortalAccess";
 import { DriveExport } from "@/components/portal/DriveExport";
-import { exportFor } from "@/lib/db/repos/drive";
-import { connectionStatus } from "@/lib/db/repos/drive";
+import { drivePanelFor } from "@/lib/db/repos/drive";
 import * as usersRepo from "@/lib/db/repos/users";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import * as repo from "@/lib/db/repos/portal";
@@ -137,7 +136,8 @@ export default async function AdminUserPage({
     This page had never been opened by the test suite, so it had never shown it.
   */
   const file = await ops.getAdminUserFile(id, pathway ?? null);
-  const [driveStatus, driveExport] = await Promise.all([connectionStatus(), exportFor(id)]);
+  // One round trip, not two. Promise.all does not help on a single connection.
+  const drive = await drivePanelFor(id);
   const profile = await profilesRepo.getProfile(id, user.role);
   const { documents, cases, intake, history, notes, consents } = file;
 
@@ -192,9 +192,9 @@ export default async function AdminUserPage({
           {/* Sending a file out of the portal is a deliberate act by a named
               person, so the control lives on the file itself rather than in a
               bulk tool somewhere else. */}
-          {isAdmin(role) && driveStatus.connected && (
+          {isAdmin(role) && drive.connected && (
             <Panel title="Send to Google Drive">
-              <DriveExport userId={id} existing={driveExport} />
+              <DriveExport userId={id} existing={drive.export} />
             </Panel>
           )}
 

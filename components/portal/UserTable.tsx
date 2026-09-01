@@ -127,7 +127,25 @@ export function UserTable({
                       address bar. Making it reachable is also what let the QA
                       matrix start testing it.
                     */}
+                    {/*
+                      NO PREFETCH, and this is not a micro-optimisation.
+
+                      Next prefetches every visible Link, so opening this list
+                      fired a full client-file render for every row at once —
+                      six lambdas, each running several queries, all hitting
+                      Supabase's transaction pooler in the same instant.
+
+                      That pooler does not refuse a connection it cannot serve:
+                      it completes the handshake and never assigns a backend, so
+                      the request HANGS rather than failing. Which is why this
+                      surfaced as a 30-second gateway timeout with nothing in
+                      the logs, on a page that loads fine when opened alone.
+
+                      A client file is opened deliberately, one at a time.
+                      Prefetching them buys nothing and costs the pool.
+                    */}
                     <Link
+                      prefetch={false}
                       href={`/portal/admin/users/${u.id}`}
                       className="block text-[0.9rem] text-fg underline-offset-4 hover:text-accent hover:underline"
                     >
