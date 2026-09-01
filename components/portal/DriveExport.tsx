@@ -148,7 +148,7 @@ export function DriveExport({
         <div
           className={`rounded-[var(--radius-sm)] border p-4 text-[0.86rem] leading-relaxed ${
             result.ok
-              ? "border-moss-500/40 bg-moss-500/10 text-moss-200"
+              ? "border-moss-500/40 bg-moss-500/10 text-ok"
               : "border-amber-300/40 bg-amber-300/[0.07] text-fg"
           }`}
         >

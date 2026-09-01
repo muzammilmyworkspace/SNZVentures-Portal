@@ -325,7 +325,7 @@ export function PortalShell({
                 className={cn(
                   "hidden shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[0.78rem] font-medium md:inline-flex",
                   status.tone === "action" && "border-moss-400/50 bg-moss-400/10 text-accent",
-                  status.tone === "wait" && "border-amber-300/40 bg-amber-300/10 text-amber-200",
+                  status.tone === "wait" && "border-amber-300/40 bg-amber-300/10 text-warn",
                   status.tone === "ok" && "border-line text-muted"
                 )}
               >

@@ -48,15 +48,15 @@ export function SchemaPanel({ initial }: { initial: SchemaStatus }) {
   }
 
   const tone: Record<string, string> = {
-    applied: "text-moss-300",
-    pending: "text-amber-300",
-    changed: "text-red-300",
+    applied: "text-ok",
+    pending: "text-warn",
+    changed: "text-danger",
   };
 
   return (
     <div className="space-y-6">
       {!status.reachable && (
-        <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.9rem] leading-relaxed text-red-200">
+        <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.9rem] leading-relaxed text-danger">
           {status.error ?? "The database could not be reached."}
         </p>
       )}
@@ -87,7 +87,7 @@ export function SchemaPanel({ initial }: { initial: SchemaStatus }) {
       </div>
 
       {status.changed > 0 && (
-        <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-red-200">
+        <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-danger">
           A migration has been edited since it was applied. Applying will refuse
           rather than run the new text over an old database — add a new
           migration instead.
@@ -116,8 +116,8 @@ export function SchemaPanel({ initial }: { initial: SchemaStatus }) {
         <p
           className={`rounded-[var(--radius-sm)] border p-4 text-[0.88rem] leading-relaxed ${
             result.ok
-              ? "border-moss-500/40 bg-moss-500/10 text-moss-200"
-              : "border-red-500/40 bg-red-500/10 text-red-200"
+              ? "border-moss-500/40 bg-moss-500/10 text-ok"
+              : "border-red-500/40 bg-red-500/10 text-danger"
           }`}
         >
           {result.text}

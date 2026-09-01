@@ -123,7 +123,7 @@ export function CaseStatusControl({
       </div>
 
       {error && (
-        <p role="alert" className="mt-2 text-[0.85rem] text-[#B42318] [html[data-theme=dark]_&]:text-red-300">
+        <p role="alert" className="mt-2 text-[0.85rem] text-danger">
           {error}
         </p>
       )}

@@ -126,7 +126,7 @@ export function FeeReview(props: {
           Open the receipt
         </a>
       ) : (
-        <p className="mt-4 text-[0.85rem] text-red-400">
+        <p className="mt-4 text-[0.85rem] text-danger">
           No receipt is attached to this submission.
         </p>
       )}
@@ -148,7 +148,7 @@ export function FeeReview(props: {
         />
 
         {error && (
-          <p role="alert" className="mt-3 text-[0.85rem] font-medium text-red-400">
+          <p role="alert" className="mt-3 text-[0.85rem] font-medium text-danger">
             {error}
           </p>
         )}
@@ -166,7 +166,7 @@ export function FeeReview(props: {
             type="button"
             disabled={busy !== null || note.trim().length < 5}
             onClick={() => decide("reject")}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-red-300 disabled:opacity-40"
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-40"
           >
             {busy === "reject" ? "Returning…" : "Return for correction"}
           </button>

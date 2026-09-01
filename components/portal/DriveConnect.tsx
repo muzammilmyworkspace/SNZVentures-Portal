@@ -87,7 +87,7 @@ export function DriveConnect({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-red-300 disabled:opacity-50"
+            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-50"
           >
             {busy ? "Disconnecting…" : "Disconnect"}
           </button>

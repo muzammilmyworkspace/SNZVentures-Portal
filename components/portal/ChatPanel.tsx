@@ -237,7 +237,7 @@ export function ChatPanel({
       {/* Composer */}
       <div className="mt-3 border-t border-line pt-3">
         {error && (
-          <p role="alert" className="mb-2 text-[0.8rem] text-red-300">
+          <p role="alert" className="mb-2 text-[0.8rem] text-danger">
             {error}
           </p>
         )}

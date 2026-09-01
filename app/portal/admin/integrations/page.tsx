@@ -63,8 +63,8 @@ export default async function IntegrationsPage({
         <p
           className={
             message.tone === "ok"
-              ? "mb-5 rounded-[var(--radius-sm)] border border-moss-500/40 bg-moss-500/10 p-4 text-[0.88rem] leading-relaxed text-moss-200"
-              : "mb-5 rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-red-200"
+              ? "mb-5 rounded-[var(--radius-sm)] border border-moss-500/40 bg-moss-500/10 p-4 text-[0.88rem] leading-relaxed text-ok"
+              : "mb-5 rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-danger"
           }
         >
           {message.text}

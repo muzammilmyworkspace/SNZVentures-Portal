@@ -212,6 +212,15 @@
   --surface: var(--color-navy-900);
   --surface-raised: #0E1E3C;
   --fg: var(--color-paper);
+  --ok: #9be07a;
+  --ok-soft: rgba(155, 224, 122, 0.11);
+  --ok-line: rgba(155, 224, 122, 0.36);
+  --warn: #f6c556;
+  --warn-soft: rgba(246, 197, 86, 0.10);
+  --warn-line: rgba(246, 197, 86, 0.34);
+  --danger: #ff9c93;
+  --danger-soft: rgba(255, 156, 147, 0.10);
+  --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
   --fg-muted: var(--color-navy-200);
   --fg-faint: var(--color-navy-300);
@@ -225,6 +234,15 @@
   --surface: var(--color-navy-800);
   --surface-raised: #16295080;
   --fg: var(--color-paper);
+  --ok: #9be07a;
+  --ok-soft: rgba(155, 224, 122, 0.11);
+  --ok-line: rgba(155, 224, 122, 0.36);
+  --warn: #f6c556;
+  --warn-soft: rgba(246, 197, 86, 0.10);
+  --warn-line: rgba(246, 197, 86, 0.34);
+  --danger: #ff9c93;
+  --danger-soft: rgba(255, 156, 147, 0.10);
+  --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
   --fg-muted: var(--color-navy-200);
   --fg-faint: var(--color-navy-300);
@@ -238,6 +256,15 @@
   --surface: var(--color-mist-100);
   --surface-raised: #ffffff;
   --fg: var(--color-ink);
+  --ok: #1E8A5F;
+  --ok-soft: #E9F5EF;
+  --ok-line: #C4E3D5;
+  --warn: #B4761E;
+  --warn-soft: #FBF3E4;
+  --warn-line: #EEDCB6;
+  --danger: #C0392B;
+  --danger-soft: #FBEDEC;
+  --danger-line: #EFCFCB;
   --fg-strong: #050B16;
   --fg-muted: var(--color-mist-600);
   --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
@@ -251,6 +278,15 @@
   --surface: #ffffff;
   --surface-raised: var(--color-mist-50);
   --fg: var(--color-ink);
+  --ok: #1E8A5F;
+  --ok-soft: #E9F5EF;
+  --ok-line: #C4E3D5;
+  --warn: #B4761E;
+  --warn-soft: #FBF3E4;
+  --warn-line: #EEDCB6;
+  --danger: #C0392B;
+  --danger-soft: #FBEDEC;
+  --danger-line: #EFCFCB;
   --fg-strong: #050B16;
   --fg-muted: var(--color-mist-600);
   --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
@@ -336,6 +372,15 @@
   --surface: #FAFBFD;
   --surface-raised: #FFFFFF;
   --fg: #1E2B5E;
+  --ok: #1E8A5F;
+  --ok-soft: #E9F5EF;
+  --ok-line: #C4E3D5;
+  --warn: #B4761E;
+  --warn-soft: #FBF3E4;
+  --warn-line: #EEDCB6;
+  --danger: #C0392B;
+  --danger-soft: #FBEDEC;
+  --danger-line: #EFCFCB;
   --fg-strong: #101B40;
   --fg-muted: #4A566D;
   --fg-faint: #5A6780;
@@ -349,6 +394,15 @@
   --surface: #F4F6FA;
   --surface-raised: #FFFFFF;
   --fg: #1E2B5E;
+  --ok: #1E8A5F;
+  --ok-soft: #E9F5EF;
+  --ok-line: #C4E3D5;
+  --warn: #B4761E;
+  --warn-soft: #FBF3E4;
+  --warn-line: #EEDCB6;
+  --danger: #C0392B;
+  --danger-soft: #FBEDEC;
+  --danger-line: #EFCFCB;
   --fg-strong: #101B40;
   --fg-muted: #4A566D;
   --fg-faint: #5A6780;
@@ -362,6 +416,15 @@
   --surface: #EEF1F7;
   --surface-raised: #FFFFFF;
   --fg: var(--color-ink);
+  --ok: #1E8A5F;
+  --ok-soft: #E9F5EF;
+  --ok-line: #C4E3D5;
+  --warn: #B4761E;
+  --warn-soft: #FBF3E4;
+  --warn-line: #EEDCB6;
+  --danger: #C0392B;
+  --danger-soft: #FBEDEC;
+  --danger-line: #EFCFCB;
   --fg-strong: #050B16;
   --fg-muted: var(--color-mist-600);
   --fg-faint: #5A6780; /* AA on mist-100/white; still lighter than --fg-muted */
@@ -391,6 +454,15 @@
   --surface: var(--color-navy-900);
   --surface-raised: #0E1E3C;
   --fg: var(--color-paper);
+  --ok: #9be07a;
+  --ok-soft: rgba(155, 224, 122, 0.11);
+  --ok-line: rgba(155, 224, 122, 0.36);
+  --warn: #f6c556;
+  --warn-soft: rgba(246, 197, 86, 0.10);
+  --warn-line: rgba(246, 197, 86, 0.34);
+  --danger: #ff9c93;
+  --danger-soft: rgba(255, 156, 147, 0.10);
+  --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
   --fg-muted: var(--color-navy-200);
   --fg-faint: var(--color-navy-300);
@@ -1380,3 +1452,43 @@ input[type="date"].field {
 .tone-deep input[type="date"].field {
   color-scheme: dark;
 }
+
+
+/* ══════════════════════════════════════════════════ STATUS COLOURS ═
+ *
+ * An error message was invisible in the light theme. It was drawn with
+ * `text-red-200` — a colour picked to sit on a dark panel, and near-white on a
+ * pale one. The same was true of every success and warning note, in fourteen
+ * files, because each was styled where it was written rather than from
+ * anything shared.
+ *
+ * These classes are theme-aware once. --ok, --warn and --danger are defined
+ * beside --fg in every tone, so a surface that knows whether it is dark also
+ * knows what a warning has to look like on it. Use these rather than a Tailwind
+ * shade: a literal shade is correct in exactly one theme, and this interface
+ * has two.
+ */
+.text-ok { color: var(--ok); }
+.text-warn { color: var(--warn); }
+.text-danger { color: var(--danger); }
+
+/* The whole banner — border, fill and ink — so the three cannot drift apart. */
+.note-ok,
+.note-warn,
+.note-danger {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-sm);
+}
+.note-ok { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok); }
+.note-warn { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn); }
+.note-danger { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger); }
+
+/*
+ * On a surface that is dark in BOTH themes — the signature strip, the
+ * assembled letter — the pale end of the scale is the readable one, and the
+ * theme-aware token would go dark and disappear.
+ */
+.on-dark .text-ok { color: #9be07a; }
+.on-dark .text-warn { color: #f6c556; }
+.on-dark .text-danger { color: #ff9c93; }

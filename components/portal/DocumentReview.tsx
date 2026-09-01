@@ -53,7 +53,7 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
   return (
     <>
       {error && (
-        <p role="alert" className="border-b border-line bg-red-500/10 px-5 py-3 text-[0.85rem] text-red-200">
+        <p role="alert" className="border-b border-line bg-red-500/10 px-5 py-3 text-[0.85rem] text-danger">
           {error}
         </p>
       )}
@@ -88,8 +88,8 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
                   <div className="flex flex-wrap gap-2">
                     {[
                       { s: "approved", label: "Approve", cls: "border-moss-400/40 text-accent hover:border-moss-400" },
-                      { s: "needs_update", label: "Request update", cls: "border-line text-muted hover:border-amber-400/50 hover:text-amber-300" },
-                      { s: "rejected", label: "Reject", cls: "border-line text-muted hover:border-red-400/50 hover:text-red-300" },
+                      { s: "needs_update", label: "Request update", cls: "border-line text-muted hover:border-amber-400/50 hover:text-warn" },
+                      { s: "rejected", label: "Reject", cls: "border-line text-muted hover:border-red-400/50 hover:text-danger" },
                     ].map((b) => (
                       <button
                         key={b.s}

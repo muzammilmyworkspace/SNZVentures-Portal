@@ -129,7 +129,7 @@ export function WordCount({ text }: { text: string }) {
     <span
       className={cn(
         "font-mono text-[0.7rem] tracking-wide",
-        n >= 40 ? "text-moss-300" : n > 0 ? "text-amber-300" : "text-faint"
+        n >= 40 ? "text-ok" : n > 0 ? "text-warn" : "text-faint"
       )}
     >
       {n} {n === 1 ? "word" : "words"}
@@ -177,7 +177,7 @@ export function Repeater({
               <button
                 type="button"
                 onClick={() => onChange(list.filter((_, i) => i !== index))}
-                className="label min-h-11 px-2 text-faint transition-colors hover:text-red-300"
+                className="label min-h-11 px-2 text-faint transition-colors hover:text-danger"
               >
                 Remove
               </button>
@@ -273,7 +273,7 @@ function Slot({
         <span
           className={cn(
             "label shrink-0 rounded-full border px-2.5 py-1 text-[0.6rem]",
-            slot.required ? "border-red-400/50 text-red-300" : "border-line text-faint"
+            slot.required ? "border-red-400/50 text-danger" : "border-line text-faint"
           )}
         >
           {slot.required ? "Required" : "If you have it"}
@@ -300,7 +300,7 @@ function Slot({
           {busy ? "Uploading…" : attached ? "Replace" : "Attach"}
         </button>
         {attached && (
-          <span className="min-w-0 break-all text-[0.8rem] text-moss-300">
+          <span className="min-w-0 break-all text-[0.8rem] text-ok">
             Attached: <span className="font-semibold">{attached}</span>
           </span>
         )}
@@ -315,7 +315,7 @@ function Slot({
       />
 
       {error && (
-        <p role="alert" className="mt-2 text-[0.8rem] text-red-300">
+        <p role="alert" className="mt-2 text-[0.8rem] text-danger">
           {error}
         </p>
       )}
@@ -382,9 +382,9 @@ export function DocumentSlots({
 export function DerivedBlock({ text }: { text: string }) {
   const words = wordCount(text);
   return (
-    <div className="rounded-[var(--radius-md)] border border-line bg-navy-950 p-5">
+    <div className="on-dark rounded-[var(--radius-md)] border border-line bg-navy-950 p-5">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-        <h4 className="label text-moss-300">Letter of motivation — draft</h4>
+        <h4 className="label text-ok">Letter of motivation — draft</h4>
         {text && (
           <span className="font-mono text-[0.7rem] text-[#7ba0df]">
             {words} words

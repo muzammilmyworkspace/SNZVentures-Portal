@@ -147,7 +147,7 @@ export function ProfileForm({
           </p>
         )}
         {status === "error" && (
-          <p role="alert" className="text-[0.85rem] text-red-300">
+          <p role="alert" className="text-[0.85rem] text-danger">
             We couldn&rsquo;t save that. Please try again.
           </p>
         )}

@@ -237,13 +237,13 @@ function Field({
               meaning "you must fill this in" was drawn in the palette's
               reassuring colour and did not read as a requirement at all.
 
-              `text-red-300` alone is too pale on the light theme to carry
+              `text-danger` alone is too pale on the light theme to carry
               meaning, so the darker red is the base and the pale one is the
               override, the same pairing ErrorNote uses in AuthForms.
             */}
             <span
               aria-hidden
-              className="font-semibold text-[#D92D20] dark:text-red-300 [html[data-theme=dark]_&]:text-red-300"
+              className="font-semibold text-[#D92D20] dark:text-danger [html[data-theme=dark]_&]:text-danger"
             >
               *
             </span>
@@ -263,7 +263,7 @@ function Field({
         </p>
       )}
       {invalid && (
-        <p role="alert" className="mt-1.5 text-[0.8rem] text-red-300">
+        <p role="alert" className="mt-1.5 text-[0.8rem] text-danger">
           {problem ?? "This one is required."}
         </p>
       )}
@@ -739,7 +739,7 @@ export function IntakeForm({
       {error && (
         <p
           role="alert"
-          className="mt-6 rounded-[var(--radius-sm)] border border-red-400/40 bg-red-500/10 px-4 py-3 text-[0.85rem] text-red-200"
+          className="mt-6 rounded-[var(--radius-sm)] border border-red-400/40 bg-red-500/10 px-4 py-3 text-[0.85rem] text-danger"
         >
           {error}
         </p>

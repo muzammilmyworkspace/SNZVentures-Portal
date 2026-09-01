@@ -9,7 +9,7 @@ import Link from "next/link";
 export function NotConfigured({ what = "This area" }: { what?: string }) {
   return (
     <section className="rounded-[var(--radius-lg)] border border-amber-400/35 bg-amber-400/[0.06] p-7">
-      <p className="label text-amber-300">Setup incomplete</p>
+      <p className="label text-warn">Setup incomplete</p>
       <h2 className="mt-3 text-[1.25rem] font-bold tracking-[-0.02em] text-fg-strong">
         {what} needs a database connection.
       </h2>

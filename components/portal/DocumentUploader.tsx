@@ -166,7 +166,7 @@ export function DocumentUploader({
       />
 
       {error && (
-        <p role="alert" className="mt-3 text-[0.85rem] text-red-300">
+        <p role="alert" className="mt-3 text-[0.85rem] text-danger">
           {error}
         </p>
       )}

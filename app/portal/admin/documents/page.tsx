@@ -29,8 +29,8 @@ export default async function AdminDocumentsPage() {
       />
       {!isStorageConfigured() && (
         <div className="mb-5 rounded-[var(--radius-md)] border border-amber-400/35 bg-amber-400/[0.06] p-5">
-          <p className="label text-amber-300">Storage not configured</p>
-          <p className="mt-2 text-[0.85rem] leading-relaxed text-amber-100/80">
+          <p className="label text-warn">Storage not configured</p>
+          <p className="mt-2 text-[0.85rem] leading-relaxed text-warn/80">
             Uploads are disabled and existing files cannot be downloaded until a
             storage transport is set. See DEPLOYMENT.md.
           </p>

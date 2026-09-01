@@ -75,7 +75,7 @@ export function ConsentNotice({
             Type your full name as signature
             <span
               aria-hidden
-              className="ml-1 font-semibold text-[#D92D20] dark:text-red-300 [html[data-theme=dark]_&]:text-red-300"
+              className="ml-1 font-semibold text-[#D92D20] dark:text-danger [html[data-theme=dark]_&]:text-danger"
             >
               *
             </span>

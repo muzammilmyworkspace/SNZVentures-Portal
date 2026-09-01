@@ -102,7 +102,7 @@ export function ReviewSummary({
                         "m-0 whitespace-pre-wrap break-words text-[0.86rem] leading-relaxed",
                         blank
                           ? field.required
-                            ? "italic text-red-300"
+                            ? "italic text-danger"
                             : "italic text-faint"
                           : "font-semibold text-fg"
                       )}
@@ -118,7 +118,7 @@ export function ReviewSummary({
       })}
 
       {missingDocs.length > 0 && (
-        <p className="rounded-[var(--radius-sm)] border border-red-400/40 bg-red-500/10 p-4 text-[0.86rem] leading-relaxed text-red-200">
+        <p className="rounded-[var(--radius-sm)] border border-red-400/40 bg-red-500/10 p-4 text-[0.86rem] leading-relaxed text-danger">
           <strong className="font-semibold">
             {missingDocs.length} required document{missingDocs.length === 1 ? "" : "s"} still to
             attach:

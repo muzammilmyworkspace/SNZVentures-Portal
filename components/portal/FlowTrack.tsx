@@ -22,7 +22,7 @@ const TONE: Record<FlowState, { dot: string; card: string; label: string }> = {
     label: "Your move",
   },
   waiting: {
-    dot: "border-amber-300/70 text-amber-300",
+    dot: "border-amber-300/70 text-warn",
     card: "border-amber-300/40 bg-amber-300/[0.06]",
     label: "With us",
   },

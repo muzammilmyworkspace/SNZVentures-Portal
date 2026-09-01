@@ -490,9 +490,9 @@ export function ContentRequired({
   return (
     <aside
       data-content-required
-      className="my-8 rounded-[var(--radius-sm)] border border-dashed border-amber-400/60 bg-amber-400/10 p-5 text-[0.85rem] text-amber-200"
+      className="my-8 rounded-[var(--radius-sm)] border border-dashed border-amber-400/60 bg-amber-400/10 p-5 text-[0.85rem] text-warn"
     >
-      <p className="label text-amber-300">[Content required] — {label}</p>
+      <p className="label text-warn">[Content required] — {label}</p>
       {items && (
         <ul className="mt-3 space-y-1.5 pl-4 list-disc marker:text-amber-500/70">
           {items.map((i) => (

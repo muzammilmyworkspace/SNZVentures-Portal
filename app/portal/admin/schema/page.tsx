@@ -75,8 +75,8 @@ export default async function SchemaPage() {
             <p
               className={
                 probe.ok
-                  ? "rounded-[var(--radius-sm)] border border-moss-500/40 bg-moss-500/10 p-4 text-[0.88rem] leading-relaxed text-moss-200"
-                  : "rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-red-200"
+                  ? "rounded-[var(--radius-sm)] border border-moss-500/40 bg-moss-500/10 p-4 text-[0.88rem] leading-relaxed text-ok"
+                  : "rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-danger"
               }
             >
               {probe.ok
@@ -85,7 +85,7 @@ export default async function SchemaPage() {
             </p>
 
             {storage.active === "none" && (
-              <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-red-200">
+              <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-4 text-[0.88rem] leading-relaxed text-danger">
                 No usable storage is configured, so uploads are refused rather
                 than accepted and lost.
               </p>

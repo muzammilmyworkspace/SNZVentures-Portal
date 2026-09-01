@@ -435,7 +435,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
               </ul>
             </div>
           ) : (
-            <p className="mt-4 border-t border-line pt-4 text-[0.84rem] leading-relaxed text-moss-300">
+            <p className="mt-4 border-t border-line pt-4 text-[0.84rem] leading-relaxed text-ok">
               Everything on the admission list is ticked. Attestation stamps take weeks, so having
               them ready is most of the work.
             </p>

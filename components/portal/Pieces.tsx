@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
  *
  * COLOUR LIVES IN CSS, NOT IN CLASS LISTS. Status tones resolve through the
  * `.pill-*` classes in globals.css, which are defined per theme. They were
- * previously Tailwind utilities like `text-moss-300`, picked when the site was
+ * previously Tailwind utilities like `text-ok`, picked when the site was
  * dark by default — on the light theme that is now the default, a 300-weight
  * colour on near-white is barely readable, and an unreadable status badge is
  * worse than none because the reader assumes they understood it.

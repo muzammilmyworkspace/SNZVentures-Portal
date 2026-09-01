@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------- shared bits */
 
 /**
- * `text-red-200` was chosen when the site was dark by default. Light is now the
+ * `text-danger` was chosen when the site was dark by default. Light is now the
  * default, and pale red on a pink tint measured barely above the background —
  * the one message a visitor most needs to read was the least legible thing on
  * the page. The colour is now picked per theme, dark enough on light grounds
@@ -21,7 +21,7 @@ function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="alert"
-      className="mt-4 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium leading-relaxed text-[#B42318] dark:text-red-200 [html[data-theme=dark]_&]:text-red-200"
+      className="mt-4 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium leading-relaxed text-danger"
     >
       {children}
     </p>
@@ -117,7 +117,7 @@ function Field({
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-[0.8rem] text-red-300">
+        <p id={`${id}-error`} className="mt-1.5 text-[0.8rem] text-danger">
           {error}
         </p>
       )}
@@ -642,7 +642,7 @@ export function ResetForm({ token }: { token: string }) {
 /**
  * Amber is picked PER THEME, for the same reason `ErrorNote` above is.
  *
- * This was `text-amber-300` over a heading and `text-amber-100` over the body,
+ * This was `text-warn` over a heading and `text-warn` over the body,
  * chosen when the site was dark by default. Light is the default now, and pale
  * amber on a pale amber tint measured 1.32:1 and 1.01:1 — `npm run audit:theme`
  * fails /login and /register on it. 1.01:1 is text the same brightness as its
@@ -654,10 +654,10 @@ export function ResetForm({ token }: { token: string }) {
 export function AuthUnavailable() {
   return (
     <div className={cn("rounded-[var(--radius-md)] border border-amber-400/40 bg-amber-400/10 p-5")}>
-      <p className="label text-[#7A4A02] [html[data-theme=dark]_&]:text-amber-300">
+      <p className="label text-warn">
         Portal not yet enabled
       </p>
-      <p className="mt-2 text-[0.85rem] leading-relaxed text-[#6B4102] [html[data-theme=dark]_&]:text-amber-100">
+      <p className="mt-2 text-[0.85rem] leading-relaxed text-warn">
         Accounts are unavailable because this deployment has no{" "}
         <span className="font-mono text-[0.85rem]">AUTH_SECRET</span> configured.
         Set one and restart to enable the client portal — see{" "}

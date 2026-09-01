@@ -257,7 +257,7 @@ export function FeeDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-6">
           {rejectionNote && idx === 0 && (
-            <p className="mb-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] leading-relaxed text-[#B42318] [html[data-theme=dark]_&]:text-red-200">
+            <p className="mb-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] leading-relaxed text-danger">
               <strong>Your last submission was returned.</strong> {rejectionNote}
             </p>
           )}
@@ -317,7 +317,7 @@ export function FeeDialog({
           {error && (
             <p
               role="alert"
-              className="mt-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium leading-relaxed text-[#B42318] [html[data-theme=dark]_&]:text-red-200"
+              className="mt-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium leading-relaxed text-danger"
             >
               {error}
             </p>
@@ -452,7 +452,7 @@ function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null)
           Attached: <span className="font-semibold">{file.name}</span>
         </p>
       )}
-      {err && <p className="text-[0.85rem] text-red-400">{err}</p>}
+      {err && <p className="text-[0.85rem] text-danger">{err}</p>}
 
       <p className="text-[0.8rem] leading-relaxed text-faint">
         Your receipt goes into private document storage, never the public site,

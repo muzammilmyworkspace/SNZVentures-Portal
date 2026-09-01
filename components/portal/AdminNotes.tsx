@@ -84,7 +84,7 @@ export function AdminNotes({
       </p>
 
       {error && (
-        <p role="alert" className="mt-2 text-[0.8rem] text-red-300">
+        <p role="alert" className="mt-2 text-[0.8rem] text-danger">
           {error}
         </p>
       )}
@@ -116,7 +116,7 @@ export function AdminNotes({
                 <button
                   type="button"
                   onClick={() => remove(n.id)}
-                  className="text-[0.75rem] text-faint transition-colors hover:text-red-300"
+                  className="text-[0.75rem] text-faint transition-colors hover:text-danger"
                 >
                   Delete
                 </button>

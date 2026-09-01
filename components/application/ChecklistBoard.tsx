@@ -86,7 +86,7 @@ function Group({
           aria-hidden
           className={cn(
             "font-mono text-[0.72rem]",
-            complete ? "text-moss-300" : "text-faint"
+            complete ? "text-ok" : "text-faint"
           )}
         >
           {String(group.number).padStart(2, "0")}
@@ -204,7 +204,7 @@ function Board({
       ))}
 
       <div className="rounded-[var(--radius-md)] border border-amber-300/40 bg-amber-300/[0.06] p-4 sm:p-5">
-        <p className="label mb-2.5 text-[0.6rem] text-amber-200">Scanning instructions</p>
+        <p className="label mb-2.5 text-[0.6rem] text-warn">Scanning instructions</p>
         <ul className="space-y-2">
           {checklist.rules.map((rule) => (
             <li key={rule} className="flex gap-2.5 text-[0.84rem] leading-relaxed text-fg">
@@ -432,7 +432,7 @@ export function ChecklistBoard({
       )}
 
       {failed && (
-        <p role="alert" className="text-[0.82rem] text-red-300">
+        <p role="alert" className="text-[0.82rem] text-danger">
           {failed}
         </p>
       )}

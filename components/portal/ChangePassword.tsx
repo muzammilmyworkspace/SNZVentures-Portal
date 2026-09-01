@@ -153,7 +153,7 @@ export function ChangePassword() {
       {error && (
         <p
           role="alert"
-          className="rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium text-[#B42318] [html[data-theme=dark]_&]:text-red-200"
+          className="rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] font-medium text-danger"
         >
           {error}
         </p>

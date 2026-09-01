@@ -112,7 +112,7 @@ export function UndertakingDoc() {
         <span
           className={cn(
             "text-[0.75rem] font-medium transition-colors",
-            readToEnd ? "text-moss-300" : "text-faint"
+            readToEnd ? "text-ok" : "text-faint"
           )}
         >
           {readToEnd ? "Read to the end" : "Scroll to the end"}
