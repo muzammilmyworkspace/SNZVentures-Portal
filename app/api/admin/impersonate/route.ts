@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireAdmin } from "@/lib/auth/guard";
 import { getSession, createToken, setSessionCookie } from "@/lib/auth/session";
 import * as store from "@/lib/db/repos/users";
@@ -49,7 +49,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Which client?" }, { status: 400 });
   }
 
-  const target = await store.findById(userId);
+  // One query, not two: see findForSession. Three sequential round trips in
+  // a single serverless invocation is how this timed out.
+  const target = await store.findForSession(userId);
   if (!target) {
     return NextResponse.json({ ok: false, error: "No such user." }, { status: 404 });
   }
@@ -63,19 +65,18 @@ export async function POST(request: Request) {
   }
 
   /*
-    The TARGET's epoch, not the admin's. It is what makes this session end the
-    moment that account's own sessions end — if they change their password
-    while being viewed, the view stops with them.
+    The TARGET's epoch, not the admin's, and it came back with the row above.
+    It is what makes this session end the moment that account's own sessions
+    end — if they change their password while being viewed, the view stops
+    with them.
   */
-  const epoch = await store.sessionEpoch(target.id);
-
   const token = createToken(
     {
       userId: target.id,
       email: target.email,
       role: target.role,
       name: target.name,
-      ep: epoch ?? undefined,
+      ep: target.sessionEpoch,
       impersonator: {
         userId: session.userId,
         email: session.email,
@@ -88,15 +89,17 @@ export async function POST(request: Request) {
   );
   await setSessionCookie(token);
 
-  await audit({
-    action: "user.impersonation_started",
-    actorId: session.userId,
-    actorEmail: session.email,
-    entity: "user",
-    entityId: target.id,
-    meta: { target: target.email, role: target.role },
-    ip,
-  });
+  after(
+    audit({
+      action: "user.impersonation_started",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "user",
+      entityId: target.id,
+      meta: { target: target.email, role: target.role },
+      ip,
+    })
+  );
 
   return NextResponse.json({ ok: true, redirectTo: "/portal" });
 }
@@ -118,7 +121,7 @@ export async function DELETE(request: Request) {
   }
 
   const back = session.impersonator;
-  const admin = await store.findById(back.userId);
+  const admin = await store.findForSession(back.userId);
 
   /*
     Re-read from the database rather than trusting the token's copy. The staff
@@ -132,26 +135,33 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true, redirectTo: "/login" });
   }
 
-  const epoch = await store.sessionEpoch(admin.id);
   await setSessionCookie(
     createToken({
       userId: admin.id,
       email: admin.email,
       role: admin.role,
       name: admin.name,
-      ep: epoch ?? undefined,
+      ep: admin.sessionEpoch,
     })
   );
 
-  await audit({
-    action: "user.impersonation_ended",
-    actorId: admin.id,
-    actorEmail: admin.email,
-    entity: "user",
-    entityId: session.userId,
-    meta: { target: session.email, seconds: Math.floor(Date.now() / 1000) - back.since },
-    ip: clientIp(request),
-  });
+  /*
+    AFTER the response. The cookie is already swapped, so the admin is back
+    whatever happens next — and a slow audit write must never be the reason
+    somebody is stranded in a client's account. It still runs in this same
+    invocation, so it is not lost.
+  */
+  after(
+    audit({
+      action: "user.impersonation_ended",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      entity: "user",
+      entityId: session.userId,
+      meta: { target: session.email, seconds: Math.floor(Date.now() / 1000) - back.since },
+      ip: clientIp(request),
+    })
+  );
 
   return NextResponse.json({
     ok: true,

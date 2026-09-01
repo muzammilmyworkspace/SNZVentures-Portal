@@ -460,6 +460,29 @@ export async function listAdvisors(): Promise<DbUser[]> {
  * the database to render anything at all, so failing closed costs nothing that
  * was going to work anyway.
  */
+/**
+ * Everything needed to mint a session for somebody, in ONE query.
+ *
+ * findById plus sessionEpoch is two round trips, and on the `max: 1` pool a
+ * serverless function needs they are SEQUENTIAL. With an audit write behind
+ * them that is three, which is the exact shape that has produced a gateway
+ * timeout in this codebase repeatedly — most recently on the way back out of
+ * a view-as, stranding the admin in somebody else's account.
+ */
+export async function findForSession(
+  id: string
+): Promise<(DbUser & { sessionEpoch: number }) | null> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT id, email, name, role, status, email_verified, last_login_at, created_at,
+             session_epoch
+      FROM users WHERE id = ${id} LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    return { ...mapUser(rows[0]), sessionEpoch: Number(rows[0].session_epoch ?? 0) };
+  }, null);
+}
+
 export async function sessionEpoch(userId: string): Promise<number | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {

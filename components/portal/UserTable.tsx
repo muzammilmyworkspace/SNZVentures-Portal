@@ -156,11 +156,38 @@ export function UserTable({
                     )}
                   </td>
 
+                  {/*
+                    THE STATUS IS THE CONTROL.
+
+                    It used to be a read-only pill, with a separate Suspend
+                    button three columns away doing the thing the pill
+                    described. Two places for one fact, and the button pushed
+                    the row's actions onto a second line. Changing it here says
+                    what it does and puts the state and the switch in the same
+                    place.
+                  */}
                   <td className="px-5 py-3">
-                    <StatusPill
-                      status={u.status === "active" ? "approved" : "needs_update"}
-                      label={u.status}
-                    />
+                    {self || locked ? (
+                      <StatusPill
+                        status={u.status === "active" ? "approved" : "needs_update"}
+                        label={u.status}
+                      />
+                    ) : (
+                      <select
+                        aria-label={`Status for ${u.name}`}
+                        value={u.status === "active" ? "active" : "inactive"}
+                        disabled={pending}
+                        onChange={(e) =>
+                          act(u.id, {
+                            action: e.target.value === "active" ? "activate" : "suspend",
+                          })
+                        }
+                        className="field h-9 w-full min-w-[7.5rem] py-0 text-[0.82rem]"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    )}
                   </td>
 
                   <td className="px-5 py-3">
@@ -187,48 +214,37 @@ export function UserTable({
                     )}
                   </td>
 
+                  {/*
+                    ONE ROW, ONE WIDTH EACH.
+
+                    Suspend has moved into the status column, which leaves
+                    three actions that fit on a single line — and giving them a
+                    shared minimum width means the column reads as three
+                    columns rather than as ragged text. They wrapped before,
+                    which is what made every row look accidental.
+                  */}
                   <td className="px-5 py-3">
                     {self ? (
                       <span className="text-[0.8rem] text-faint">This is you</span>
                     ) : locked ? (
                       <span className="text-[0.8rem] text-faint">Restricted</span>
                     ) : (
-                      <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() =>
-                          act(u.id, {
-                            action: u.status === "active" ? "suspend" : "activate",
-                          })
-                        }
-                        className={cn(
-                          "label rounded-[var(--radius-sm)] border px-3 py-1.5 transition-colors",
-                          u.status === "active"
-                            ? "border-line text-muted hover:border-red-400/50 hover:text-danger"
-                            : "border-moss-400/40 text-accent hover:border-moss-400"
-                        )}
-                      >
-                        {u.status === "active" ? "Suspend" : "Activate"}
-                      </button>
-                    )}
-
-                    {!self && !locked && (
-                      <>
+                      <div className="flex flex-wrap items-center gap-2">
                         {/*
-                          VIEW AS — only for client accounts.
+                          LOGIN — red, and only for client accounts.
 
-                          Staff cannot be viewed as, by anyone. A client account
-                          grants nothing an admin does not already have, so the
-                          feature has a clear purpose in that direction and is
-                          privilege escalation in the other. The button is
-                          simply absent rather than shown and refused, because
-                          an action you can see and cannot use reads as a bug.
+                          Red because this is the one action here that makes
+                          you somebody else. Suspend and Delete are reversible
+                          or confirmed; signing in as a person is neither, and
+                          the colour should say so before it is pressed rather
+                          than after.
 
-                          A full load afterwards: the session cookie is about to
-                          become somebody else's, and every server component
-                          already rendered belongs to the admin.
+                          Staff cannot be logged into by anyone: a client
+                          account grants nothing an admin lacks, so the feature
+                          has a purpose in that direction and is privilege
+                          escalation in the other.
                         */}
-                        {CLIENT_ROLES.includes(u.role) && u.status === "active" && (
+                        {CLIENT_ROLES.includes(u.role) && u.status === "active" ? (
                           <button
                             type="button"
                             disabled={pending}
@@ -249,17 +265,19 @@ export function UserTable({
                               }
                               window.location.assign(data.redirectTo ?? "/portal");
                             }}
-                            className="label mr-2 rounded-[var(--radius-sm)] border border-moss-400/50 px-3 py-1.5 text-accent transition-colors hover:border-moss-400 hover:bg-moss-400/10"
+                            className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-[var(--danger-line)] bg-[var(--danger-soft)] px-3 py-1.5 text-center text-danger transition-opacity hover:opacity-80 disabled:opacity-50"
                           >
-                            View as
+                            Login
                           </button>
+                        ) : (
+                          <span className="min-w-[5.5rem]" />
                         )}
 
                         <button
                           type="button"
                           disabled={pending}
                           onClick={() => act(u.id, { action: "reset_password" })}
-                          className="label ml-2 rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-muted transition-colors hover:border-moss-400/60 hover:text-accent"
+                          className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-center text-muted transition-colors hover:border-moss-400/60 hover:text-accent disabled:opacity-50"
                         >
                           Reset link
                         </button>
@@ -279,18 +297,18 @@ export function UserTable({
                               const typed = window.prompt(
                                 `Permanently delete ${u.name} (${u.email}) and everything attached to them?
 
-This cannot be undone. Suspend instead if you only want to block access.
+This cannot be undone. Set them to Inactive instead if you only want to block access.
 
 Type DELETE to confirm.`
                               );
                               if (typed === "DELETE") act(u.id, { action: "delete" });
                             }}
-                            className="label ml-2 rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-muted transition-colors hover:border-red-400/60 hover:text-danger"
+                            className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-center text-muted transition-colors hover:border-red-400/60 hover:text-danger disabled:opacity-50"
                           >
                             Delete
                           </button>
                         )}
-                      </>
+                      </div>
                     )}
 
                     {resetLink?.id === u.id && (
