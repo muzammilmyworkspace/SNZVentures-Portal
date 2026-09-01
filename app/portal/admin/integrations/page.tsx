@@ -84,10 +84,17 @@ export default async function IntegrationsPage({
               <span className="text-fg">{ROOT_FOLDER_NAME}</span>.
             </li>
             <li>
-              <strong className="font-semibold text-fg">Nothing copies automatically.</strong> A
-              client&rsquo;s file goes to Drive when a member of staff sends it, from their client
-              page. Every copy of a passport that exists is one that can leak, so each is a
-              decision somebody made and the audit log names them.
+              <strong className="font-semibold text-fg">Uploads copy across on their own.</strong>{" "}
+              From the moment this is connected, every file a student sends — their fee receipt
+              first, then each document — lands in a folder named after them, as it arrives. Staff
+              can also send a client&rsquo;s whole file at once, including their answers and the
+              signed undertaking, from the client page.
+            </li>
+            <li>
+              <strong className="font-semibold text-fg">A copy, never the copy.</strong> Files are
+              in private storage before Drive is touched, and the copy runs after the student has
+              already been told their upload worked. Google being slow, or this being disconnected,
+              costs them nothing.
             </li>
             <li>
               <strong className="font-semibold text-fg">Shared with named people.</strong> Never

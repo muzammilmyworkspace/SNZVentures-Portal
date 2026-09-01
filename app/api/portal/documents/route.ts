@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireUser, isAdmin, isStaff } from "@/lib/auth/guard";
 import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
+import { mirrorToDrive } from "@/lib/integrations/drive-mirror";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import {
   putObject,
@@ -96,6 +97,25 @@ export async function POST(request: Request) {
       meta: { category, sizeBytes: buffer.length, mime: file.type },
       ip,
     });
+
+    /*
+      A copy into the firm's Drive, after the response.
+
+      The student is told their upload succeeded the moment it is safe in
+      storage — which it is, above. This runs behind that, so Google being slow
+      or unreachable costs them nothing, and a failure here never turns into a
+      failed upload. See lib/integrations/drive-mirror.
+    */
+    after(
+      mirrorToDrive({
+        userId: session.userId,
+        studentName: session.name,
+        studentEmail: session.email,
+        fileName: label || file.name,
+        bytes: buffer,
+        mimeType: file.type,
+      })
+    );
 
     return NextResponse.json({ ok: true, id });
   } catch (error) {

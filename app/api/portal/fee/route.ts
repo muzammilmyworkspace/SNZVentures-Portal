@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as fees from "@/lib/db/repos/fees";
 import * as repo from "@/lib/db/repos/portal";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/portal/payment-consent";
 import { studentStage } from "@/lib/portal/stage";
 import { classifyFault } from "@/lib/errors";
+import { mirrorToDrive } from "@/lib/integrations/drive-mirror";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -248,6 +249,20 @@ export async function POST(request: Request) {
       meta: { currency, amount: amount.toFixed(2), feeType, university },
       ip,
     });
+
+    // The receipt is usually the first document a student ever sends us, so
+    // it is the first thing in their Drive folder. After the response — see
+    // the note in the documents route.
+    after(
+      mirrorToDrive({
+        userId: session.userId,
+        studentName: session.name,
+        studentEmail: session.email,
+        fileName: `Payment receipt — ${university}`,
+        bytes: buffer,
+        mimeType: file.type,
+      })
+    );
 
     return NextResponse.json({ ok: true, id: feeId });
   } catch (error) {

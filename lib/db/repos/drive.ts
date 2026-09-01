@@ -132,6 +132,34 @@ export async function exportFor(userId: string): Promise<DriveExport | null> {
   }, null);
 }
 
+/**
+ * One mirrored file. Upserts the folder and adds one to the count.
+ *
+ * Separate from recordExport because the two mean different things: an export
+ * is a snapshot somebody took, with a known file count. A mirror is a running
+ * copy that grows as the student uploads, and overwriting its count with "1"
+ * on every upload would make the client file report nonsense.
+ */
+export async function recordMirror(
+  userId: string,
+  folderId: string,
+  folderUrl: string
+): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+  await safeQuery(async () => {
+    await db()`
+      INSERT INTO drive_exports (user_id, folder_id, folder_url, exported_at, file_count)
+      VALUES (${userId}, ${folderId}, ${folderUrl}, now(), 1)
+      ON CONFLICT (user_id) DO UPDATE SET
+        folder_id   = EXCLUDED.folder_id,
+        folder_url  = EXCLUDED.folder_url,
+        exported_at = now(),
+        file_count  = drive_exports.file_count + 1
+    `;
+    return true;
+  }, false);
+}
+
 export async function recordExport(input: {
   userId: string;
   folderId: string;
