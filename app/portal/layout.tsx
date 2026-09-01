@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
+import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
 import * as repo from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { studentStage, pathOpen, lockReason } from "@/lib/portal/stage";
@@ -94,6 +95,19 @@ export default async function PortalLayout({ children }: { children: React.React
   }
 
   return (
+    <>
+      {/*
+        Outside the shell, above everything, and not dismissible. The risk with
+        a view-as is not the feature — it is somebody forgetting they left it
+        on and acting as a client an hour later.
+      */}
+      {session.impersonator && (
+        <ImpersonationBanner
+          viewing={{ name: session.name, email: session.email }}
+          admin={{ name: session.impersonator.name }}
+        />
+      )}
+
     <PortalShell
       name={session.name}
       role={session.role}
@@ -104,5 +118,6 @@ export default async function PortalLayout({ children }: { children: React.React
     >
       {children}
     </PortalShell>
+    </>
   );
 }

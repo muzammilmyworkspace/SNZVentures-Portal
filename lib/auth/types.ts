@@ -57,11 +57,37 @@ export type User = {
 /** What the app is allowed to see. Never leak passwordHash past the adapter. */
 export type PublicUser = Omit<User, "passwordHash">;
 
+/**
+ * The member of staff behind an impersonated session.
+ *
+ * Present ONLY while an admin is viewing the portal as somebody else. Their
+ * own identity is carried here so the way back does not depend on a second
+ * cookie that could be lost, cleared or forged separately.
+ */
+export type Impersonator = {
+  userId: string;
+  email: string;
+  name: string;
+  role: Role;
+  /** When the view-as began, epoch seconds. Shown in the banner. */
+  since: number;
+};
+
 export type Session = {
   userId: string;
   email: string;
   role: Role;
   name: string;
+  /**
+   * SET WHEN THIS SESSION IS A VIEW-AS, and absent otherwise.
+   *
+   * Everything else in this token — userId, role, name, email — belongs to the
+   * person being viewed, deliberately. Every guard, gate, query and page then
+   * behaves exactly as it does for them, with no code anywhere else needing to
+   * know. That is the whole point: a support view that takes a different code
+   * path is a support view that shows you a different bug.
+   */
+  impersonator?: Impersonator;
   /** epoch seconds */
   exp: number;
   /**

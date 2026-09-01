@@ -54,6 +54,13 @@ export type AuditAction =
   | "drive.connected"
   | "drive.disconnected"
   | "drive.exported"
+  /*
+    Viewing the portal as a client. Both ends are recorded, with the member of
+    staff named: a view-as that is not attributable is not a support tool, it
+    is a way to act as somebody else without a trace.
+  */
+  | "user.impersonation_started"
+  | "user.impersonation_ended"
   // Fee verification (007). The student declares, staff decide, and the
   // decision is what unlocks the rest of the portal — so all three are
   // recorded, not just the approval.

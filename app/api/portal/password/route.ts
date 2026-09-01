@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SEALED_MESSAGE } from "@/lib/auth/impersonation";
 import { apiRequireUser } from "@/lib/auth/guard";
 import { hashPassword, verifyPassword, validatePassword } from "@/lib/auth/password";
 import { createToken, setSessionCookie } from "@/lib/auth/session";
@@ -35,6 +36,19 @@ export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+
+  /*
+    Not while viewing as this client.
+
+    Everything else in the portal stays reachable during a view-as — that is
+    the point of it. This is different in kind: it changes who can get INTO the
+    account, and doing it while wearing their name leaves a record saying they
+    did it themselves. The reset link on the client file does the same job and
+    is attributable.
+  */
+  if (session.impersonator) {
+    return NextResponse.json({ ok: false, error: SEALED_MESSAGE }, { status: 403 });
+  }
 
   const ip = clientIp(request);
   // Tight, because this endpoint verifies a password and is therefore a place

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ROLE_LABEL, type Role } from "@/lib/auth/types";
+import { ROLE_LABEL, type Role, CLIENT_ROLES } from "@/lib/auth/types";
 import { StatusPill } from "./Pieces";
 import { cn } from "@/lib/utils";
 
@@ -214,6 +214,47 @@ export function UserTable({
 
                     {!self && !locked && (
                       <>
+                        {/*
+                          VIEW AS — only for client accounts.
+
+                          Staff cannot be viewed as, by anyone. A client account
+                          grants nothing an admin does not already have, so the
+                          feature has a clear purpose in that direction and is
+                          privilege escalation in the other. The button is
+                          simply absent rather than shown and refused, because
+                          an action you can see and cannot use reads as a bug.
+
+                          A full load afterwards: the session cookie is about to
+                          become somebody else's, and every server component
+                          already rendered belongs to the admin.
+                        */}
+                        {CLIENT_ROLES.includes(u.role) && u.status === "active" && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={async () => {
+                              const res = await fetch("/api/admin/impersonate", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: u.id }),
+                              });
+                              const data = (await res.json().catch(() => ({}))) as {
+                                ok?: boolean;
+                                error?: string;
+                                redirectTo?: string;
+                              };
+                              if (!res.ok || !data.ok) {
+                                alert(data.error ?? "That didn't work.");
+                                return;
+                              }
+                              window.location.assign(data.redirectTo ?? "/portal");
+                            }}
+                            className="label mr-2 rounded-[var(--radius-sm)] border border-moss-400/50 px-3 py-1.5 text-accent transition-colors hover:border-moss-400 hover:bg-moss-400/10"
+                          >
+                            View as
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           disabled={pending}
