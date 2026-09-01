@@ -981,7 +981,7 @@ p { text-wrap: pretty; }
 .field {
   width: 100%;
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  background-color: color-mix(in srgb, var(--fg) 4%, transparent);
   color: var(--fg);
   border-radius: var(--radius-sm);
   /*
@@ -997,8 +997,16 @@ p { text-wrap: pretty; }
 }
 .field::placeholder { color: var(--fg-faint); }
 .field:focus {
+  /*
+    background-COLOR here, never the `background` shorthand.
+
+    The shorthand resets background-repeat to its initial value, and this
+    selector outranks the one that pins the caret to no-repeat — so every
+    dropdown in the portal grew a tiled chevron pattern the moment it was
+    clicked. The same applies to the base rule above.
+  */
   border-color: var(--color-moss-400);
-  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  background-color: color-mix(in srgb, var(--fg) 6%, transparent);
 }
 .field[aria-invalid="true"] { border-color: #f87171; }
 
@@ -1379,6 +1387,18 @@ p { text-wrap: pretty; }
  * has to come with explicit padding-right or the caret sits on top of a long
  * option's text.
  */
+/*
+  Stated at a specificity a `.field:state` colour rule cannot undercut. One
+  of those has already tiled this across the control once; belt and braces.
+*/
+:root select.field,
+:root select.field:hover,
+:root select.field:focus {
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 11px 7px;
+}
+
 select.field {
   appearance: none;
   -webkit-appearance: none;

@@ -182,7 +182,7 @@ export function UserTable({
                             action: e.target.value === "active" ? "activate" : "suspend",
                           })
                         }
-                        className="field h-9 w-full min-w-[7.5rem] py-0 text-[0.82rem]"
+                        className="field min-w-[8rem] py-1.5 text-[0.85rem]"
                       >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
