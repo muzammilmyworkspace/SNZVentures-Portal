@@ -60,6 +60,12 @@ export function FeeGate({
         <Note tone="ok" title="Receipt received — thank you.">
           We&rsquo;re checking it against our records now. This usually takes one
           working day, and we&rsquo;ll email you the moment it&rsquo;s done.
+          {/*
+            Here too, and this is the more important of the two: the moment
+            somebody sees "received" is the moment they realise they attached
+            the wrong photograph.
+          */}
+          <ReplaceReceipt />
         </Note>
       )}
 
@@ -95,6 +101,7 @@ export function FeeGate({
         <Note tone="ok" title="We're checking your receipt.">
           Your file opens as soon as it&rsquo;s confirmed. We&rsquo;ll email you
           — there&rsquo;s nothing else to do right now.
+          <ReplaceReceipt />
         </Note>
       )}
 
@@ -148,6 +155,75 @@ const TONES = {
   error: "border-red-500/45 bg-red-500/10",
   action: "border-line bg-raised",
 } as const;
+
+/**
+ * "I SENT THE WRONG SLIP."
+ *
+ * Reported by a student, and there was no answer: the form refuses a second
+ * live submission — correctly, because two contradictory declarations must not
+ * exist at once — so the only route was to wait for staff to reject the first.
+ * A day, over a photograph.
+ *
+ * Behind a confirmation, because this retracts something they signed. The
+ * wording says what actually happens to it rather than "are you sure": the
+ * declaration is withdrawn and kept, not deleted, and they will be sending a
+ * fresh one.
+ */
+function ReplaceReceipt() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function replace() {
+    if (
+      !confirm(
+        "Withdraw the receipt you sent and send a different one?\n\n" +
+          "We have not checked it yet, so nothing is lost. Your withdrawn " +
+          "submission stays on your file as a record."
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/portal/fee/withdraw", { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setError(data.error ?? "That didn't work.");
+        setBusy(false);
+        return;
+      }
+      /*
+        A full load. The stage has moved back to fee_due, which changes the
+        dashboard, the sidebar locks and the header chip — re-reading it from
+        the server is more honest than patching a tree rendered for somebody
+        at a different stage.
+      */
+      window.location.assign("/portal/student");
+    } catch {
+      setError("Network problem. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={replace}
+        disabled={busy}
+        className="mt-2 block text-[0.85rem] underline underline-offset-4 opacity-90 transition-opacity hover:opacity-100 disabled:opacity-50"
+      >
+        {busy ? "Withdrawing…" : "Sent the wrong receipt? Replace it"}
+      </button>
+      {error && (
+        <span role="alert" className="mt-2 block text-[0.82rem] text-danger">
+          {error}
+        </span>
+      )}
+    </>
+  );
+}
 
 function Note({
   tone,

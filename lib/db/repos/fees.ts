@@ -12,7 +12,7 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  * fixed for. Failures here must surface.
  */
 
-export type FeeStatus = "submitted" | "verified" | "rejected";
+export type FeeStatus = "submitted" | "verified" | "rejected" | "withdrawn";
 
 export type FeeSubmission = {
   id: string;
@@ -129,6 +129,31 @@ export async function createFeeSubmission(input: {
     RETURNING id
   `;
   return String(rows[0].id);
+}
+
+/**
+ * A student takes back a receipt we have not looked at yet.
+ *
+ * SCOPED TO THEIR OWN ROW AND TO 'submitted', in the statement rather than in
+ * a check above it. A withdrawal that could reach a verified submission would
+ * let somebody re-open a portal we had already decided about, and one that
+ * took a user id from anywhere but the session would let them reach another
+ * person's declaration. Both are closed by the WHERE clause, which cannot be
+ * skipped by a caller that forgets.
+ *
+ * Returns the id of what was withdrawn, or null when there was nothing to
+ * withdraw — which is also the answer when two tabs press it at once.
+ */
+export async function withdrawFeeSubmission(userId: string): Promise<string | null> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE fee_submissions
+         SET status = 'withdrawn'::fee_status, updated_at = now()
+       WHERE user_id = ${userId} AND status = 'submitted'
+      RETURNING id
+    `;
+    return rows[0] ? String(rows[0].id) : null;
+  }, null);
 }
 
 /** The student's current claim, if any. Rejected ones are not "current". */

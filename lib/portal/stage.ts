@@ -57,8 +57,17 @@ export async function studentStage(userId: string): Promise<StageInfo> {
           WHERE user_id = ${userId} AND status = 'rejected'
           ORDER BY reviewed_at DESC NULLS LAST, created_at DESC
           LIMIT 1) AS fee_note,
+        /*
+          REJECTED ONES, not all of them.
+
+          This counted every row, so any history at all read as "rejected"
+          once there was no live claim — which was true while the only way to
+          lose a live claim was to be rejected. A withdrawal is now another
+          way, and a student who took back their own receipt would have been
+          told we had refused it.
+        */
         (SELECT count(*)::int FROM fee_submissions
-          WHERE user_id = ${userId}) AS fee_any,
+          WHERE user_id = ${userId} AND status = 'rejected') AS fee_rejected_count,
         /*
           'study', not 'student'.
 
@@ -80,14 +89,15 @@ export async function studentStage(userId: string): Promise<StageInfo> {
     `;
 
     const feeLive = r?.fee_live as string | null;
-    const feeAny = Number(r?.fee_any ?? 0);
+    const rejectedCount = Number(r?.fee_rejected_count ?? 0);
     const intake = r?.intake_status as string | null;
     const consented = Number(r?.consented ?? 0) > 0;
     const note = r?.fee_note ? String(r.fee_note) : null;
 
-    // Not paid, or the last attempt was refused.
+    // Nothing live: either we refused the last one, or there has never been
+    // one — a withdrawal puts somebody back in the second case, not the first.
     if (feeLive === null) {
-      return feeAny > 0
+      return rejectedCount > 0
         ? { stage: "fee_rejected" as const, rejectionNote: note }
         : locked;
     }

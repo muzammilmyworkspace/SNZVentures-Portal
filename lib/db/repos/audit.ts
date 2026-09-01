@@ -75,6 +75,9 @@ export type AuditAction =
   | "fee.submitted"
   | "fee.verified"
   | "fee.rejected"
+  // The student taking back a receipt we had not looked at yet. Recorded
+  // because three attempts should be visible as three, not as one.
+  | "fee.withdrawn"
   // Operational layer (003)
   | "message.sent"
   | "intake.submitted"
