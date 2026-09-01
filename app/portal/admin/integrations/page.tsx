@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guard";
 import { connectionStatus } from "@/lib/db/repos/drive";
+import { headers } from "next/headers";
 import { driveConfigured, driveRedirectUri, ROOT_FOLDER_NAME } from "@/lib/integrations/drive";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { DriveConnect } from "@/components/portal/DriveConnect";
@@ -40,6 +41,14 @@ export default async function IntegrationsPage({
   await requireAdmin();
   const { drive } = await searchParams;
   const status = await connectionStatus();
+
+  /*
+    Shown from the same origin the flow will actually use, so the URI on screen
+    is the one that has to be registered with Google — not one assembled from a
+    variable that may be empty.
+  */
+  const host = (await headers()).get("host") ?? "";
+  const redirectUri = driveRedirectUri(host ? `https://${host}` : undefined);
   const message = drive ? MESSAGES[drive] : null;
 
   return (
@@ -119,7 +128,7 @@ export default async function IntegrationsPage({
               </>,
               <>
                 Add this exact redirect URI to that OAuth client:{" "}
-                <code className="break-all text-fg">{driveRedirectUri()}</code>
+                <code className="break-all text-fg">{redirectUri}</code>
               </>,
               <>
                 Add the scope <code className="text-fg">.../auth/drive.file</code> to the consent

@@ -14,10 +14,14 @@ import { clientIp } from "@/lib/auth/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const back = (why: string) =>
-  NextResponse.redirect(
-    new URL(`/portal/admin/integrations?drive=${why}`, process.env.NEXT_PUBLIC_PORTAL_URL)
-  );
+/*
+  Resolved against the request, never a configured base. This threw
+  ERR_INVALID_URL with base:'' at the end of a connection that had already been
+  saved — the failure looked total and was purely cosmetic, which is the worst
+  shape a bug can have.
+*/
+const back = (origin: string, why: string) =>
+  NextResponse.redirect(new URL(`/portal/admin/integrations?drive=${why}`, origin));
 
 /**
  * Google sends the admin back here with a one-time code.
@@ -30,14 +34,16 @@ export async function GET(request: Request) {
   const { session } = await requireAdmin();
 
   const url = new URL(request.url);
-  if (url.searchParams.get("error")) return back("denied");
-  if (!verifyState(url.searchParams.get("state")).ok) return back("expired");
+  const origin = url.origin;
+
+  if (url.searchParams.get("error")) return back(origin, "denied");
+  if (!verifyState(url.searchParams.get("state")).ok) return back(origin, "expired");
 
   const code = url.searchParams.get("code");
-  if (!code) return back("failed");
+  if (!code) return back(origin, "failed");
 
-  const tokens = await exchangeCode(code);
-  if (!tokens) return back("failed");
+  const tokens = await exchangeCode(code, origin);
+  if (!tokens) return back(origin, "failed");
 
   /*
     Google returns a refresh token only when it feels like it — on a first
@@ -45,14 +51,14 @@ export async function GET(request: Request) {
     a connection that has only an access token is not a connection, and saying
     so now beats discovering it at the first export.
   */
-  if (!tokens.refreshToken) return back("norefresh");
+  if (!tokens.refreshToken) return back(origin, "norefresh");
 
   const saved = await saveConnection({
     refreshToken: tokens.refreshToken,
     accountEmail: tokens.email,
     connectedBy: session.userId,
   });
-  if (!saved) return back("failed");
+  if (!saved) return back(origin, "failed");
 
   /*
     The root folder is created NOW rather than at the first export. It proves
@@ -74,5 +80,5 @@ export async function GET(request: Request) {
     ip: clientIp(request),
   });
 
-  return back("connected");
+  return back(origin, "connected");
 }

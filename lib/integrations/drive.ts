@@ -34,8 +34,20 @@ export function driveConfigured(): boolean {
   return Boolean(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET"));
 }
 
-export function driveRedirectUri(): string {
-  const base = env("NEXT_PUBLIC_PORTAL_URL") ?? env("NEXT_PUBLIC_SITE_URL") ?? "";
+/**
+ * Where Google sends the admin back.
+ *
+ * The request's own origin is preferred over a configured URL, because it
+ * cannot be wrong: it is the address the browser actually reached us on.
+ * NEXT_PUBLIC_PORTAL_URL was empty on this deployment, which produced a
+ * relative redirect URI, which produced a 500 at the end of an otherwise
+ * successful connection — the exact class of failure lib/env exists to stop.
+ *
+ * The env vars remain as a fallback for anywhere the request is not to hand.
+ */
+export function driveRedirectUri(origin?: string): string {
+  const base =
+    origin ?? env("NEXT_PUBLIC_PORTAL_URL") ?? env("NEXT_PUBLIC_SITE_URL") ?? "";
   return `${base.replace(/\/+$/, "")}/api/admin/drive/callback`;
 }
 
@@ -47,10 +59,10 @@ export function driveRedirectUri(): string {
  * forced — so a reconnection after AUTH_SECRET rotation, which cannot read the
  * old token, would otherwise come back with nothing and appear to succeed.
  */
-export function driveAuthUrl(state: string): string {
+export function driveAuthUrl(state: string, origin?: string): string {
   const params = new URLSearchParams({
     client_id: env("GOOGLE_CLIENT_ID")!,
-    redirect_uri: driveRedirectUri(),
+    redirect_uri: driveRedirectUri(origin),
     response_type: "code",
     scope: `${DRIVE_SCOPE} https://www.googleapis.com/auth/userinfo.email`,
     access_type: "offline",
@@ -73,7 +85,7 @@ async function readEmail(accessToken: string): Promise<string | null> {
   return data?.email ?? null;
 }
 
-export async function exchangeCode(code: string): Promise<TokenSet | null> {
+export async function exchangeCode(code: string, origin?: string): Promise<TokenSet | null> {
   const res = await fetch(TOKEN_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -81,7 +93,9 @@ export async function exchangeCode(code: string): Promise<TokenSet | null> {
       code,
       client_id: env("GOOGLE_CLIENT_ID")!,
       client_secret: env("GOOGLE_CLIENT_SECRET")!,
-      redirect_uri: driveRedirectUri(),
+      // Must be byte-identical to the one that started the flow, or Google
+      // refuses the exchange — so it is derived the same way, from the origin.
+      redirect_uri: driveRedirectUri(origin),
       grant_type: "authorization_code",
     }),
     cache: "no-store",
