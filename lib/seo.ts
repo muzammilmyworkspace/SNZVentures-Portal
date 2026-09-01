@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { company } from "@/data/company";
 
+/*
+  `||`, not `??`. A variable saved empty in a dashboard is still a string, so
+  `??` keeps it and SITE_URL becomes "" — which then goes into metadataBase
+  and every canonical URL. The same one-character trap as the storage bucket;
+  see lib/env.
+*/
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? company.siteUrl;
+  process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || company.siteUrl;
 
 const DEFAULT_DESCRIPTION =
   "SnZ Ventures is a Vilnius-based advisory firm helping students, professionals and founders move into Europe — company formation, fintech licensing, international recruitment and investor relocation.";
