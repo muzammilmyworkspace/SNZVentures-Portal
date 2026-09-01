@@ -139,6 +139,24 @@ export default async function IntegrationsPage({
               </li>
             ))}
           </ol>
+          {/*
+            THE SEVEN-DAY TRAP.
+
+            Google expires refresh tokens for an app still in "Testing" after a
+            week. Connected and left alone, this would simply stop one Tuesday
+            with nothing on screen to explain it — which reads as the
+            integration being unreliable rather than a publishing status nobody
+            was told about.
+          */}
+          <p className="mt-4 rounded-[var(--radius-sm)] border border-amber-300/40 bg-amber-300/[0.06] p-4 text-[0.84rem] leading-relaxed text-fg">
+            <strong className="font-semibold">Publish the app once it works.</strong> While the
+            consent screen is in <span className="font-semibold">Testing</span>, Google expires the
+            connection after seven days and you would have to reconnect every week. On the OAuth
+            consent screen press <span className="font-semibold">Publish app</span> to move it to
+            Production. Nothing here costs anything: the Drive API and OAuth are free, and no
+            billing account is needed.
+          </p>
+
           <p className="mt-4 border-t border-line pt-4 text-[0.82rem] leading-relaxed text-faint">
             A service account will not work on a personal Gmail account: it has no Drive storage of
             its own, so every upload fails. That is why this connects as you.{" "}
