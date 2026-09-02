@@ -576,6 +576,79 @@ export async function getNotifications(userId: string, limit = 50): Promise<Noti
   }, []);
 }
 
+/**
+ * TELL STAFF THAT A CLIENT DID SOMETHING.
+ * ---------------------------------------------------------------------------
+ * Staff had no feed at all. Every notification in the product went to a
+ * client — "your fee is verified", "your document was approved" — and nothing
+ * went the other way, so finding out that somebody had uploaded a passport at
+ * midnight meant opening the documents page and looking.
+ *
+ * ONE QUERY, WHATEVER THE HEADCOUNT. An INSERT ... SELECT writes a row for
+ * every recipient in a single round trip. Looping over staff would be one trip
+ * each on the single connection a serverless function gets, which is the shape
+ * that has produced gateway timeouts here repeatedly.
+ *
+ * A ROW EACH, not one shared row, because read state is personal: an advisor
+ * marking something read must not clear it from an admin's bell.
+ *
+ * WHO GETS IT: every active admin and super admin, plus the advisor assigned
+ * to that client — they are the person who actually acts on it, and they are
+ * often neither. The ACTOR is excluded: a member of staff who has just done
+ * something does not need to be told they did it, which also keeps the bell
+ * quiet during a view-as.
+ */
+export async function notifyStaff(input: {
+  title: string;
+  body?: string;
+  href?: string;
+  kind?: "message" | "document" | "status" | "task" | "appointment" | "general";
+  /** The client this is about, so their advisor is included. */
+  aboutUserId?: string;
+  /** Whoever caused it, so they are not told about their own action. */
+  actorId?: string;
+  /**
+   * Suppress an identical title for the same person within this many minutes.
+   *
+   * Some things happen once — a receipt, a submitted application — and some
+   * happen continuously. The profile form autosaves as somebody types, and a
+   * notification per save would put forty rows in the bell for one sitting.
+   * A bell that cries forty times is a bell nobody opens, which costs the
+   * notifications that mattered.
+   *
+   * The window is applied in the same statement, so it stays one round trip.
+   */
+  dedupeWithinMinutes?: number;
+}) {
+  await safeQuery(async () => {
+    await db()`
+      INSERT INTO notifications (user_id, title, body, href, kind)
+      SELECT u.id, ${input.title}, ${input.body ?? null}, ${input.href ?? null},
+             ${input.kind ?? "general"}
+        FROM users u
+       WHERE u.status = 'active'
+         AND (
+           u.role IN ('admin', 'super_admin')
+           OR u.id IN (
+             SELECT a.advisor_id FROM staff_assignments a
+              WHERE a.client_id = ${input.aboutUserId ?? null}
+           )
+         )
+         AND u.id <> ${input.actorId ?? null}
+         AND (
+           ${input.dedupeWithinMinutes ?? null}::int IS NULL
+           OR NOT EXISTS (
+             SELECT 1 FROM notifications n
+              WHERE n.user_id = u.id
+                AND n.title = ${input.title}
+                AND n.created_at > now() - make_interval(mins => ${input.dedupeWithinMinutes ?? 0})
+           )
+         )
+    `;
+    return true;
+  }, false);
+}
+
 export async function notify(input: {
   userId: string;
   title: string;

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
+import * as repo from "@/lib/db/repos/portal";
 import { withdrawFeeSubmission } from "@/lib/db/repos/fees";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
@@ -60,6 +61,22 @@ export async function POST(request: Request) {
       { status: 409 }
     );
   }
+
+  /*
+    Worth telling staff about even though it removes work: somebody part-way
+    through checking that receipt should know it has been pulled, rather than
+    verifying a declaration the student has already retracted.
+  */
+  after(
+    repo.notifyStaff({
+      title: `${session.name} withdrew their payment receipt`,
+      body: "They are sending a different one.",
+      href: "/portal/admin/fees",
+      kind: "status",
+      aboutUserId: session.userId,
+      actorId: session.userId,
+    })
+  );
 
   await audit({
     action: "fee.withdrawn",

@@ -106,6 +106,21 @@ export async function POST(request: Request) {
       or unreachable costs them nothing, and a failure here never turns into a
       failed upload. See lib/integrations/drive-mirror.
     */
+    /*
+      Staff hear about it, after the response. Nothing a client does should be
+      slower because we are also telling somebody about it.
+    */
+    after(
+      repo.notifyStaff({
+        title: `${session.name} uploaded a document`,
+        body: label || file.name,
+        href: "/portal/admin/documents",
+        kind: "document",
+        aboutUserId: session.userId,
+        actorId: session.userId,
+      })
+    );
+
     after(
       mirrorToDrive({
         userId: session.userId,

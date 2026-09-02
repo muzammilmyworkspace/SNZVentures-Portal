@@ -254,6 +254,17 @@ export async function POST(request: Request) {
     // it is the first thing in their Drive folder. After the response — see
     // the note in the documents route.
     after(
+      repo.notifyStaff({
+        title: `${session.name} sent a payment receipt`,
+        body: `${currency} ${amount.toFixed(2)} — ${feeType}, ${university}`,
+        href: "/portal/admin/fees",
+        kind: "status",
+        aboutUserId: session.userId,
+        actorId: session.userId,
+      })
+    );
+
+    after(
       mirrorToDrive({
         userId: session.userId,
         studentName: session.name,

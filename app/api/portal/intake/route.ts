@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as ops from "@/lib/db/repos/operations";
 import * as repo from "@/lib/db/repos/portal";
@@ -280,6 +280,21 @@ export async function POST(request: Request) {
     note: `${definition.title} submitted.`,
     actorId: session.userId,
   });
+
+  /*
+    The one event on this page staff most need to know about: a file that is
+    ready to be read, rather than one still being typed.
+  */
+  after(
+    repo.notifyStaff({
+      title: `${session.name} submitted their application`,
+      body: "Signed and complete — ready to review.",
+      href: `/portal/admin/users/${session.userId}`,
+      kind: "status",
+      aboutUserId: session.userId,
+      actorId: session.userId,
+    })
+  );
 
   await repo.notify({
     userId: session.userId,

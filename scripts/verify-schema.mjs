@@ -146,6 +146,125 @@ await check("staff assignment is unique per pair", async () => {
   if (n.rows[0].n !== 1) throw new Error("duplicate assignment created");
 });
 
+console.log("\nStaff notifications\n");
+
+/*
+  THIS ONE FAILS SILENTLY IF IT IS WRONG.
+
+  notifyStaff runs through safeQuery, which swallows the error and returns
+  false — so a broken INSERT ... SELECT notifies nobody and logs nothing, and
+  the first sign would be somebody asking why the bell never rings. It is
+  exercised here against a real Postgres, with real rows, and the recipients
+  are counted.
+*/
+{
+  const ids = {
+    superAdmin: "11111111-1111-1111-1111-111111111111",
+    admin: "22222222-2222-2222-2222-222222222222",
+    advisor: "33333333-3333-3333-3333-333333333333",
+    otherAdvisor: "44444444-4444-4444-4444-444444444444",
+    student: "55555555-5555-5555-5555-555555555555",
+    suspendedAdmin: "66666666-6666-6666-6666-666666666666",
+  };
+
+  await check("fixtures", async () => {
+    for (const [key, id] of Object.entries(ids)) {
+      const role =
+        key === "superAdmin" ? "super_admin"
+        : key === "admin" || key === "suspendedAdmin" ? "admin"
+        : key === "student" ? "student"
+        : "advisor";
+      await db.query(
+        `INSERT INTO users (id, email, name, role, status, password_hash)
+         VALUES ($1, $2, $3, $4, $5, 'x')`,
+        [id, `${key}@test`, key, role, key === "suspendedAdmin" ? "suspended" : "active"]
+      );
+    }
+    await db.query(
+      `INSERT INTO staff_assignments (advisor_id, client_id) VALUES ($1, $2)`,
+      [ids.advisor, ids.student]
+    );
+  });
+
+  const notifyStaff = async (title, dedupeMins = null) =>
+    db.query(
+      `INSERT INTO notifications (user_id, title, body, href, kind)
+       SELECT u.id, $1, NULL, '/x', 'general'
+         FROM users u
+        WHERE u.status = 'active'
+          AND (
+            u.role IN ('admin', 'super_admin')
+            OR u.id IN (SELECT a.advisor_id FROM staff_assignments a WHERE a.client_id = $2)
+          )
+          AND u.id <> $3
+          AND (
+            $4::int IS NULL
+            OR NOT EXISTS (
+              SELECT 1 FROM notifications n
+               WHERE n.user_id = u.id AND n.title = $1
+                 AND n.created_at > now() - make_interval(mins => $4)
+            )
+          )`,
+      [title, ids.student, ids.student, dedupeMins]
+    );
+
+  await check("reaches admins and the assigned advisor, and nobody else", async () => {
+    await notifyStaff("upload one");
+    const { rows } = await db.query(
+      `SELECT user_id FROM notifications WHERE title = 'upload one' ORDER BY user_id`
+    );
+    const got = rows.map((r) => r.user_id).sort();
+    const want = [ids.superAdmin, ids.admin, ids.advisor].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) {
+      throw new Error(`recipients were ${got.join(", ")}`);
+    }
+  });
+
+  await check("a suspended admin and an unrelated advisor are left out", async () => {
+    const { rows } = await db.query(
+      `SELECT count(*)::int AS n FROM notifications
+        WHERE title = 'upload one' AND user_id IN ($1, $2)`,
+      [ids.suspendedAdmin, ids.otherAdvisor]
+    );
+    if (rows[0].n !== 0) throw new Error("they were notified");
+  });
+
+  await check("the actor is never told about their own action", async () => {
+    await db.query(
+      `INSERT INTO notifications (user_id, title, body, href, kind)
+       SELECT u.id, 'self test', NULL, '/x', 'general' FROM users u
+        WHERE u.role IN ('admin','super_admin') AND u.status = 'active'
+          AND u.id <> $1`,
+      [ids.admin]
+    );
+    const { rows } = await db.query(
+      `SELECT count(*)::int AS n FROM notifications WHERE title = 'self test' AND user_id = $1`,
+      [ids.admin]
+    );
+    if (rows[0].n !== 0) throw new Error("the actor was notified");
+  });
+
+  await check("the dedupe window suppresses a repeat", async () => {
+    await notifyStaff("autosave", 60);
+    await notifyStaff("autosave", 60);
+    await notifyStaff("autosave", 60);
+    const { rows } = await db.query(
+      `SELECT count(*)::int AS n FROM notifications WHERE title = 'autosave'`
+    );
+    // Three recipients, one round each — not three rounds.
+    if (rows[0].n !== 3) throw new Error(`${rows[0].n} rows, expected 3`);
+  });
+
+  await check("without a window every event is kept", async () => {
+    await notifyStaff("receipt");
+    await notifyStaff("receipt");
+    const { rows } = await db.query(
+      `SELECT count(*)::int AS n FROM notifications WHERE title = 'receipt'`
+    );
+    if (rows[0].n !== 6) throw new Error(`${rows[0].n} rows, expected 6`);
+  });
+}
+
 console.log("\nApplication queries\n");
 
 await check("admin metrics aggregate", async () => {
