@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
@@ -45,7 +46,17 @@ const STATUS_LABEL: Record<string, string> = {
 /** Statuses where the note explains something the client must do. */
 const ACTIONABLE = new Set(["rejected", "needs_update"]);
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ replace?: string }>;
+}) {
+  /*
+    Which document they came here to replace, named in the link from the panel
+    above. Carried in the URL rather than in state so the link works from a
+    notification email as well as from the page itself.
+  */
+  const replace = (await searchParams).replace ?? null;
   // Locked until the fee is verified. See lib/portal/gate.ts.
   await requireOpen("/portal/documents");
   const { session } = await requireUser("/portal/documents");
@@ -105,11 +116,23 @@ export default async function DocumentsPage() {
                     <span className="text-[0.95rem] font-medium text-fg">{d.name}</span>
                     <StatusPill status={d.status} label={STATUS_LABEL[d.status] ?? d.status} />
                   </div>
+                  {/*
+                    THE REASON, WORD FOR WORD. It is what a member of staff
+                    wrote against this document, and it is the only thing that
+                    tells somebody what to change — a status alone gets the
+                    same file uploaded again.
+                  */}
                   {d.reviewNote && (
-                    <p className="mt-1.5 text-[0.85rem] leading-relaxed text-muted">
+                    <p className="mt-1.5 rounded-[var(--radius-sm)] border border-line bg-raised p-3 text-[0.85rem] leading-relaxed text-fg">
                       {d.reviewNote}
                     </p>
                   )}
+                  <Link
+                    href={`/portal/documents?replace=${encodeURIComponent(d.name)}#upload`}
+                    className="label mt-2.5 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300"
+                  >
+                    Send a new copy
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -163,8 +186,16 @@ export default async function DocumentsPage() {
           )}
         </Panel>
 
-        <Panel title="Upload a document">
-          <DocumentUploader slots={required} configured={storage} />
+        <Panel title={replace ? "Replace a document" : "Upload a document"}>
+          <div id="upload" className="scroll-mt-24">
+            {replace && (
+              <p className="mb-4 note-ok p-3 text-[0.84rem] leading-relaxed">
+                Replacing <strong className="font-semibold">{replace}</strong>. Your new copy is
+                sent for review; the old one stays on your file as a record.
+              </p>
+            )}
+            <DocumentUploader slots={required} configured={storage} replacing={replace} />
+          </div>
         </Panel>
       </div>
     </>

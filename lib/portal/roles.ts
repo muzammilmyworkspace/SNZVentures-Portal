@@ -75,6 +75,20 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/journey", label: "My Journey", icon: "journey" },
         { href: "/portal/application", label: "My Application", icon: "applications" },
         { href: "/portal/checklist", label: "Document checklist", icon: "documents" },
+        /*
+          BACK, FOR A REASON THAT DID NOT EXIST BEFORE.
+
+          This was removed when documents moved into the application: a second
+          page listing the same files without the checklist's context was just
+          another place to get it wrong. That reasoning covered UPLOADING.
+
+          It does not cover a document we have sent back. The application locks
+          on submission, so when staff return a passport scan there has to be
+          somewhere the student can still replace that one file — and the badge
+          means the item only draws attention when something is actually
+          waiting on them.
+        */
+        { href: "/portal/documents", label: "Documents", icon: "documents", badgeKey: "documents" },
         { href: "/portal/cases", label: "Applications", icon: "applications" },
       ],
     },

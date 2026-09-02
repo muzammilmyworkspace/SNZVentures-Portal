@@ -157,6 +157,25 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
+  /*
+    A REASON IS REQUIRED TO SEND SOMETHING BACK, and required here rather than
+    only in the form. "Needs attention" with no note tells a student that
+    something is wrong and nothing about what — so they upload the same file
+    again, and the round trip costs both sides a day. Approving needs no
+    explanation; refusing always does.
+  */
+  const reason = typeof note === "string" ? note.trim() : "";
+  if (status !== "approved" && reason.length < 5) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Tell the client what is wrong with it — they cannot fix a document they have not been told about.",
+      },
+      { status: 400 }
+    );
+  }
+
   const doc = await repo.getDocumentById(documentId);
   if (!doc) {
     return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
@@ -173,16 +192,24 @@ export async function PATCH(request: Request) {
     documentId,
     status as (typeof allowed)[number],
     session.userId,
-    typeof note === "string" ? note.slice(0, 500) : null
+    reason ? reason.slice(0, 500) : null
   );
 
+  /*
+    The notification carries the REASON, not just the verdict, and links
+    straight to the page that can fix it. A bell that says "needs attention"
+    and makes somebody go looking is a bell people learn to ignore.
+  */
   await repo.notify({
     userId: doc.ownerId,
+    kind: "document",
     title:
       status === "approved"
-        ? `${doc.name} approved`
-        : `${doc.name} needs attention`,
-    body: typeof note === "string" ? note.slice(0, 300) : undefined,
+        ? `${doc.name} — approved`
+        : status === "needs_update"
+          ? `${doc.name} — please send a new copy`
+          : `${doc.name} — not accepted`,
+    body: reason ? reason.slice(0, 300) : undefined,
     href: "/portal/documents",
   });
 

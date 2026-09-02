@@ -14,6 +14,8 @@ type Doc = {
   /** Needed for the whole-file download and for grouping. */
   ownerId: string;
   ownerName?: string;
+  /** What was said the last time this was sent back. */
+  reviewNote?: string | null;
   sizeBytes: number | null;
   updatedAt: string;
 };
@@ -49,6 +51,17 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
   const [error, setError] = useState<string | null>(null);
 
   /*
+    Which document is being sent back, and why.
+
+    Sending something back is a two-step action deliberately: the reason is the
+    whole message the client receives, and a one-click reject would produce
+    "needs attention" with nothing to act on. Approve stays one click, because
+    approving explains itself.
+  */
+  const [returning, setReturning] = useState<{ id: string; status: string } | null>(null);
+  const [reason, setReason] = useState("");
+
+  /*
     Grouped in insertion order, which is the order the query returned — newest
     upload first. So the client who sent something ten minutes ago is at the
     top, which is who staff are usually here for.
@@ -82,18 +95,23 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
       return next;
     });
 
-  async function review(documentId: string, status: string) {
+  async function review(documentId: string, status: string, note?: string) {
     setBusy(documentId);
     setError(null);
     try {
       const res = await fetch("/api/portal/documents", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, status }),
+        body: JSON.stringify({ documentId, status, note }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) setError(data.error ?? "That action failed.");
-      else startTransition(() => router.refresh());
+      if (!res.ok) {
+        setError(data.error ?? "That action failed.");
+        return;
+      }
+      setReturning(null);
+      setReason("");
+      startTransition(() => router.refresh());
     } catch {
       setError("Network problem. Please try again.");
     } finally {
@@ -222,7 +240,11 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
                           key={b.s}
                           type="button"
                           disabled={pending || busy === d.id || d.status === b.s}
-                          onClick={() => review(d.id, b.s)}
+                          onClick={() =>
+                            b.s === "approved"
+                              ? review(d.id, b.s)
+                              : (setReturning({ id: d.id, status: b.s }), setReason(""))
+                          }
                           className={cn(
                             "label rounded-[var(--radius-sm)] border px-3 py-1.5 transition-colors disabled:opacity-40",
                             b.cls
@@ -232,6 +254,65 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
                         </button>
                       ))}
                     </div>
+
+                    {/*
+                      THE REASON IS THE MESSAGE. It is what the client is sent
+                      and what they will act on, so it is written here, against
+                      the document it belongs to, rather than typed into a chat
+                      thread where it loses the thing it refers to.
+                    */}
+                    {returning?.id === d.id && (
+                      <div className="w-full rounded-[var(--radius-sm)] border border-line bg-raised p-4">
+                        <label htmlFor={`note-${d.id}`} className="field-label">
+                          {returning.status === "needs_update"
+                            ? "What should they send instead?"
+                            : "Why is this not accepted?"}
+                        </label>
+                        <textarea
+                          id={`note-${d.id}`}
+                          rows={2}
+                          autoFocus
+                          className="field min-h-16 resize-y"
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                          placeholder={
+                            returning.status === "needs_update"
+                              ? "e.g. The MOFA stamp is cut off at the bottom — please rescan the full page."
+                              : "e.g. This is the front of the CNIC only. Both sides are needed, in one PDF."
+                          }
+                        />
+                        <p className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
+                          They get this word for word, with a link to replace
+                          this document.
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={busy === d.id || reason.trim().length < 5}
+                            onClick={() => review(d.id, returning.status, reason.trim())}
+                            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+                          >
+                            {busy === d.id ? "Sending…" : "Send it back"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === d.id}
+                            onClick={() => setReturning(null)}
+                            className="label inline-flex min-h-11 items-center px-2 text-faint transition-colors hover:text-fg"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* What was said last time, so nobody repeats it. */}
+                    {d.reviewNote && returning?.id !== d.id && (
+                      <p className="w-full text-[0.78rem] leading-relaxed text-warn">
+                        Sent back: {d.reviewNote}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

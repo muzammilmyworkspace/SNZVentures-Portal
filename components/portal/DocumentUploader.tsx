@@ -26,17 +26,29 @@ type Slot = { name: string; category: string };
 export function DocumentUploader({
   slots,
   configured,
+  replacing,
 }: {
   /** The checklist for this pathway, so a file arrives already labelled. */
   slots: Slot[];
   /** False when no storage transport is set — the form says so rather than failing on submit. */
   configured: boolean;
+  /**
+   * The document being replaced, when somebody arrived here from one we sent
+   * back. It preselects the slot and says so, because "upload a document" with
+   * a dropdown they have to match by memory is how the wrong one gets
+   * replaced — and the reason it came back is about a specific file.
+   */
+  replacing?: string | null;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
-  const [slot, setSlot] = useState(slots[0]?.name ?? "Other");
+  const [slot, setSlot] = useState(
+    // A returned document names its own slot; matching it here saves the
+    // person choosing correctly from a list of eleven similar labels.
+    (replacing && slots.find((s) => s.name === replacing)?.name) ?? slots[0]?.name ?? "Other"
+  );
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
