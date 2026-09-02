@@ -20,7 +20,7 @@
  */
 import { readFileSync } from "node:fs";
 import { dispatch, validate, inputSchema, LATEST_PROTOCOL } from "../lib/mcp/protocol.ts";
-import { checkToken, originAllowed, sameSecret } from "../lib/mcp/auth.ts";
+import { checkToken, originAllowed, sameSecret, readBearer } from "../lib/mcp/auth.ts";
 import { FLAT_FIELDS, FIELD_BY_KEY, pick, labelled } from "../lib/mcp/fields.ts";
 
 let failures = 0;
@@ -197,6 +197,19 @@ console.log("\n=== the token ===");
   if (!checkToken(`bearer ${secret}`, secret)) fail("a lowercase scheme was refused");
   if (!checkToken(`  Bearer   ${secret}  `, secret)) fail("surrounding whitespace broke the check");
   ok("only a well-formed bearer header is accepted, in any case");
+
+  /*
+    Both paths — a personal key looked up by hash, and the shared one compared
+    byte for byte — read the header through readBearer. If they parsed it
+    separately they would drift, and one would start accepting what the other
+    refuses; the looser of the two would then be the one that decides.
+  */
+  if (readBearer(`Bearer ${secret}`) !== secret) fail("readBearer did not return the token");
+  if (readBearer("Bearer   spaced  ") !== "spaced") fail("readBearer kept surrounding whitespace");
+  for (const h of [null, "", "Bearer", "Bearer ", "Basic abc", "abc"]) {
+    if (readBearer(h) !== null) fail(`readBearer accepted ${JSON.stringify(h)}`);
+  }
+  ok("both key paths read the header through one parser, which cannot drift");
 }
 
 console.log("\n=== origin ===");
@@ -312,9 +325,30 @@ console.log("\n=== nothing here writes ===");
      a passport number, which is not recoverable after the fact. */
   const route = readFileSync(new URL("../app/api/mcp/route.ts", import.meta.url), "utf8");
   if (!route.includes('action: "mcp.read"')) fail("the route no longer writes an audit entry");
-  if (!route.includes("checkToken")) fail("the route no longer checks the token");
-  if (!/if \(!env\("MCP_TOKEN"\)\)/.test(route)) fail("the route no longer closes when unconfigured");
-  ok("no writes in the tools, and the route still logs and guards every call");
+  /* Without actorId the log records that a passport number was read and cannot
+     say by whom — which is the entire reason personal keys replaced the shared
+     one, and it would regress silently. */
+  if (!route.includes("actorId: caller.userId")) fail("the audit entry no longer names who asked");
+  if (!route.includes("mcpTokens.verify")) fail("the route no longer resolves a personal key");
+  if (!route.includes("originAllowed")) fail("the route no longer validates Origin");
+  ok("no writes in the tools, and the route still logs, names and guards every call");
+
+  /*
+     Only the hash is stored, so no query may RETURN it — a key readable from
+     the database is one that leaks with a backup.
+
+     Looking it up is fine and is the whole point: `WHERE token_hash = …` is
+     how a presented key is recognised. What must not happen is token_hash
+     appearing among the selected columns, so only the span between SELECT and
+     FROM is examined.
+  */
+  const repo = readFileSync(new URL("../lib/db/repos/mcp-tokens.ts", import.meta.url), "utf8");
+  for (const [, columns] of repo.matchAll(/SELECT\b([\s\S]*?)\bFROM\b/gi)) {
+    if (/token_hash/i.test(columns)) fail("a query returns token_hash among its columns");
+  }
+  if (!repo.includes("u.status = 'active'")) fail("a key no longer re-checks the account is active");
+  if (!/ALLOWED_ROLES/.test(repo)) fail("a key no longer re-checks the role");
+  ok("keys are write-only in the database, and re-checked against the account on every use");
 }
 
 console.log(failures === 0 ? "\n  MCP verified.\n" : `\n  ${failures} FAILURE(S)\n`);

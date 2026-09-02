@@ -332,6 +332,144 @@ await check("document review update", async () => {
   );
 });
 
+console.log("\nMCP personal keys\n");
+
+/*
+  A KEY THAT OUTLIVES THE ACCOUNT IT BELONGS TO IS THE DOOR NOBODY CLOSES.
+
+  These keys open an endpoint that returns passport numbers and bank details.
+  The check that matters is not "is the key valid" — it is that the ACCOUNT is
+  re-examined on every single use, so suspending somebody, or dropping their
+  role, ends their access at once rather than in a year when the key expires.
+
+  That property lives entirely in one WHERE clause. Nothing about it is visible
+  from the outside: a key that keeps working after its owner is suspended looks
+  exactly like a key that works.
+*/
+{
+  const ids = {
+    admin: "bbbbbbbb-0000-0000-0000-000000000001",
+    other: "bbbbbbbb-0000-0000-0000-000000000002",
+    demoted: "bbbbbbbb-0000-0000-0000-000000000003",
+  };
+  const ALLOWED = ["admin", "super_admin"];
+  const hash = (t) => `hash-of-${t}`;
+
+  await check("fixtures", async () => {
+    await db.query(
+      `INSERT INTO users (id, email, name, role, status, password_hash) VALUES
+        ($1,'key.a@test','Admin A','admin','active','x'),
+        ($2,'key.b@test','Admin B','super_admin','active','x'),
+        ($3,'key.c@test','Admin C','admin','active','x')`,
+      [ids.admin, ids.other, ids.demoted]
+    );
+  });
+
+  const issue = (userId, token, label, days = 365) =>
+    db.query(
+      `INSERT INTO user_tokens (user_id, kind, token_hash, expires_at, payload)
+       VALUES ($1,'mcp',$2, now() + make_interval(days => $3), $4) RETURNING id`,
+      [userId, hash(token), days, label]
+    );
+
+  const verify = (token) =>
+    db.query(
+      `SELECT t.id AS token_id, u.id, u.email, u.role::text AS role
+         FROM user_tokens t
+         JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1
+          AND t.kind = 'mcp'
+          AND t.used_at IS NULL
+          AND t.expires_at > now()
+          AND u.status = 'active'
+          AND u.role::text = ANY($2::text[])
+        LIMIT 1`,
+      [hash(token), ALLOWED]
+    );
+
+  await check("the kind is allowed by the constraint 015 widened", async () => {
+    const { rows } = await issue(ids.admin, "tok-live", "Office laptop");
+    if (!rows[0]?.id) throw new Error("the key was not stored");
+  });
+
+  await check("a live key resolves to the person holding it", async () => {
+    const { rows } = await verify("tok-live");
+    if (rows.length !== 1) throw new Error("a valid key did not resolve");
+    if (rows[0].email !== "key.a@test") throw new Error("it resolved to the wrong person");
+  });
+
+  await check("a key belonging to a suspended account stops immediately", async () => {
+    await db.query(`UPDATE users SET status='suspended' WHERE id=$1`, [ids.admin]);
+    const { rows } = await verify("tok-live");
+    if (rows.length !== 0) throw new Error("a suspended admin's key still worked");
+    await db.query(`UPDATE users SET status='active' WHERE id=$1`, [ids.admin]);
+    const back = await verify("tok-live");
+    if (back.rows.length !== 1) throw new Error("reinstating the account did not restore the key");
+  });
+
+  await check("a key stops when the role no longer allows one", async () => {
+    await issue(ids.demoted, "tok-demote", "Laptop");
+    if ((await verify("tok-demote")).rows.length !== 1) throw new Error("it did not work to begin with");
+    await db.query(`UPDATE users SET role='advisor' WHERE id=$1`, [ids.demoted]);
+    const { rows } = await verify("tok-demote");
+    if (rows.length !== 0) throw new Error("a demoted account's key still worked");
+  });
+
+  await check("an expired key does not resolve", async () => {
+    await issue(ids.other, "tok-old", "Old laptop", -1);
+    if ((await verify("tok-old")).rows.length !== 0) throw new Error("an expired key resolved");
+  });
+
+  const revoke = (id, userId) =>
+    db.query(
+      `UPDATE user_tokens SET used_at = now()
+        WHERE id = $1 AND user_id = $2 AND kind = 'mcp' AND used_at IS NULL
+        RETURNING id`,
+      [id, userId]
+    );
+
+  await check("withdrawing a key ends it, and only its owner can", async () => {
+    const { rows: made } = await issue(ids.other, "tok-revoke", "Laptop");
+    const id = made[0].id;
+
+    /* Scoped in the WHERE clause rather than checked beforehand, so no caller
+       can forget it: another admin naming the id changes nothing. */
+    const wrong = await revoke(id, ids.admin);
+    if (wrong.rows.length !== 0) throw new Error("somebody else withdrew this key");
+    if ((await verify("tok-revoke")).rows.length !== 1) throw new Error("it was ended anyway");
+
+    const right = await revoke(id, ids.other);
+    if (right.rows.length !== 1) throw new Error("the owner could not withdraw it");
+    if ((await verify("tok-revoke")).rows.length !== 0) throw new Error("a withdrawn key still worked");
+
+    const again = await revoke(id, ids.other);
+    if (again.rows.length !== 0) throw new Error("withdrawing twice reported success twice");
+  });
+
+  await check("listing a person's keys never returns the hash", async () => {
+    const { rows } = await db.query(
+      `SELECT id, payload, created_at, expires_at, last_used_at
+         FROM user_tokens
+        WHERE user_id = $1 AND kind = 'mcp' AND used_at IS NULL AND expires_at > now()`,
+      [ids.admin]
+    );
+    if (!rows.length) throw new Error("the owner's live key was not listed");
+    if ("token_hash" in rows[0]) throw new Error("the hash was selected");
+  });
+
+  await check("last_used_at can be stamped, so a stale key can be recognised", async () => {
+    await db.query(
+      `UPDATE user_tokens SET last_used_at = now() WHERE token_hash = $1`,
+      [hash("tok-live")]
+    );
+    const { rows } = await db.query(
+      `SELECT last_used_at FROM user_tokens WHERE token_hash = $1`,
+      [hash("tok-live")]
+    );
+    if (!rows[0].last_used_at) throw new Error("the column did not take a value");
+  });
+}
+
 console.log("\nMCP read queries\n");
 
 /*

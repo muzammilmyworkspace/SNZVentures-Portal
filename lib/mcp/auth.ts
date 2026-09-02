@@ -34,9 +34,22 @@ export function sameSecret(a: string, b: string): boolean {
  */
 export function checkToken(header: string | null, expected: string | undefined): boolean {
   if (!expected) return false;
+  const presented = readBearer(header);
+  if (!presented) return false;
+  return sameSecret(presented, expected);
+}
+
+/**
+ * The token out of an Authorization header, or null.
+ *
+ * Split out because a presented token is now one of two things — a personal
+ * key looked up by hash, or the shared environment one compared byte for byte
+ * — and both paths must read the header identically. Two parsers that drift
+ * apart is how one of them starts accepting what the other refuses.
+ */
+export function readBearer(header: string | null): string | null {
   const match = /^Bearer[ \t]+(\S.*)$/i.exec((header ?? "").trim());
-  if (!match) return false;
-  return sameSecret(match[1].trim(), expected);
+  return match ? match[1].trim() : null;
 }
 
 /**

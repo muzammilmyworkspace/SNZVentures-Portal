@@ -94,9 +94,14 @@ export type AuditAction =
   | "appointment.requested"
   | "admin.action"
   // A read through the MCP endpoint (app/api/mcp). That endpoint can return a
-  // client's passport number and bank details to whoever holds the token, so
-  // every call is logged with the tool and its arguments — never its results.
-  | "mcp.read";
+  // client's passport number and bank details to whoever holds a key, so every
+  // call is logged with the tool and its arguments — never its results.
+  | "mcp.read"
+  // Creating and withdrawing a personal key for it (015). Kept apart from
+  // mcp.read because they answer different questions: one is "who looked at
+  // this client", the other "who could have".
+  | "mcp.token_issued"
+  | "mcp.token_revoked";
 
 export async function audit(entry: {
   action: AuditAction;

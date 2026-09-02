@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { env } from "@/lib/env";
-import { checkToken, originAllowed } from "@/lib/mcp/auth";
+import { readBearer, sameSecret, originAllowed } from "@/lib/mcp/auth";
+import * as mcpTokens from "@/lib/db/repos/mcp-tokens";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { dispatch, ERR, fail, SUPPORTED_PROTOCOLS } from "@/lib/mcp/protocol";
@@ -34,16 +35,53 @@ const json = (body: unknown, status = 200) =>
     headers: { "cache-control": "no-store" },
   });
 
-export async function POST(request: Request) {
-  if (!env("MCP_TOKEN")) {
-    return json({ error: "This endpoint is not configured." }, 503);
+/** Whoever is asking, once their key has been recognised. */
+type Caller = {
+  /** Null only for the shared environment token, which belongs to nobody. */
+  userId: string | null;
+  actorEmail: string;
+  tokenId: string | null;
+};
+
+/**
+ * TWO KINDS OF KEY, AND THE PERSONAL ONE IS TRIED FIRST.
+ *
+ * A personal key is looked up by hash — one indexed probe — and comes back
+ * with the person holding it, so the audit log can name them and a suspended
+ * account stops working the moment it is suspended.
+ *
+ * The shared MCP_TOKEN still works, because a deployment set up that way
+ * should not break underneath somebody. It is checked second, compared in
+ * constant time, and recorded as belonging to nobody — which is precisely its
+ * weakness and the reason the Integrations page asks for it to be removed once
+ * everyone has their own.
+ */
+async function identify(request: Request): Promise<Caller | null> {
+  const presented = readBearer(request.headers.get("authorization"));
+  if (!presented) return null;
+
+  const person = await mcpTokens.verify(presented);
+  if (person) {
+    return { userId: person.userId, actorEmail: person.email, tokenId: person.tokenId };
   }
+
+  const shared = env("MCP_TOKEN");
+  if (shared && sameSecret(presented, shared)) {
+    return { userId: null, actorEmail: "mcp (shared token)", tokenId: null };
+  }
+
+  return null;
+}
+
+export async function POST(request: Request) {
   if (!originAllowed(request.headers.get("origin"), request.url)) {
     return json({ error: "Origin not allowed." }, 403);
   }
-  if (!checkToken(request.headers.get("authorization"), env("MCP_TOKEN"))) {
-    // No detail about which half was wrong. A 401 that distinguishes "no
-    // token" from "wrong token" is a probe telling an attacker they are close.
+
+  const caller = await identify(request);
+  if (!caller) {
+    // No detail about which half was wrong. A 401 that distinguishes "no key"
+    // from "wrong key" is a probe telling an attacker they are close.
     return json({ error: "Unauthorized." }, 401);
   }
 
@@ -76,12 +114,14 @@ export async function POST(request: Request) {
 
   if (toolCalled) {
     /*
-      EVERY READ IS RECORDED, after the response rather than before it.
+      EVERY READ IS RECORDED, WITH A NAME ON IT, after the response rather than
+      before it.
 
       This endpoint can return a student's passport number and their bank
-      details, to whoever holds the token. An access log is the difference
-      between knowing that happened and finding out later — and it is far
-      easier to add now than to reconstruct afterwards.
+      details to whoever holds a key. An access log is the difference between
+      knowing that happened and finding out later, and `actorId` is what makes
+      it answer "who" rather than only "what" — the reason personal keys exist
+      at all.
 
       The tool name and its arguments go in; nothing the query returned does.
       The audit helper strips anything token-shaped as a backstop.
@@ -90,13 +130,19 @@ export async function POST(request: Request) {
     after(
       audit({
         action: "mcp.read",
-        actorEmail: "mcp",
+        actorId: caller.userId,
+        actorEmail: caller.actorEmail,
         entity: "mcp_tool",
         entityId: toolCalled,
         meta: { tool: toolCalled, args: JSON.stringify(args ?? {}).slice(0, 400) },
         ip,
       })
     );
+
+    // Its own statement, and after the answer: "is anybody still using this
+    // key" is the only question that makes an old one safe to withdraw, and a
+    // slow write must never hold up a read.
+    if (caller.tokenId) after(mcpTokens.touch(caller.tokenId));
   }
 
   // A notification carries no id and gets no body — just an acknowledgement.
