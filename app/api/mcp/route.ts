@@ -2,6 +2,9 @@ import { NextResponse, after } from "next/server";
 import { env } from "@/lib/env";
 import { readBearer, sameSecret, originAllowed } from "@/lib/mcp/auth";
 import * as mcpTokens from "@/lib/db/repos/mcp-tokens";
+import * as oauth from "@/lib/db/repos/oauth";
+import { resourceMatches } from "@/lib/oauth/server";
+import { originFrom } from "@/lib/oauth/origin";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { dispatch, ERR, fail, SUPPORTED_PROTOCOLS } from "@/lib/mcp/protocol";
@@ -35,26 +38,33 @@ const json = (body: unknown, status = 200) =>
     headers: { "cache-control": "no-store" },
   });
 
-/** Whoever is asking, once their key has been recognised. */
+/** Whoever is asking, once their credential has been recognised. */
 type Caller = {
   /** Null only for the shared environment token, which belongs to nobody. */
   userId: string | null;
   actorEmail: string;
+  /** A personal key (015). */
   tokenId: string | null;
+  /** An OAuth access token (016), for its own last-used stamp. */
+  oauthTokenId: string | null;
 };
 
 /**
- * TWO KINDS OF KEY, AND THE PERSONAL ONE IS TRIED FIRST.
+ * THREE WAYS TO ARRIVE, AND ALL OF THEM NAME A PERSON EXCEPT THE OLDEST.
  *
- * A personal key is looked up by hash — one indexed probe — and comes back
- * with the person holding it, so the audit log can name them and a suspended
- * account stops working the moment it is suspended.
+ * A PERSONAL KEY (`snzmcp_…`) is what Claude Code sends in a header. Looked up
+ * by hash — one indexed probe — and resolved to its holder.
  *
- * The shared MCP_TOKEN still works, because a deployment set up that way
- * should not break underneath somebody. It is checked second, compared in
+ * AN OAUTH ACCESS TOKEN is what the hosted Claude surfaces carry: claude.ai in
+ * a browser, the desktop app, the phone. They connect from Anthropic's servers
+ * and cannot hold a static header, so they obtain a token through consent
+ * instead. Its audience is checked against this server, so a token minted here
+ * for somebody else's MCP endpoint cannot be spent at this one.
+ *
+ * THE SHARED MCP_TOKEN still works, because a deployment set up that way
+ * should not break underneath somebody. It is checked last, compared in
  * constant time, and recorded as belonging to nobody — which is precisely its
- * weakness and the reason the Integrations page asks for it to be removed once
- * everyone has their own.
+ * weakness and why Integrations asks for it to be removed.
  */
 async function identify(request: Request): Promise<Caller | null> {
   const presented = readBearer(request.headers.get("authorization"));
@@ -62,15 +72,67 @@ async function identify(request: Request): Promise<Caller | null> {
 
   const person = await mcpTokens.verify(presented);
   if (person) {
-    return { userId: person.userId, actorEmail: person.email, tokenId: person.tokenId };
+    return {
+      userId: person.userId,
+      actorEmail: person.email,
+      tokenId: person.tokenId,
+      oauthTokenId: null,
+    };
+  }
+
+  const granted = await oauth.verifyAccessToken(presented);
+  if (granted) {
+    /*
+      AUDIENCE BINDING (RFC 8707). A token records the resource it was granted
+      for; if that is not this server, it is refused. Without this check an
+      access token issued by this portal would be accepted by any MCP server
+      trusting the same issuer — the confused-deputy problem the specification
+      spends a section on.
+    */
+    if (!resourceMatches(granted.resource, `${originFrom(request)}/api/mcp`)) return null;
+    return {
+      userId: granted.userId,
+      actorEmail: granted.email,
+      tokenId: null,
+      oauthTokenId: granted.tokenId,
+    };
   }
 
   const shared = env("MCP_TOKEN");
   if (shared && sameSecret(presented, shared)) {
-    return { userId: null, actorEmail: "mcp (shared token)", tokenId: null };
+    return {
+      userId: null,
+      actorEmail: "mcp (shared token)",
+      tokenId: null,
+      oauthTokenId: null,
+    };
   }
 
   return null;
+}
+
+/**
+ * The 401 that starts an OAuth connection.
+ *
+ * `WWW-Authenticate` carrying `resource_metadata` is how a client that has no
+ * token learns where to get one. Claude only honours it on a 401 — never on a
+ * 200 — and without it the connector has nothing to go on and fails with
+ * "couldn't reach the server", pointing at nothing.
+ */
+function unauthorized(request: Request) {
+  const metadata = `${originFrom(request)}/.well-known/oauth-protected-resource`;
+  return NextResponse.json(
+    // No detail about which half was wrong. A 401 that distinguishes "no key"
+    // from "wrong key" is a probe telling an attacker they are close.
+    { error: "Unauthorized." },
+    {
+      status: 401,
+      headers: {
+        "cache-control": "no-store",
+        "www-authenticate": `Bearer resource_metadata="${metadata}", scope="portal:read"`,
+      },
+    }
+  );
 }
 
 export async function POST(request: Request) {
@@ -79,11 +141,7 @@ export async function POST(request: Request) {
   }
 
   const caller = await identify(request);
-  if (!caller) {
-    // No detail about which half was wrong. A 401 that distinguishes "no key"
-    // from "wrong key" is a probe telling an attacker they are close.
-    return json({ error: "Unauthorized." }, 401);
-  }
+  if (!caller) return unauthorized(request);
 
   const ip = clientIp(request);
   if (!rateLimit(`mcp:${ip}`, { limit: 240, windowMs: 60_000 }).ok) {
@@ -143,6 +201,7 @@ export async function POST(request: Request) {
     // key" is the only question that makes an old one safe to withdraw, and a
     // slow write must never hold up a read.
     if (caller.tokenId) after(mcpTokens.touch(caller.tokenId));
+    if (caller.oauthTokenId) after(oauth.touchToken(caller.oauthTokenId));
   }
 
   // A notification carries no id and gets no body — just an acknowledgement.

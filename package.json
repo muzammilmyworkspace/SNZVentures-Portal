@@ -18,13 +18,14 @@
     "db:bundle": "node scripts/sql-bundle.mjs",
     "db:gen": "node scripts/gen-schema-module.mjs",
     "verify:migrator": "node --experimental-strip-types scripts/verify-migrator.mjs",
-    "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:application && npm run verify:impersonation && npm run verify:zip && npm run verify:secretbox && npm run verify:migrator && npm run verify:mcp && npm run db:verify",
+    "verify": "npm run db:gen -- --check && npm run verify:gate && npm run verify:fields && npm run verify:application && npm run verify:impersonation && npm run verify:zip && npm run verify:secretbox && npm run verify:migrator && npm run verify:mcp && npm run verify:oauth && npm run db:verify",
     "verify:application": "node --experimental-strip-types scripts/verify-application.mjs",
     "db:deploy": "node scripts/db-deploy.mjs",
     "verify:secretbox": "node --experimental-strip-types scripts/verify-secretbox.mjs",
     "verify:impersonation": "node --experimental-strip-types scripts/verify-impersonation.mjs",
     "verify:zip": "node --experimental-strip-types scripts/verify-zip.mjs",
-    "verify:mcp": "node --experimental-strip-types scripts/verify-mcp.mjs"
+    "verify:mcp": "node --experimental-strip-types scripts/verify-mcp.mjs",
+    "verify:oauth": "node --experimental-strip-types scripts/verify-oauth.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

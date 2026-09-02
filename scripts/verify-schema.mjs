@@ -332,6 +332,184 @@ await check("document review update", async () => {
   );
 });
 
+console.log("\nOAuth (016)\n");
+
+/*
+  THE STATEFUL HALF OF THE OAUTH FLOW.
+
+  verify:oauth covers the decisions — PKCE, redirect matching, audience. What
+  it cannot cover is what the DATABASE guarantees, and those are the ones that
+  only fail under conditions nobody reproduces by hand:
+
+    • a code redeemed twice at the same instant,
+    • a refresh chain revoked from the middle rather than the end,
+    • an access token outliving the account that granted it.
+
+  Each is a working flow right up until it is exploited.
+*/
+{
+  const ids = {
+    admin: "cccccccc-0000-0000-0000-000000000001",
+    gone: "cccccccc-0000-0000-0000-000000000002",
+  };
+  const CLIENT = "snzc_test_client";
+  const ALLOWED = ["admin", "super_admin"];
+  const hash = (t) => `h:${t}`;
+
+  await check("fixtures", async () => {
+    await db.query(
+      `INSERT INTO users (id, email, name, role, status, password_hash) VALUES
+        ($1,'oauth.a@test','OAuth Admin','super_admin','active','x'),
+        ($2,'oauth.b@test','Leaver','admin','active','x')`,
+      [ids.admin, ids.gone]
+    );
+    await db.query(
+      `INSERT INTO oauth_clients (id, name, redirect_uris)
+       VALUES ($1, 'Claude', ARRAY['https://claude.ai/api/mcp/auth_callback'])`,
+      [CLIENT]
+    );
+  });
+
+  const putCode = (code, userId, minutes = 5) =>
+    db.query(
+      `INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge,
+                                resource, scope, expires_at)
+       VALUES ($1,$2,$3,'https://claude.ai/api/mcp/auth_callback','chal',
+               'https://portal.test/api/mcp','portal:read offline_access',
+               now() + make_interval(mins => $4))`,
+      [hash(code), CLIENT, userId, minutes]
+    );
+
+  const consume = (code) =>
+    db.query(
+      `UPDATE oauth_codes SET used_at = now()
+        WHERE code_hash = $1 AND used_at IS NULL AND expires_at > now()
+        RETURNING client_id, user_id, code_challenge, resource, scope`,
+      [hash(code)]
+    );
+
+  await check("a code can be redeemed exactly once, even twice at once", async () => {
+    await putCode("c1", ids.admin);
+
+    /* Both fired before either is awaited. A read-then-write would let both
+       through and mint two access tokens from one approval. */
+    const [a, b] = await Promise.all([consume("c1"), consume("c1")]);
+    const winners = [a, b].filter((r) => r.rows.length === 1).length;
+    if (winners !== 1) throw new Error(`${winners} redemptions succeeded, expected exactly 1`);
+  });
+
+  await check("an expired code is not redeemable", async () => {
+    await putCode("c2", ids.admin, -1);
+    if ((await consume("c2")).rows.length !== 0) throw new Error("an expired code was redeemed");
+  });
+
+  const putToken = (token, kind, userId, parentId = null, hours = 1) =>
+    db.query(
+      `INSERT INTO oauth_tokens (token_hash, kind, client_id, user_id, resource, scope,
+                                 expires_at, parent_id)
+       VALUES ($1,$2,$3,$4,'https://portal.test/api/mcp','portal:read',
+               now() + make_interval(hours => $5), $6) RETURNING id`,
+      [hash(token), kind, CLIENT, userId, hours, parentId]
+    );
+
+  const verifyAccess = (token) =>
+    db.query(
+      `SELECT t.id, u.email FROM oauth_tokens t JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1 AND t.kind = 'access' AND t.revoked_at IS NULL
+          AND t.expires_at > now() AND u.status = 'active'
+          AND u.role::text = ANY($2::text[]) LIMIT 1`,
+      [hash(token), ALLOWED]
+    );
+
+  await check("an access token resolves, and stops when the account does", async () => {
+    await putToken("a1", "access", ids.gone);
+    if ((await verifyAccess("a1")).rows.length !== 1) throw new Error("a live token did not resolve");
+
+    await db.query(`UPDATE users SET status='suspended' WHERE id=$1`, [ids.gone]);
+    if ((await verifyAccess("a1")).rows.length !== 0) {
+      throw new Error("a suspended admin's access token still worked");
+    }
+    await db.query(`UPDATE users SET status='active', role='advisor' WHERE id=$1`, [ids.gone]);
+    if ((await verifyAccess("a1")).rows.length !== 0) {
+      throw new Error("a demoted admin's access token still worked");
+    }
+  });
+
+  const revokeChain = (id) =>
+    db.query(
+      `WITH RECURSIVE chain AS (
+         SELECT id, parent_id FROM oauth_tokens WHERE id = $1
+         UNION
+         SELECT t.id, t.parent_id FROM oauth_tokens t
+           JOIN chain c ON t.parent_id = c.id OR t.id = c.parent_id
+       )
+       UPDATE oauth_tokens SET revoked_at = now()
+        WHERE id IN (SELECT id FROM chain) AND revoked_at IS NULL
+        RETURNING id`,
+      [id]
+    );
+
+  await check("a refresh chain is revoked from any point in it, both ways", async () => {
+    /*
+      Three rotations: r1 -> r2 -> r3. An attacker who stole r1 is at the TOP
+      of the chain and the honest client holds r3 at the bottom. Revoking only
+      downwards from the presented token would leave one branch alive, which
+      is the whole point of detecting reuse.
+    */
+    const { rows: t1 } = await putToken("r1", "refresh", ids.admin, null, 24);
+    const { rows: t2 } = await putToken("r2", "refresh", ids.admin, t1[0].id, 24);
+    const { rows: t3 } = await putToken("r3", "refresh", ids.admin, t2[0].id, 24);
+
+    // Presenting the OLDEST — what a thief holds — must end all three.
+    const { rows: killed } = await revokeChain(t1[0].id);
+    if (killed.length !== 3) throw new Error(`${killed.length} tokens revoked, expected 3`);
+
+    const { rows: live } = await db.query(
+      `SELECT count(*)::int AS n FROM oauth_tokens
+        WHERE id = ANY($1::uuid[]) AND revoked_at IS NULL`,
+      [[t1[0].id, t2[0].id, t3[0].id]]
+    );
+    if (live[0].n !== 0) throw new Error(`${live[0].n} tokens survived`);
+  });
+
+  await check("revoking from the newest end reaches the oldest too", async () => {
+    const { rows: t1 } = await putToken("s1", "refresh", ids.admin, null, 24);
+    const { rows: t2 } = await putToken("s2", "refresh", ids.admin, t1[0].id, 24);
+    const { rows: t3 } = await putToken("s3", "refresh", ids.admin, t2[0].id, 24);
+
+    const { rows: killed } = await revokeChain(t3[0].id);
+    if (killed.length !== 3) throw new Error(`${killed.length} revoked walking upward, expected 3`);
+  });
+
+  await check("withdrawing a connection ends every token it holds", async () => {
+    await putToken("g1", "access", ids.admin);
+    await putToken("g2", "refresh", ids.admin, null, 24);
+    const { rows } = await db.query(
+      `UPDATE oauth_tokens SET revoked_at = now()
+        WHERE user_id = $1 AND client_id = $2 AND revoked_at IS NULL RETURNING id`,
+      [ids.admin, CLIENT]
+    );
+    if (rows.length < 2) throw new Error(`only ${rows.length} tokens withdrawn`);
+
+    const { rows: left } = await db.query(
+      `SELECT count(*)::int AS n FROM oauth_tokens
+        WHERE user_id = $1 AND client_id = $2 AND revoked_at IS NULL`,
+      [ids.admin, CLIENT]
+    );
+    if (left[0].n !== 0) throw new Error("something survived the withdrawal");
+  });
+
+  await check("a client's tokens go when the client does", async () => {
+    await putToken("d1", "access", ids.admin);
+    await db.query(`DELETE FROM oauth_clients WHERE id = $1`, [CLIENT]);
+    const { rows } = await db.query(
+      `SELECT count(*)::int AS n FROM oauth_tokens WHERE client_id = $1`,
+      [CLIENT]
+    );
+    if (rows[0].n !== 0) throw new Error("tokens outlived the client they belonged to");
+  });
+}
+
 console.log("\nMCP personal keys\n");
 
 /*

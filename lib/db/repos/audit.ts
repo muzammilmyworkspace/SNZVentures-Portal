@@ -101,7 +101,17 @@ export type AuditAction =
   // mcp.read because they answer different questions: one is "who looked at
   // this client", the other "who could have".
   | "mcp.token_issued"
-  | "mcp.token_revoked";
+  | "mcp.token_revoked"
+  // OAuth (016), for the hosted Claude surfaces, which cannot carry a static
+  // key. `consent_granted` is the one to read when asking who let something
+  // see client files; `refresh_reused` means a refresh token was presented
+  // after it had already been rotated away, which is theft rather than a retry.
+  | "oauth.client_registered"
+  | "oauth.consent_granted"
+  | "oauth.consent_denied"
+  | "oauth.token_issued"
+  | "oauth.refresh_reused"
+  | "oauth.grant_revoked";
 
 export async function audit(entry: {
   action: AuditAction;

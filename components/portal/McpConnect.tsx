@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { McpToken } from "@/lib/db/repos/mcp-tokens";
+import type { Grant } from "@/lib/db/repos/oauth";
 
 /**
  * CONNECTING YOUR OWN CLAUDE TO THE PORTAL.
@@ -21,10 +22,18 @@ import type { McpToken } from "@/lib/db/repos/mcp-tokens";
  */
 export function McpConnect({
   tokens,
+  grants,
   origin,
   sharedTokenSet,
 }: {
   tokens: McpToken[];
+  /**
+   * Connections approved through OAuth — claude.ai, the desktop app, the
+   * phone. Listed beside the keys rather than on a page of their own: the
+   * question "what can read our clients' files, and how do I stop it" should
+   * have exactly one place to look.
+   */
+  grants: Grant[];
   /** This deployment's own address, so the command is correct wherever it runs. */
   origin: string;
   /** Whether the old shared MCP_TOKEN is still set on this deployment. */
@@ -68,6 +77,16 @@ export function McpConnect({
     if (!confirm(`Withdraw "${name}"? Any Claude using it stops working immediately.`)) return;
     setBusy(true);
     await fetch(`/api/admin/mcp?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    setBusy(false);
+    router.refresh();
+  }
+
+  async function disconnect(clientId: string, name: string) {
+    if (!confirm(`Disconnect "${name}"? It stops being able to read anything immediately.`)) return;
+    setBusy(true);
+    await fetch(`/api/admin/oauth?clientId=${encodeURIComponent(clientId)}`, {
+      method: "DELETE",
+    }).catch(() => {});
     setBusy(false);
     router.refresh();
   }
@@ -122,6 +141,40 @@ export function McpConnect({
         <p className="rounded-[var(--radius-sm)] border border-red-500/40 bg-red-500/10 p-3 text-[0.84rem] text-danger">
           {error}
         </p>
+      )}
+
+      {/*
+        Approved through the browser rather than pasted into a terminal. Shown
+        first because it is the one somebody is most likely to have forgotten
+        about: a key is on a laptop you can see, a grant lives on a service.
+      */}
+      {grants.length > 0 && (
+        <div>
+          <p className="label mb-2 text-faint">Connected through claude.ai</p>
+          <ul className="divide-y divide-line border-y border-line">
+            {grants.map((g) => (
+              <li key={g.clientId} className="flex flex-wrap items-center gap-3 py-3">
+                <div className="min-w-0 grow">
+                  <p className="truncate text-[0.88rem] font-semibold text-fg">{g.clientName}</p>
+                  <p className="text-[0.78rem] text-faint">
+                    Approved {new Date(g.grantedAt).toLocaleDateString()} ·{" "}
+                    {g.lastUsedAt
+                      ? `last used ${new Date(g.lastUsedAt).toLocaleDateString()}`
+                      : "never used"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => disconnect(g.clientId, g.clientName)}
+                  className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-red-500/40 px-4 text-danger transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                >
+                  Disconnect
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {tokens.length > 0 && (

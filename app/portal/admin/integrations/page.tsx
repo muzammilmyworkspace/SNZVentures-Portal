@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { driveConfigured, driveRedirectUri, ROOT_FOLDER_NAME } from "@/lib/integrations/drive";
 import { envSet } from "@/lib/env";
 import * as mcpTokens from "@/lib/db/repos/mcp-tokens";
+import * as oauthRepo from "@/lib/db/repos/oauth";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { DriveConnect } from "@/components/portal/DriveConnect";
 import { McpConnect } from "@/components/portal/McpConnect";
@@ -45,6 +46,7 @@ export default async function IntegrationsPage({
   const { drive } = await searchParams;
   const status = await connectionStatus();
   const keys = await mcpTokens.list(session.userId);
+  const grants = await oauthRepo.grantsFor(session.userId);
 
   /*
     Shown from the same origin the flow will actually use, so the URI on screen
@@ -110,9 +112,62 @@ export default async function IntegrationsPage({
           </p>
           <McpConnect
             tokens={keys}
+            grants={grants}
             origin={host ? `https://${host}` : ""}
             sharedTokenSet={envSet("MCP_TOKEN")}
           />
+        </Panel>
+
+        {/*
+          TWO WAYS IN, BECAUSE THE TWO CLIENTS DIFFER IN WHAT THEY CAN CARRY.
+
+          Claude Code runs on somebody's machine and can send a header, so a
+          key is enough. The hosted surfaces connect from Anthropic's servers
+          and will only carry a credential they obtained through consent — so
+          for those the portal has to be an OAuth server, and the person just
+          pastes a URL and presses Allow.
+        */}
+        <Panel title="Connecting from claude.ai, the app or your phone">
+          <p className="mb-4 text-[0.86rem] leading-relaxed text-muted">
+            The key above is for Claude Code on your computer. Everywhere else, connect by URL
+            instead — no key to copy, and nothing to keep anywhere.
+          </p>
+          <ol className="space-y-3 text-[0.86rem] leading-relaxed text-muted">
+            {[
+              <>
+                In Claude, open <span className="text-fg">Settings &rarr; Connectors</span> and
+                press <span className="text-fg">Add custom connector</span>.
+              </>,
+              <>
+                Paste this address:{" "}
+                <code className="break-all text-fg">
+                  {host ? `https://${host}` : ""}/api/mcp
+                </code>
+              </>,
+              <>
+                Press Connect. You will be sent here to sign in, and asked whether to allow it —
+                approve as yourself, and it will read as you from then on.
+              </>,
+              <>
+                Leave the OAuth Client ID and Secret fields empty. This portal registers Claude
+                automatically, so there is nothing to fill in.
+              </>,
+            ].map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line font-mono text-[0.62rem] text-faint"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-[0.82rem] leading-relaxed text-faint">
+            Whatever you approve appears above as a connection, and disconnecting there ends it at
+            once — it does not wait for anything to expire.
+          </p>
         </Panel>
 
         <Panel title="What Claude can and cannot do">

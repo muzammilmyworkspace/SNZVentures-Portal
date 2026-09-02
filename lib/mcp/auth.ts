@@ -53,17 +53,35 @@ export function readBearer(header: string | null): string | null {
 }
 
 /**
+ * Origins that are a legitimate client of this endpoint rather than a page
+ * trying to reach it from somebody's tab.
+ *
+ * The hosted Claude surfaces connect from Anthropic's servers and normally
+ * send no Origin at all. This is here so that if one ever does, the connector
+ * does not fail with a 403 — a refusal for a reason nobody would think to
+ * look for, on the one path that cannot simply be retried differently.
+ */
+const KNOWN_CLIENTS = new Set(["https://claude.ai", "https://claude.com"]);
+
+/**
  * The transport spec requires servers to validate `Origin` against DNS
  * rebinding.
  *
- * A real MCP client sends none — it is a program, not a browser. So: no
- * Origin is fine, our own host is fine, and anything else is a web page trying
- * to reach this endpoint from somebody's tab.
+ * A program sends none, so: no Origin is fine, our own is fine, a known Claude
+ * surface is fine, and anything else is refused.
+ *
+ * This check is a formality on THIS endpoint and worth knowing as one — a
+ * browser page cannot reach it usefully anyway, because it would need the
+ * bearer credential to get past 401 and no CORS headers are returned for it to
+ * read the answer. The rebinding attack the rule exists for is against servers
+ * bound to localhost, which this is not.
  */
 export function originAllowed(origin: string | null, selfUrl: string): boolean {
   if (!origin) return true;
   try {
-    return new URL(origin).host === new URL(selfUrl).host;
+    const asked = new URL(origin);
+    if (KNOWN_CLIENTS.has(`${asked.protocol}//${asked.host}`)) return true;
+    return asked.host === new URL(selfUrl).host;
   } catch {
     return false;
   }
