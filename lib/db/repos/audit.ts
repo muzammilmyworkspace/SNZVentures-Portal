@@ -92,7 +92,11 @@ export type AuditAction =
   | "consent.accepted"
   | "task.status_changed"
   | "appointment.requested"
-  | "admin.action";
+  | "admin.action"
+  // A read through the MCP endpoint (app/api/mcp). That endpoint can return a
+  // client's passport number and bank details to whoever holds the token, so
+  // every call is logged with the tool and its arguments — never its results.
+  | "mcp.read";
 
 export async function audit(entry: {
   action: AuditAction;

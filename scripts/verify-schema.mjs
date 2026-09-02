@@ -332,6 +332,163 @@ await check("document review update", async () => {
   );
 });
 
+console.log("\nMCP read queries\n");
+
+/*
+  THE ONE FAILURE MODE THAT LOOKS LIKE AN EMPTY PORTAL.
+
+  Both queries run inside safeQuery, which logs and returns the fallback. A
+  wrong column name therefore does not raise anything a person would see — it
+  returns { count: 0, clients: [] }, and Claude reports, with complete
+  confidence, that there are no students. That is worse than an error, because
+  an error gets fixed and a confident wrong answer gets acted on.
+
+  This already caught one: staff_assignments has created_at, not assigned_at.
+
+  The SQL is restated here with positional parameters rather than imported —
+  postgres.js tagged templates cannot be run against PGlite. It is the column
+  names, the casts and the shape that are being checked, which is where the
+  mistakes are.
+*/
+{
+  const ids = {
+    student: "aaaaaaaa-0000-0000-0000-000000000001",
+    other: "aaaaaaaa-0000-0000-0000-000000000002",
+    advisor: "aaaaaaaa-0000-0000-0000-000000000003",
+  };
+
+  await check("fixtures", async () => {
+    await db.query(
+      `INSERT INTO users (id, email, name, role, status, password_hash) VALUES
+        ($1,'mcp.a@test','Ayesha Khan','student','active','x'),
+        ($2,'mcp.b@test','Bilal Ahmed','student','suspended','x'),
+        ($3,'mcp.adv@test','Advisor One','advisor','active','x')`,
+      [ids.student, ids.other, ids.advisor]
+    );
+    await db.query(
+      `INSERT INTO staff_assignments (client_id, advisor_id) VALUES ($1, $2)`,
+      [ids.student, ids.advisor]
+    );
+    await db.query(
+      `INSERT INTO intake_forms (user_id, pathway, status, data, submitted_at)
+       VALUES ($1,'study','submitted',$2::jsonb, now()),
+              ($3,'study','draft',$4::jsonb, NULL)`,
+      [
+        ids.student,
+        JSON.stringify({
+          passportNo: "AB1234567",
+          dob: "2001-04-11",
+          edu: [{ eduSchool: "Govt College" }, { eduSchool: "Punjab University" }],
+        }),
+        ids.other,
+        JSON.stringify({ passportNo: "ZZ9999999" }),
+      ]
+    );
+    await db.query(
+      `INSERT INTO documents (owner_id, name, category, status)
+       VALUES ($1,'Passport.pdf','passport','pending_review'),
+              ($1,'Transcript.pdf','education','approved')`,
+      [ids.student]
+    );
+  });
+
+  const CLIENT_ROLES = ["student", "professional", "business"];
+
+  const findClients = (q, status, awaiting, limit) =>
+    db.query(
+      `SELECT u.id, u.name, u.email, u.role::text AS role, u.status::text AS status,
+              u.created_at, u.last_login_at,
+              (SELECT i.status::text FROM intake_forms i
+                WHERE i.user_id = u.id ORDER BY i.updated_at DESC LIMIT 1) AS application_status,
+              (SELECT i.submitted_at FROM intake_forms i
+                WHERE i.user_id = u.id ORDER BY i.updated_at DESC LIMIT 1) AS application_submitted_at,
+              (SELECT f.status::text FROM fee_submissions f
+                WHERE f.user_id = u.id AND f.status <> 'withdrawn'
+                ORDER BY f.created_at DESC LIMIT 1) AS fee_status,
+              (SELECT count(*)::int FROM documents d WHERE d.owner_id = u.id) AS documents,
+              (SELECT count(*)::int FROM documents d
+                WHERE d.owner_id = u.id AND d.status IN ('uploaded','pending_review'))
+                AS documents_awaiting_review,
+              (SELECT a.name FROM staff_assignments sa
+                 JOIN users a ON a.id = sa.advisor_id
+                WHERE sa.client_id = u.id ORDER BY sa.created_at DESC LIMIT 1) AS advisor
+         FROM users u
+        WHERE u.role::text = ANY($1::text[])
+          AND ($2::text IS NULL OR u.name ILIKE $2 OR u.email ILIKE $2)
+          AND ($3::text IS NULL OR u.status::text = $3)
+          AND ($4 = false OR EXISTS (
+                SELECT 1 FROM documents d
+                 WHERE d.owner_id = u.id AND d.status IN ('uploaded','pending_review')))
+        ORDER BY u.created_at DESC
+        LIMIT $5`,
+      [CLIENT_ROLES, q, status, awaiting, limit]
+    );
+
+  await check("find_clients runs and reports where each client stands", async () => {
+    // Scoped to this section's own fixtures. Earlier sections insert users of
+    // their own, and a global count would make this fail whenever one of them
+    // adds a row — a test that breaks for reasons unrelated to what it checks
+    // is one people learn to ignore.
+    const { rows } = await findClients("%mcp.%", null, false, 50);
+    if (rows.length !== 2) throw new Error(`${rows.length} clients, expected 2 (the advisor is not one)`);
+    const ayesha = rows.find((r) => r.name === "Ayesha Khan");
+    if (!ayesha) throw new Error("the student was not returned");
+    if (ayesha.application_status !== "submitted") throw new Error("application status was not read");
+    if (Number(ayesha.documents) !== 2) throw new Error("documents were not counted");
+    if (Number(ayesha.documents_awaiting_review) !== 1) {
+      throw new Error(`${ayesha.documents_awaiting_review} awaiting review, expected 1`);
+    }
+    // The column that was wrong. An advisor read through the wrong name
+    // returns nothing AND takes the whole query down with it.
+    if (ayesha.advisor !== "Advisor One") throw new Error("the assigned advisor was not found");
+    if (ayesha.fee_status !== null) throw new Error("a fee status appeared from nowhere");
+  });
+
+  await check("its filters actually filter", async () => {
+    const byName = await findClients("%ayesha%", null, false, 50);
+    if (byName.rows.length !== 1) throw new Error("the name filter matched " + byName.rows.length);
+
+    const suspended = await findClients("%mcp.%", "suspended", false, 50);
+    if (suspended.rows.length !== 1 || suspended.rows[0].name !== "Bilal Ahmed") {
+      throw new Error("the status filter is wrong");
+    }
+
+    const awaiting = await findClients("%mcp.%", null, true, 50);
+    if (awaiting.rows.length !== 1 || awaiting.rows[0].name !== "Ayesha Khan") {
+      throw new Error("the awaiting-review filter is wrong");
+    }
+  });
+
+  const exportFields = (q, submittedOnly, limit) =>
+    db.query(
+      `SELECT u.id, u.name, u.email, i.status::text AS status, i.submitted_at, i.data
+         FROM users u
+         JOIN intake_forms i ON i.user_id = u.id
+        WHERE u.role::text = ANY($1::text[])
+          AND ($2::text IS NULL OR u.name ILIKE $2 OR u.email ILIKE $2)
+          AND ($3 = false OR i.submitted_at IS NOT NULL)
+        ORDER BY u.name ASC
+        LIMIT $4`,
+      [CLIENT_ROLES, q, submittedOnly, limit]
+    );
+
+  await check("export_application_fields returns the stored answers", async () => {
+    const { rows } = await exportFields(null, false, 100);
+    if (rows.length !== 2) throw new Error(`${rows.length} rows, expected 2`);
+    const ayesha = rows.find((r) => r.name === "Ayesha Khan");
+    if (ayesha.data.passportNo !== "AB1234567") throw new Error("the answers did not come back");
+    if (!Array.isArray(ayesha.data.edu) || ayesha.data.edu.length !== 2) {
+      throw new Error("repeated answers did not survive the round trip");
+    }
+  });
+
+  await check("submittedOnly excludes a draft nobody has sent", async () => {
+    const { rows } = await exportFields(null, true, 100);
+    if (rows.length !== 1) throw new Error(`${rows.length} rows, expected only the submitted one`);
+    if (rows[0].name !== "Ayesha Khan") throw new Error("the wrong row survived");
+  });
+}
+
 console.log("\nOperational layer (003)\n");
 
 await check("case reference is auto-assigned and unique", async () => {
