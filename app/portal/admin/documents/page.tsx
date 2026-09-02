@@ -36,17 +36,23 @@ export default async function AdminDocumentsPage() {
           </p>
         </div>
       )}
-      <Panel padded={documents.length === 0}>
-        {documents.length === 0 ? (
+      {/*
+        The list is a stack of per-client sections now, each with its own
+        border. Wrapping that in a Panel would draw a box around a column of
+        boxes, so the Panel is kept for the empty state only — which does still
+        want one.
+      */}
+      {documents.length === 0 ? (
+        <Panel>
           <EmptyState
             icon="check"
             title="Nothing awaiting review"
             body="Documents clients upload appear here for approval."
           />
-        ) : (
-          <DocumentReview documents={documents} />
-        )}
-      </Panel>
+        </Panel>
+      ) : (
+        <DocumentReview documents={documents} />
+      )}
     </>
   );
 }
