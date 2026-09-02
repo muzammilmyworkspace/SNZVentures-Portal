@@ -41,6 +41,9 @@ export type AuditAction =
   | "document.reviewed"
   | "document.deleted"
   | "document.downloaded"
+  // Taking a client's whole identity file at once is a different act from
+  // opening one page of it, and is recorded as its own event.
+  | "document.bulk_downloaded"
   | "staff.assigned"
   | "staff.unassigned"
   // Schema applied from the admin area (009). A migration changes the shape

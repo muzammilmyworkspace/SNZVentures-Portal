@@ -345,7 +345,15 @@ export async function putObject(
 export async function getSignedUrl(
   key: string,
   expiresSeconds = 120,
-  provider?: Transport | null
+  provider?: Transport | null,
+  /**
+   * Ask the store to send Content-Disposition: attachment, under this name.
+   *
+   * Without it a PDF opens in the browser's viewer, and saving it means a
+   * second click and a filename the browser invents. Staff were doing that
+   * once per document.
+   */
+  downloadAs?: string
 ): Promise<string> {
   const transport = provider && provider !== "none" ? provider : storageTransport();
 
@@ -363,7 +371,10 @@ export async function getSignedUrl(
     const data = (await res.json()) as { signedURL?: string };
     if (!data.signedURL) throw new Error("Supabase returned no signed URL.");
     // The API returns a path relative to /storage/v1.
-    return `${supabaseBase()}/storage/v1${data.signedURL}`;
+    const signed = `${supabaseBase()}/storage/v1${data.signedURL}`;
+    return downloadAs
+      ? `${signed}${signed.includes("?") ? "&" : "?"}download=${encodeURIComponent(downloadAs)}`
+      : signed;
   }
 
   if (transport === "s3") return presignS3Get(key, expiresSeconds);

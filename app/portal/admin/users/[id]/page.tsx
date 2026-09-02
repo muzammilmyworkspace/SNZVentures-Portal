@@ -192,6 +192,24 @@ export default async function AdminUserPage({
           {/* Sending a file out of the portal is a deliberate act by a named
               person, so the control lives on the file itself rather than in a
               bulk tool somewhere else. */}
+          {documents.length > 0 && (
+            <Panel title="Documents">
+              <p className="text-[0.86rem] leading-relaxed text-muted">
+                {documents.length} file{documents.length === 1 ? "" : "s"} on this file.
+              </p>
+              {/*
+                One archive rather than one click per document. Named after the
+                client, with the documents named as they were uploaded.
+              */}
+              <a
+                href={"/api/admin/documents/zip?userId=" + id}
+                className="label mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+              >
+                Download all as .zip
+              </a>
+            </Panel>
+          )}
+
           {isAdmin(role) && drive.connected && (
             <Panel title="Send to Google Drive">
               <DriveExport userId={id} existing={drive.export} />

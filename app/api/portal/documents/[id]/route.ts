@@ -47,7 +47,18 @@ export async function GET(
   }
 
   try {
-    const url = await getSignedUrl(doc.storageKey, 120, doc.storageProvider as never);
+    /*
+      ?download=1 asks the store to send it as an attachment rather than
+      letting the browser display it. Same authorisation, same short-lived
+      link — the only difference is what the browser does on arrival.
+    */
+    const wantsDownload = new URL(request.url).searchParams.get("download") === "1";
+    const url = await getSignedUrl(
+      doc.storageKey,
+      120,
+      doc.storageProvider as never,
+      wantsDownload ? doc.name : undefined
+    );
     await audit({
       action: "document.downloaded",
       actorId: session.userId,

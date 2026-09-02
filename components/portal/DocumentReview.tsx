@@ -10,6 +10,8 @@ type Doc = {
   name: string;
   category: string;
   status: string;
+  /** Needed for the whole-file download; the row already knows the name. */
+  ownerId: string;
   ownerName?: string;
   sizeBytes: number | null;
   updatedAt: string;
@@ -77,9 +79,38 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
                   >
                     {d.name}
                   </a>
-                  <span className="block text-[0.75rem] text-faint">{d.category}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[0.75rem] text-faint">
+                    {d.category}
+                    <span aria-hidden>·</span>
+                    {/*
+                      OPENING AND SAVING ARE DIFFERENT JOBS. The name opens the
+                      document in the browser's viewer, which is what you want
+                      when checking one. This asks the store to send it as an
+                      attachment instead — staff were opening each one and
+                      saving it by hand, eleven times for one client.
+                    */}
+                    <a
+                      href={`/api/portal/documents/${d.id}?download=1`}
+                      className="text-accent underline underline-offset-4"
+                    >
+                      Download
+                    </a>
+                  </span>
                 </td>
-                <td className="px-5 py-3 text-[0.85rem] text-muted">{d.ownerName ?? "—"}</td>
+                <td className="px-5 py-3 text-[0.85rem] text-muted">
+                  {d.ownerName ?? "—"}
+                  {/*
+                    The real complaint was not that one download was hard — it
+                    was doing it eleven times. This takes everything on that
+                    client's file in a single archive, named after them.
+                  */}
+                  <a
+                    href={`/api/admin/documents/zip?userId=${d.ownerId}`}
+                    className="mt-0.5 block text-[0.75rem] text-accent underline underline-offset-4"
+                  >
+                    All their files (.zip)
+                  </a>
+                </td>
                 <td className="px-5 py-3 text-[0.85rem] text-faint">{size(d.sizeBytes)}</td>
                 <td className="px-5 py-3">
                   <StatusPill status={d.status} label={d.status.replace(/_/g, " ")} />
