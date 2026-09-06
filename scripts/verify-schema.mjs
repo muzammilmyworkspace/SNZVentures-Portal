@@ -332,6 +332,179 @@ await check("document review update", async () => {
   );
 });
 
+console.log("\nFinance (017)\n");
+
+/*
+  THE PROMISES 017 MAKES, TESTED AS PROMISES.
+
+  Two of them are triggers, and a trigger that does not fire is indistinguish-
+  able from one that does until the day it matters:
+
+    • entries are append-only — a mistake is reversed, never edited, because
+      editing the row destroys the evidence the mistake happened;
+    • a closed month does not move — three people have been told what they
+      earned, and a late entry would contradict a statement already sent.
+
+  The third is an index: one verified payment can only ever be booked as income
+  once. That was the spreadsheet's commonest error — entered when the receipt
+  arrived and again when the bank showed it.
+*/
+{
+  const ids = {
+    admin: "dddddddd-0000-0000-0000-000000000001",
+    client: "dddddddd-0000-0000-0000-000000000002",
+  };
+  let openPeriod, closedPeriod, feeId;
+
+  await check("fixtures", async () => {
+    await db.query(
+      `INSERT INTO users (id, email, name, role, status, password_hash) VALUES
+        ($1,'fin.a@test','Finance Admin','super_admin','active','x'),
+        ($2,'fin.c@test','Paying Student','student','active','x')`,
+      [ids.admin, ids.client]
+    );
+    const { rows: o } = await db.query(
+      `INSERT INTO finance_periods (year, month) VALUES (2026, 9) RETURNING id`
+    );
+    openPeriod = o[0].id;
+    const { rows: c } = await db.query(
+      `INSERT INTO finance_periods (year, month, status, closed_at)
+       VALUES (2026, 8, 'closed', now()) RETURNING id`
+    );
+    closedPeriod = c[0].id;
+    const { rows: f } = await db.query(
+      `INSERT INTO fee_submissions
+         (user_id, university, fee_type, currency, amount, method, signed_name, consent_version)
+       VALUES ($1,'TU Berlin','tuition','EUR',4000.00,'bank','Paying Student','v1')
+       RETURNING id`,
+      [ids.client]
+    );
+    feeId = f[0].id;
+  });
+
+  const addEntry = (periodId, kind, cents, extra = {}) =>
+    db.query(
+      `INSERT INTO finance_entries
+         (period_id, kind, category, amount_cents, occurred_on, client_id,
+          fee_submission_id, created_by)
+       VALUES ($1,$2,$3,$4,CURRENT_DATE,$5,$6,$7) RETURNING id`,
+      [periodId, kind, extra.category ?? null, cents, extra.clientId ?? null,
+       extra.feeId ?? null, ids.admin]
+    );
+
+  await check("an entry lands in an open period", async () => {
+    const { rows } = await addEntry(openPeriod, "income", 400000, { clientId: ids.client });
+    if (!rows[0]?.id) throw new Error("the entry was not stored");
+  });
+
+  await check("money must be positive, with the kind deciding direction", async () => {
+    for (const bad of [0, -100]) {
+      let threw = false;
+      try { await addEntry(openPeriod, "expense", bad); } catch { threw = true; }
+      if (!threw) throw new Error(`an amount of ${bad} was accepted`);
+    }
+  });
+
+  await check("an entry can never be edited — only reversed", async () => {
+    const { rows } = await addEntry(openPeriod, "expense", 25000, { category: "marketing" });
+    const id = rows[0].id;
+
+    let updateBlocked = false;
+    try {
+      await db.query(`UPDATE finance_entries SET amount_cents = 1 WHERE id = $1`, [id]);
+    } catch { updateBlocked = true; }
+    if (!updateBlocked) throw new Error("an entry was edited in place");
+
+    let deleteBlocked = false;
+    try {
+      await db.query(`DELETE FROM finance_entries WHERE id = $1`, [id]);
+    } catch { deleteBlocked = true; }
+    if (!deleteBlocked) throw new Error("an entry was deleted");
+
+    /* The correction that IS allowed: a new row pointing at the original, so
+       both the mistake and the fix stay on the record. */
+    const { rows: rev } = await db.query(
+      `INSERT INTO finance_entries
+         (period_id, kind, amount_cents, occurred_on, reverses_id, created_by)
+       VALUES ($1,'expense',25000,CURRENT_DATE,$2,$3) RETURNING id`,
+      [openPeriod, id, ids.admin]
+    );
+    if (!rev[0]?.id) throw new Error("a reversing entry was refused");
+  });
+
+  await check("nothing can be booked into a closed month", async () => {
+    let blocked = false;
+    try { await addEntry(closedPeriod, "income", 100000); } catch { blocked = true; }
+    if (!blocked) throw new Error("a closed month accepted a new entry");
+  });
+
+  await check("one verified payment can only be booked as income once", async () => {
+    await addEntry(openPeriod, "income", 400000, { clientId: ids.client, feeId });
+    let blocked = false;
+    try {
+      await addEntry(openPeriod, "income", 400000, { clientId: ids.client, feeId });
+    } catch { blocked = true; }
+    if (!blocked) throw new Error("the same fee submission was booked twice");
+  });
+
+  await check("a referral must carry the amount its kind promises", async () => {
+    /* A 'percent' referral holding a fixed amount is worth nothing and says
+       nothing — it reads as configured and pays out zero. */
+    const bad = [
+      ["percent", 50000, null],
+      ["fixed", null, 1000],
+      ["fixed", null, null],
+      ["fixed", 50000, 1000],
+    ];
+    for (const [kind, fixed, pct] of bad) {
+      let threw = false;
+      try {
+        await db.query(
+          `INSERT INTO finance_referrals (client_id, referrer_name, fee_kind, fixed_cents, percent_bp)
+           VALUES ($1,'Someone',$2,$3,$4)`,
+          [ids.client, kind, fixed, pct]
+        );
+      } catch { threw = true; }
+      if (!threw) throw new Error(`a ${kind} referral with (${fixed}, ${pct}) was accepted`);
+    }
+
+    const { rows } = await db.query(
+      `INSERT INTO finance_referrals (client_id, referrer_name, fee_kind, percent_bp)
+       VALUES ($1,'Aunt Fatima','percent',1000) RETURNING id`,
+      [ids.client]
+    );
+    if (!rows[0]?.id) throw new Error("a well-formed referral was refused");
+  });
+
+  await check("a partner is paid once per month, at the share used that month", async () => {
+    const { rows: p } = await db.query(
+      `INSERT INTO finance_partners (name, share_bp) VALUES ('Shumaila', 5000) RETURNING id`
+    );
+    await db.query(
+      `INSERT INTO finance_distributions (period_id, partner_id, share_bp, amount_cents)
+       VALUES ($1,$2,5000,300000)`,
+      [closedPeriod, p[0].id]
+    );
+    let blocked = false;
+    try {
+      await db.query(
+        `INSERT INTO finance_distributions (period_id, partner_id, share_bp, amount_cents)
+         VALUES ($1,$2,5000,300000)`,
+        [closedPeriod, p[0].id]
+      );
+    } catch { blocked = true; }
+    if (!blocked) throw new Error("a partner was paid twice for one month");
+  });
+
+  await check("a month cannot exist twice", async () => {
+    let blocked = false;
+    try {
+      await db.query(`INSERT INTO finance_periods (year, month) VALUES (2026, 9)`);
+    } catch { blocked = true; }
+    if (!blocked) throw new Error("September 2026 was opened twice");
+  });
+}
+
 console.log("\nOAuth (016)\n");
 
 /*
