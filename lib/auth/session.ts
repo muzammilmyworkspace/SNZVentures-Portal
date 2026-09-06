@@ -1,8 +1,10 @@
-import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
+import { timingSafeEqual, randomBytes } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import * as usersRepo from "@/lib/db/repos/users";
 import type { Session, Role } from "./types";
+import { SESSION_COOKIE, CSRF_COOKIE, SESSION_MAX_AGE_SECONDS } from "./constants";
+import { authConfigured, createToken, verifyToken } from "./token";
 
 /**
  * Stateless signed sessions.
@@ -10,82 +12,14 @@ import type { Session, Role } from "./types";
  * A compact HMAC-SHA256 token (`<payload-b64url>.<sig-b64url>`) stored in an
  * httpOnly cookie. No third-party dependency, no session table required.
  *
- * ⚠ AUTH_SECRET must be set in production. Without it the server refuses to
- * issue or verify sessions rather than silently falling back to a known key —
- * a predictable signing key is the same as no authentication at all.
+ * The signing and verification themselves live in `./token` — pulled out
+ * because this file imports `cookies` from `next/headers`, which only
+ * resolves inside a Next.js request. `npm run verify:session` exercises the
+ * token logic directly, without needing that context.
  */
 
-import { SESSION_COOKIE, CSRF_COOKIE, SESSION_MAX_AGE_SECONDS } from "./constants";
-
-export { SESSION_COOKIE, CSRF_COOKIE };
+export { SESSION_COOKIE, CSRF_COOKIE, authConfigured, createToken, verifyToken };
 const MAX_AGE_SECONDS = SESSION_MAX_AGE_SECONDS;
-
-function secret(): string {
-  const s = process.env.AUTH_SECRET;
-  if (!s || s.length < 32) {
-    throw new Error(
-      "AUTH_SECRET is missing or too short (needs 32+ chars). " +
-        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
-    );
-  }
-  return s;
-}
-
-/** True when the server is configured well enough to authenticate anyone. */
-export function authConfigured(): boolean {
-  const s = process.env.AUTH_SECRET;
-  return Boolean(s && s.length >= 32);
-}
-
-const b64url = (buf: Buffer) =>
-  buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-const fromB64url = (s: string) =>
-  Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
-
-function sign(payload: string): string {
-  return b64url(createHmac("sha256", secret()).update(payload).digest());
-}
-
-export function createToken(
-  data: Omit<Session, "exp">,
-  maxAgeSeconds = MAX_AGE_SECONDS
-): string {
-  const session: Session = {
-    ...data,
-    exp: Math.floor(Date.now() / 1000) + maxAgeSeconds,
-  };
-  const payload = b64url(Buffer.from(JSON.stringify(session)));
-  return `${payload}.${sign(payload)}`;
-}
-
-export function verifyToken(token: string | undefined): Session | null {
-  if (!token) return null;
-  const dot = token.lastIndexOf(".");
-  if (dot < 1) return null;
-
-  const payload = token.slice(0, dot);
-  const provided = token.slice(dot + 1);
-
-  let expectedBuf: Buffer;
-  let providedBuf: Buffer;
-  try {
-    expectedBuf = Buffer.from(sign(payload));
-    providedBuf = Buffer.from(provided);
-  } catch {
-    return null;
-  }
-  if (expectedBuf.length !== providedBuf.length) return null;
-  if (!timingSafeEqual(expectedBuf, providedBuf)) return null;
-
-  try {
-    const session = JSON.parse(fromB64url(payload).toString()) as Session;
-    if (!session.exp || session.exp < Math.floor(Date.now() / 1000)) return null;
-    return session;
-  } catch {
-    return null;
-  }
-}
 
 /* ------------------------------------------------------------ cookie I/O */
 
@@ -130,10 +64,10 @@ const epochForRequest = cache(async (userId: string) => usersRepo.sessionEpoch(u
  * the session everywhere instead of only forgetting the cookie in one browser.
  *
  * Signing out previously did nothing a determined holder of the cookie would
- * notice: the token stayed valid for its full seven days, on any machine that
- * had a copy. That is fixed here, and it is deliberately fixed HERE rather
- * than in `proxy.ts` — the proxy may be hoisted to a CDN and must never be
- * what authorisation depends on.
+ * notice: the token stayed cryptographically valid until it naturally
+ * expired, on any machine that had a copy. That is fixed here, and it is
+ * deliberately fixed HERE rather than in `proxy.ts` — the proxy may be
+ * hoisted to a CDN and must never be what authorisation depends on.
  */
 export async function getSession(): Promise<Session | null> {
   if (!authConfigured()) return null;

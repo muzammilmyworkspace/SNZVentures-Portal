@@ -27,10 +27,10 @@ export const dynamic = "force-dynamic";
  * either — including for the QA accounts, whose short password was written by
  * a CLI script that hashes directly and never touches this route.
  *
- * A FRESH SESSION IS ISSUED on success. The old token stays cryptographically
- * valid until it expires — these sessions are stateless, so there is no server
- * record to revoke — but the caller's own cookie is replaced immediately. The
- * honest limitation is recorded at the bottom of this file.
+ * A FRESH SESSION IS ISSUED on success, and every other one is revoked at the
+ * same moment via `users.session_epoch` (migration 004) — a token minted
+ * before this request no longer verifies, on any device. See the comment on
+ * that call below for why the order it happens in matters.
  */
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
@@ -161,14 +161,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
-
-/*
- * KNOWN LIMITATION, recorded rather than hidden.
- *
- * Sessions are stateless HMAC tokens, so a password change cannot invalidate a
- * token already issued to another device — it stays valid until it expires
- * (seven days). Closing that gap means either a session table or a per-user
- * token version column checked on every request, which is a schema change and
- * a cost on every authenticated read. It is worth doing before the portal
- * holds significant volume; it is not worth pretending is already done.
- */

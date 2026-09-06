@@ -20,10 +20,11 @@ export async function POST(request: Request) {
     SIGNING OUT ENDS THE SESSION EVERYWHERE, not just in this browser.
 
     Clearing the cookie only ever removed the token from the machine doing the
-    signing out. The token itself stayed valid for its full seven days, so
-    anyone holding a copy — a shared computer, a session left open somewhere —
-    kept access, and the person who signed out had no way to remove them. That
-    is the whole reason to press Sign out on a machine that isn't yours.
+    signing out. The token itself stayed cryptographically valid until it
+    naturally expired, so anyone holding a copy — a shared computer, a session
+    left open somewhere — kept access, and the person who signed out had no way
+    to remove them. That is the whole reason to press Sign out on a machine
+    that isn't yours.
 
     So this is deliberately global rather than per-device. Signing out on a
     phone also ends the desktop session; that is a real cost, and it is the
