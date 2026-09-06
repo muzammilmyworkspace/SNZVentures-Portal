@@ -111,7 +111,11 @@ export type AuditAction =
   | "oauth.consent_denied"
   | "oauth.token_issued"
   | "oauth.refresh_reused"
-  | "oauth.grant_revoked";
+  | "oauth.grant_revoked"
+  // Raising an invoice, and moving its status (017). Super admin only —
+  // raising one is the firm speaking about money in its own name.
+  | "invoice.created"
+  | "invoice.status_changed";
 
 export async function audit(entry: {
   action: AuditAction;

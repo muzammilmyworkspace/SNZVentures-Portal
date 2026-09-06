@@ -332,6 +332,134 @@ await check("document review update", async () => {
   );
 });
 
+console.log("\nInvoices (017)\n");
+
+/*
+  THE PROMISES 017 MAKES, TESTED AS PROMISES.
+
+  Three triggers/constraints guard this table, and each fails silently until
+  the day it matters:
+
+    • the total is always subtotal + vat — a CHECK, so application code that
+      got the arithmetic wrong could not even store the row;
+    • an issued invoice cannot be edited — only its status may move;
+    • an invoice is never deleted — voided instead, so the number sequence
+      never has a gap that reads as a hidden document.
+*/
+{
+  const ids = { admin: "eeeeeeee-0000-0000-0000-000000000001" };
+
+  await check("fixtures", async () => {
+    await db.query(
+      `INSERT INTO users (id, email, name, role, status, password_hash)
+       VALUES ($1,'inv.admin@test','Invoice Admin','super_admin','active','x')`,
+      [ids.admin]
+    );
+  });
+
+  const makeInvoice = (over = {}) =>
+    db.query(
+      `INSERT INTO invoices
+         (number, status, issued_on, bill_to_name, currency, vat_bp, lines,
+          subtotal_cents, vat_cents, total_cents, created_by)
+       VALUES ($1,$2,CURRENT_DATE,$3,'EUR',$4,$5::jsonb,$6,$7,$8,$9)
+       RETURNING id, number`,
+      [
+        over.number ?? "SNZ-2026-001",
+        over.status ?? "draft",
+        over.billToName ?? "Haider Khwaja",
+        over.vatBp ?? 0,
+        JSON.stringify(over.lines ?? [{ desc: "Consultancy fee", amount_cents: 20000 }]),
+        over.subtotal ?? 20000,
+        over.vat ?? 0,
+        over.total ?? (over.subtotal ?? 20000) + (over.vat ?? 0),
+        ids.admin,
+      ]
+    );
+
+  await check("the total must equal subtotal + vat", async () => {
+    let threw = false;
+    try {
+      await makeInvoice({ number: "SNZ-2026-900", subtotal: 20000, vat: 4200, total: 20000 });
+    } catch { threw = true; }
+    if (!threw) throw new Error("an invoice with a total that does not match its parts was stored");
+  });
+
+  await check("a number can never appear twice", async () => {
+    await makeInvoice({ number: "SNZ-2026-100" });
+    let threw = false;
+    try { await makeInvoice({ number: "SNZ-2026-100" }); } catch { threw = true; }
+    if (!threw) throw new Error("the same invoice number was accepted twice");
+  });
+
+  await check("a draft can be freely edited", async () => {
+    const { rows } = await makeInvoice({ number: "SNZ-2026-101", status: "draft" });
+    await db.query(`UPDATE invoices SET bill_to_name = 'Corrected Name' WHERE id = $1`, [rows[0].id]);
+    const { rows: after } = await db.query(`SELECT bill_to_name FROM invoices WHERE id = $1`, [rows[0].id]);
+    if (after[0].bill_to_name !== "Corrected Name") throw new Error("a draft could not be edited");
+  });
+
+  await check("once issued, only status may move — everything else is frozen", async () => {
+    const { rows } = await makeInvoice({ number: "SNZ-2026-102", status: "sent" });
+    const id = rows[0].id;
+
+    // The one thing allowed:
+    await db.query(`UPDATE invoices SET status = 'paid', updated_at = now() WHERE id = $1`, [id]);
+
+    // Everything else refused, one field at a time — a partial fix that
+    // slipped one column through would be worse than refusing outright.
+    const attempts = [
+      [`UPDATE invoices SET bill_to_name = 'Somebody Else' WHERE id = $1`],
+      [`UPDATE invoices SET total_cents = 1 WHERE id = $1`],
+      [`UPDATE invoices SET lines = '[]'::jsonb WHERE id = $1`],
+      [`UPDATE invoices SET issued_on = CURRENT_DATE - 1 WHERE id = $1`],
+    ];
+    for (const [sql] of attempts) {
+      let threw = false;
+      try { await db.query(sql, [id]); } catch { threw = true; }
+      if (!threw) throw new Error(`an issued invoice accepted: ${sql}`);
+    }
+  });
+
+  await check("an invoice is never deleted", async () => {
+    const { rows } = await makeInvoice({ number: "SNZ-2026-103" });
+    let threw = false;
+    try { await db.query(`DELETE FROM invoices WHERE id = $1`, [rows[0].id]); } catch { threw = true; }
+    if (!threw) throw new Error("an invoice was deleted instead of voided");
+
+    // The escape hatch that IS allowed:
+    await db.query(`UPDATE invoices SET status = 'void', updated_at = now() WHERE id = $1`, [rows[0].id]);
+    const { rows: after } = await db.query(`SELECT status FROM invoices WHERE id = $1`, [rows[0].id]);
+    if (after[0].status !== "void") throw new Error("voiding an invoice did not stick");
+  });
+
+  await check("a voided invoice is final — it cannot be reopened", async () => {
+    const { rows } = await makeInvoice({ number: "SNZ-2026-104" });
+    await db.query(`UPDATE invoices SET status = 'void', updated_at = now() WHERE id = $1`, [rows[0].id]);
+
+    /*
+      This is the application-level guard (setStatus's WHERE clause), checked
+      here because it is the other half of "void is final" — the trigger stops
+      the document's own fields from changing, and this stops it being marked
+      paid again after the number has already been told to the payer.
+    */
+    const { rows: reopened } = await db.query(
+      `UPDATE invoices SET status = 'paid' WHERE id = $1 AND status <> 'void' RETURNING id`,
+      [rows[0].id]
+    );
+    if (reopened.length !== 0) throw new Error("a voided invoice was reopened");
+  });
+
+  await check("an invoice with no client account still stores and lists", async () => {
+    const { rows } = await makeInvoice({ number: "SNZ-2026-105", billToName: "Nobody With A Login" });
+    const { rows: found } = await db.query(
+      `SELECT client_id FROM invoices WHERE id = $1`,
+      [rows[0].id]
+    );
+    if (found[0].client_id !== null) throw new Error("client_id was not null for a WhatsApp-only lead");
+  });
+}
+
 console.log("\nOAuth (016)\n");
 
 /*

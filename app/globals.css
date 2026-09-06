@@ -1512,3 +1512,59 @@ input[type="date"].field {
 .on-dark .text-ok { color: #9be07a; }
 .on-dark .text-warn { color: #f6c556; }
 .on-dark .text-danger { color: #ff9c93; }
+
+/* ============================================================================
+   PRINTING AN INVOICE
+   ----------------------------------------------------------------------------
+   The Download button is the browser's own print dialog with "Save as PDF"
+   chosen, which produces real selectable text — a library that paints the page
+   into an image produces a file that looks like a PDF and cannot be searched,
+   copied or read aloud.
+
+   VISIBILITY RATHER THAN DISPLAY. Hiding the shell with `display:none` would
+   need this file to know the shell's structure, and it would go wrong the next
+   time that structure changes. Making everything invisible and then turning
+   the invoice back on works whatever is wrapped around it, and keeps the
+   document's own layout intact because its ancestors still occupy space.
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    /* The portal ground is navy. Left alone, some browsers print it. */
+    color: #0C1526 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .invoice-paper,
+  .invoice-paper * {
+    visibility: visible;
+  }
+
+  .invoice-paper {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    font-size: 11.5pt;
+  }
+
+  /* A table row split across a page break is the commonest way an invoice
+     comes out of a printer looking wrong. */
+  .invoice-paper tr,
+  .invoice-paper img {
+    break-inside: avoid;
+  }
+}
