@@ -1,0 +1,32 @@
+-- ---------------------------------------------------------------------------
+-- THE SHORTER SESSION HAS TO REACH SESSIONS THAT ALREADY EXIST.
+--
+-- SESSION_MAX_AGE_SECONDS went from seven days to one (lib/auth/constants.ts).
+-- That change only shapes tokens minted AFTER it ships — a token is a signed
+-- JWT-like blob with its own expiry baked in at the moment it was issued, and
+-- shortening the constant does nothing to a cookie somebody is already
+-- carrying. Anyone signed in before this deployed keeps their old exp, up to
+-- seven days out, and the new rule never touches them. That is exactly what
+-- happened: an admin closed a tab, reopened the same link days later, and was
+-- still signed in — under a token minted before the fix existed.
+--
+-- SESSION_EPOCH ALREADY SOLVES THIS, per user (004, used by sign-out and by a
+-- password change). It has never been used across every account at once,
+-- because nothing before this needed to end every outstanding session on a
+-- single deploy. This does. Bumping it for every row makes each currently-live
+-- token's `ep` claim stale in one statement — the next request for any of them
+-- fails verification and lands back on the sign-in screen, no matter how
+-- recently they signed in or how long their old token had left to run.
+--
+-- A ONE-TIME EVENT, NOT AN ONGOING RULE. This migration runs exactly once,
+-- like every other migration here — it is not something that keeps firing.
+-- Signing in after this ships issues a token under the new one-day limit, same
+-- as anyone would expect.
+--
+-- EVERYONE, INCLUDING WHOEVER DEPLOYS THIS. That is deliberate: the point is
+-- that no account is grandfathered onto the old lifetime, and the person
+-- signed in while it ships is not a special case — they are the case that
+-- reported the bug.
+-- ---------------------------------------------------------------------------
+
+UPDATE users SET session_epoch = session_epoch + 1;
