@@ -107,7 +107,13 @@ export default async function ConsultantsPage() {
               }
             />
           ) : (
-            <ConsultantList consultants={consultants} clients={clients} canViewAs={isSuperAdmin} />
+            <ConsultantList
+              consultants={consultants}
+              clients={clients}
+              canViewAs={isSuperAdmin}
+              canDelete={isSuperAdmin}
+              viewerId={session.userId}
+            />
           )}
         </Panel>
       </div>
