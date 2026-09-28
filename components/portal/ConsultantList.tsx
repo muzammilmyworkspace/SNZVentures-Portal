@@ -218,13 +218,19 @@ export function ConsultantList({
                   onClick={() =>
                     act(c.id, { action: c.status === "active" ? "suspend" : "activate" })
                   }
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-                    c.status === "active" ? "bg-moss-400" : "bg-[var(--line)]"
+                  /*
+                    Green on, red off. Colour alone is never the message — the
+                    knob's POSITION says the same thing, which is what a
+                    red-green colour blind reader is left with, and what anyone
+                    reads at a glance without decoding the palette.
+                  */
+                  className={`relative inline-flex h-7 w-[3.25rem] shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+                    c.status === "active" ? "bg-moss-400" : "bg-[var(--danger)]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-bg transition-transform ${
-                      c.status === "active" ? "translate-x-6" : "translate-x-1"
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform ${
+                      c.status === "active" ? "translate-x-[1.75rem]" : "translate-x-1"
                     }`}
                   />
                 </button>
@@ -252,7 +258,7 @@ export function ConsultantList({
                   type="button"
                   onClick={() => setOpenId(c.id)}
                   aria-label={`Details for ${c.name}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-faint transition-colors hover:border-fg hover:text-fg"
+                  className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-accent transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
                 >
                   <EyeIcon />
                 </button>
@@ -268,7 +274,7 @@ export function ConsultantList({
                       setConfirmId(c.id);
                     }}
                     aria-label={`Delete ${c.name}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-faint transition-colors hover:border-[var(--danger-line)] hover:text-danger disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] text-danger transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
                   >
                     <TrashIcon />
                   </button>
@@ -298,7 +304,7 @@ export function ConsultantList({
         onClick={(e) => {
           if (e.target === confirmRef.current) setConfirmId(null);
         }}
-        className="w-[min(32rem,calc(100vw-2rem))] rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
+        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
       >
         {doomed && (
           <div className="p-6">
@@ -371,7 +377,7 @@ export function ConsultantList({
         onClick={(e) => {
           if (e.target === dialogRef.current) setOpenId(null);
         }}
-        className="w-[min(46rem,calc(100vw-2rem))] rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
+        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(46rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
       >
         {open && (
           <div className="p-6">
