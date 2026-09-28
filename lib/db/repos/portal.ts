@@ -853,28 +853,99 @@ export async function unassignAdvisor(clientId: string, advisorId: string) {
  * per advisor, the textbook N+1. Twenty advisors meant twenty round trips, and
  * it grew with every hire. A LEFT JOIN and a GROUP BY answers it once.
  */
-export async function getAdvisorsWithLoad(): Promise<
-  { id: string; name: string; email: string; clientCount: number; openCases: number }[]
-> {
+export type AdvisorLoad = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  status: string;
+  clientCount: number;
+  openCases: number;
+  /** Cases stalled on the student rather than on us. */
+  needsAttention: number;
+  lastLoginAt: string | null;
+};
+
+export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email,
+      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at,
              count(DISTINCT sa.client_id)::int AS client_count,
              count(DISTINCT c.id) FILTER (
                WHERE c.status NOT IN ('completed','closed')
-             )::int AS open_cases
+             )::int AS open_cases,
+             /*
+               Waiting on the STUDENT, not on us. It is the number a consultant
+               can actually act on — everything else is in our queue, and
+               showing it next to their name would read as a reproach for work
+               that is not theirs.
+             */
+             count(DISTINCT c.id) FILTER (
+               WHERE c.status IN ('documents_required','awaiting_client')
+             )::int AS needs_attention
       FROM users u
       LEFT JOIN staff_assignments sa ON sa.advisor_id = u.id
       LEFT JOIN cases c ON c.advisor_id = u.id
       WHERE u.role IN ('advisor','admin','super_admin')
-      GROUP BY u.id, u.name, u.email
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at
       ORDER BY u.name
     `;
     return rows.map((r) => ({
       id: String(r.id),
       name: String(r.name),
       email: String(r.email),
+      role: r.role as Role,
+      status: String(r.status),
       clientCount: Number(r.client_count ?? 0),
+      openCases: Number(r.open_cases ?? 0),
+      needsAttention: Number(r.needs_attention ?? 0),
+      lastLoginAt: iso(r.last_login_at),
+    }));
+  }, []);
+}
+
+export type AdvisorClient = {
+  advisorId: string;
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  status: string;
+  openCases: number;
+};
+
+/**
+ * Every staff member's clients, in ONE statement.
+ *
+ * For the panel that opens beside a consultant: with six consultants holding
+ * eight students each, fetching per consultant is forty-eight round trips to
+ * fill a list nobody has clicked yet — and fetching on click means the panel
+ * has a loading state for a table of eight rows. One query is smaller than
+ * either.
+ *
+ * Returns a flat list because grouping is the caller's business and doing it
+ * here would mean inventing a shape the database does not have.
+ */
+export async function getClientsByAdvisor(): Promise<AdvisorClient[]> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT sa.advisor_id, u.id, u.name, u.email, u.role, u.status,
+             count(DISTINCT c.id) FILTER (
+               WHERE c.status NOT IN ('completed','closed')
+             )::int AS open_cases
+      FROM staff_assignments sa
+      JOIN users u ON u.id = sa.client_id
+      LEFT JOIN cases c ON c.client_id = u.id
+      GROUP BY sa.advisor_id, u.id, u.name, u.email, u.role, u.status
+      ORDER BY u.name
+    `;
+    return rows.map((r) => ({
+      advisorId: String(r.advisor_id),
+      id: String(r.id),
+      name: String(r.name),
+      email: String(r.email),
+      role: r.role as Role,
+      status: String(r.status),
       openCases: Number(r.open_cases ?? 0),
     }));
   }, []);

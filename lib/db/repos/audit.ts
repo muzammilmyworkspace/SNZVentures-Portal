@@ -47,6 +47,12 @@ export type AuditAction =
   | "staff.assigned"
   | "staff.unassigned"
   /*
+    Creating a consultant is how the circle of people who can see client files
+    grows, so it is recorded with who did it and whether the invitation
+    actually went out.
+  */
+  | "staff.created"
+  /*
     Enrolment links (019). These answer "whose student is this" at the moment a
     consultant's fee depends on the answer, so the whole life of a link is
     recorded: minted, withdrawn, and the account it finally bound. Never the

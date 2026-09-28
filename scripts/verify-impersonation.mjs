@@ -43,12 +43,43 @@ for (const role of ["student", "professional", "business"]) {
 ok("admins can view as any active client");
 
 /* THE ESCALATION CASES. An admin stepping into a super admin would hand
-   themselves a role they do not have, through a button labelled "support". */
-for (const staff of ["advisor", "admin", "super_admin"]) {
+   themselves a role they do not have, through a button labelled "support".
+   In every pairing here the target holds authority the actor does not, so
+   every one of them stays refused. */
+for (const staff of ["admin", "super_admin"]) {
   check(`admin → ${staff}`, refuseImpersonation({ actor: actor("admin"), target: target(staff) }), "staff-target");
   check(`super_admin → ${staff}`, refuseImpersonation({ actor: actor("super_admin"), target: target(staff) }), "staff-target");
 }
-ok("no staff account can be viewed as, by anyone");
+ok("an admin or super admin account can never be viewed as");
+
+/* THE ONE CARVE-OUT: a super admin may view as a consultant. An advisor's
+   powers are a strict subset of theirs, so nothing is gained by stepping in,
+   and the advisor's SQL-scoped book is the one thing support cannot otherwise
+   see. An ordinary ADMIN may not — that is the half most likely to be lost in
+   a later edit, so it is asserted separately rather than as a loop. */
+check("super_admin → advisor", refuseImpersonation({ actor: actor("super_admin"), target: target("advisor") }), null);
+ok("a super admin can view as a consultant");
+
+check("admin → advisor", refuseImpersonation({ actor: actor("admin"), target: target("advisor") }), "staff-target");
+ok("an ordinary admin cannot view as a consultant");
+
+/* The carve-out does not reach past the rules around it. */
+check(
+  "super_admin → suspended advisor",
+  refuseImpersonation({ actor: actor("super_admin"), target: target("advisor", "suspended") }),
+  "inactive"
+);
+check(
+  "super_admin already viewing as somebody → advisor",
+  refuseImpersonation({
+    actor: actor("super_admin", {
+      impersonator: { userId: "x", email: "e", name: "n", role: "super_admin", since: 0 },
+    }),
+    target: target("advisor"),
+  }),
+  "already-impersonating"
+);
+ok("the carve-out does not bypass suspension or chaining");
 
 /* Nobody below admin gets in at all. */
 for (const role of ["student", "professional", "business", "advisor"]) {

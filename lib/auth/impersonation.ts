@@ -28,12 +28,25 @@ export type Refusal =
 /**
  * May this person view the portal as that one?
  *
- * WHY STAFF CANNOT BE IMPERSONATED, including by a super admin: the whole
- * value of this is seeing a client's own view, and no client account can grant
- * anything an admin does not already have. Allowing it the other way turns a
- * support tool into a privilege escalation — an admin becoming a super admin,
- * or one admin acting as another with the second one's name on the audit
- * trail. There is no support case that needs it.
+ * WHY MOST STAFF STILL CANNOT BE IMPERSONATED. Stepping into an account that
+ * holds authority the actor does not already hold is privilege escalation
+ * wearing a support tool — an admin becoming a super admin, or one admin
+ * acting as another with the second one's name on the audit trail. That stays
+ * refused for everybody.
+ *
+ * THE ONE CARVE-OUT: a super admin may view as a CONSULTANT (`advisor`).
+ *
+ * Safe for the reason the general rule is not — an advisor's powers are a
+ * strict subset of a super admin's, so nothing is gained by stepping in. And
+ * there is a real support case, which is the test the general rule was written
+ * against: a consultant reports that a student of theirs is missing, or that an
+ * enrolment link did nothing. Their view is scoped by staff_assignments in SQL
+ * and so is genuinely different from an admin's — reading it out of the
+ * database is guessing, at the moment guessing is expensive.
+ *
+ * `admin` is NOT included, and neither is super admin to super admin. Both
+ * would let somebody act with authority they did not already have, which is
+ * the line this function exists to hold.
  *
  * A session that is ALREADY a view-as cannot start another. Chaining hides who
  * began it, and the way back is a single step by design.
@@ -47,7 +60,18 @@ export function refuseImpersonation(input: {
   if (actor.impersonator) return "already-impersonating";
   if (actor.role !== "admin" && actor.role !== "super_admin") return "not-staff";
   if (actor.userId === target.id) return "self";
-  if (!(CLIENT_ROLES as readonly Role[]).includes(target.role)) return "staff-target";
+
+  /*
+    Clients are open to both admin roles. A consultant is open to a super admin
+    only — written as its own branch rather than folded into a widened role
+    list, because the pairing is the rule: WHO may step into WHICH. A list of
+    permitted targets loses that, and the next person to widen it would have
+    nowhere to read that `admin` was excluded on purpose.
+  */
+  const isClient = (CLIENT_ROLES as readonly Role[]).includes(target.role);
+  const isConsultant = target.role === "advisor";
+  const allowed = isClient || (isConsultant && actor.role === "super_admin");
+  if (!allowed) return "staff-target";
 
   /*
     A suspended account is suspended for a reason, and stepping into it would
