@@ -44,6 +44,35 @@ export function googleConfigured(): boolean {
 }
 
 /**
+ * TURNED OFF DELIBERATELY — the feature is incomplete, not misconfigured.
+ *
+ * The callback refuses to attach a Google identity to an existing PASSWORD
+ * account that shares the email, because doing so silently is account takeover
+ * by email collision. That refusal is correct and stays.
+ *
+ * What it points at does not exist: there is no way to link Google from inside
+ * an authenticated session. The repository has exactly two OAuth operations —
+ * `findByOauthSubject` and `createOauthUser` — and neither attaches a provider
+ * to an account that is already there.
+ *
+ * So the button only ever worked for an email with no account yet. Every
+ * existing client and every member of staff got "An account already exists with
+ * that email", every time, with nothing they could do about it — a control that
+ * is visible, looks supported, and cannot succeed.
+ *
+ * Kept separate from `googleConfigured()` rather than folded into it, because
+ * the credentials are still legitimately in use: the Google Drive integration
+ * reads the same two variables through its own check in lib/integrations/drive.
+ * Making "are the credentials present" answer false would misreport Drive.
+ *
+ * This switch is only about whether SIGN-IN is offered. Build the linking flow,
+ * then return `googleConfigured()` here and the button comes back.
+ */
+export function googleSignInEnabled(): boolean {
+  return false;
+}
+
+/**
  * Absolute callback URL. Must match a redirect URI registered in Google Cloud.
  *
  * The fallback used to be localhost, which is right on a laptop and completely

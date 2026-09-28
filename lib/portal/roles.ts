@@ -188,21 +188,56 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       group: "Operations",
       items: [
         { href: "/portal/admin", label: "Dashboard", icon: "dashboard" },
-        { href: "/portal/admin/enquiries", label: "Enquiries", icon: "messages" },
+        /*
+          Enquiries and Analytics are firm-wide and their pages require an
+          admin. Before consultants used this area the gate was invisible,
+          because everyone who saw the nav could open everything in it; now an
+          advisor would meet a 403 on a link the sidebar offered them. The
+          guard was never the problem — the menu was.
+        */
+        {
+          href: "/portal/admin/enquiries",
+          label: "Enquiries",
+          icon: "messages",
+          roles: ["admin", "super_admin"],
+        },
         { href: "/portal/admin/requests", label: "Requests", icon: "requests" },
         // Sits directly above Documents: verifying a fee is the decision that
         // opens a student's file, so it belongs beside the queue it feeds.
         { href: "/portal/admin/fees", label: "Fee verification", icon: "requests" },
         { href: "/portal/admin/cases", label: "Cases", icon: "applications" },
         { href: "/portal/admin/documents", label: "Documents", icon: "documents" },
-        { href: "/portal/admin/analytics", label: "Analytics", icon: "activity" },
+        {
+          href: "/portal/admin/analytics",
+          label: "Analytics",
+          icon: "activity",
+          roles: ["admin", "super_admin"],
+        },
       ],
     },
     {
       group: "People",
       items: [
-        { href: "/portal/admin/users", label: "Users", icon: "users" },
-        { href: "/portal/admin/staff", label: "Advisors", icon: "profile" },
+        /*
+          First, and the only People entry a consultant can reach. Their own
+          book is where their day starts; everything below it is firm-wide and
+          admin-only, which is why the group reads oddly short for them — that
+          is the intended shape, not a gap.
+        */
+        { href: "/portal/admin/my-students", label: "Your students", icon: "users" },
+        { href: "/portal/admin/users", label: "Users", icon: "users", roles: ["admin", "super_admin"] },
+        {
+          href: "/portal/admin/unassigned",
+          label: "Unassigned",
+          icon: "profile",
+          roles: ["admin", "super_admin"],
+        },
+        {
+          href: "/portal/admin/staff",
+          label: "Advisors",
+          icon: "profile",
+          roles: ["admin", "super_admin"],
+        },
       ],
     },
     {
@@ -225,7 +260,12 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
     {
       group: "Account",
       items: [
-        { href: "/portal/admin/audit", label: "Audit log", icon: "activity" },
+        {
+          href: "/portal/admin/audit",
+          label: "Audit log",
+          icon: "activity",
+          roles: ["admin", "super_admin"],
+        },
         {
           href: "/portal/admin/schema",
           label: "Database & storage",

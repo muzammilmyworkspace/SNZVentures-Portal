@@ -16,6 +16,7 @@ import { PortalAccess } from "@/components/portal/PortalAccess";
 import { DriveExport } from "@/components/portal/DriveExport";
 import { drivePanelFor } from "@/lib/db/repos/drive";
 import * as usersRepo from "@/lib/db/repos/users";
+import * as invitesRepo from "@/lib/db/repos/invites";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import * as repo from "@/lib/db/repos/portal";
 import * as ops from "@/lib/db/repos/operations";
@@ -139,6 +140,8 @@ export default async function AdminUserPage({
   // One round trip, not two. Promise.all does not help on a single connection.
   const drive = await drivePanelFor(id);
   const profile = await profilesRepo.getProfile(id, user.role);
+  // How this client arrived, for the day two consultants both claim them.
+  const enrolment = await invitesRepo.inviteForClient(id);
   const { documents, cases, intake, history, notes, consents } = file;
 
   const definition = pathway ? intakeFor(pathway) : null;
@@ -188,6 +191,63 @@ export default async function AdminUserPage({
             that cannot be asked.
           */}
           {user.role === "student" && <PortalAccess userId={id} />}
+
+          {/*
+            HOW THIS CLIENT ARRIVED.
+
+            Shown only when they came through a consultant's link, because the
+            absence is itself an answer: a client with no row here registered
+            directly or was assigned by hand, and no link supports anybody's
+            claim to them.
+
+            This is the panel to read before settling a dispute — it is the
+            record the enrolment link exists to produce.
+          */}
+          {enrolment && (
+            <Panel title="How they enrolled">
+              <dl className="space-y-3 text-[0.9rem]">
+                <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+                  <dt className="label text-faint">Link created by</dt>
+                  <dd className="text-fg">{enrolment.consultantName ?? "—"}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+                  <dt className="label text-faint">Created</dt>
+                  <dd className="text-fg">
+                    {new Date(enrolment.createdAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+                  <dt className="label text-faint">Used</dt>
+                  <dd className="text-fg">
+                    {enrolment.claimedAt
+                      ? new Date(enrolment.claimedAt).toLocaleDateString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="label text-faint">Addressed to</dt>
+                  <dd className="text-fg">
+                    {enrolment.email ?? <span className="text-faint">Not recorded</span>}
+                  </dd>
+                </div>
+              </dl>
+              {enrolment.note && (
+                <p className="mt-3 text-[0.82rem] leading-relaxed text-muted">{enrolment.note}</p>
+              )}
+              <p className="mt-3 text-[0.78rem] leading-relaxed text-faint">
+                The address above is what the consultant typed when creating the link. It is not
+                verified and does not have to match the one this account signed up with.
+              </p>
+            </Panel>
+          )}
 
           {/* Sending a file out of the portal is a deliberate act by a named
               person, so the control lives on the file itself rather than in a

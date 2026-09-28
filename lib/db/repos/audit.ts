@@ -46,6 +46,16 @@ export type AuditAction =
   | "document.bulk_downloaded"
   | "staff.assigned"
   | "staff.unassigned"
+  /*
+    Enrolment links (019). These answer "whose student is this" at the moment a
+    consultant's fee depends on the answer, so the whole life of a link is
+    recorded: minted, withdrawn, and the account it finally bound. Never the
+    token itself — an audit table holding live links is a second copy of the
+    secret, readable by every admin, for ever.
+  */
+  | "invite.created"
+  | "invite.revoked"
+  | "invite.claimed"
   // Schema applied from the admin area (009). A migration changes the shape
   // of every table under it and cannot be undone from the UI, so both the
   // successful runs and the refused ones are recorded with who pressed it.

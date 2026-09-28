@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { PasswordField } from "@/components/portal/PasswordField";
 
 /**
  * Move the address this account signs in with.
@@ -91,24 +92,15 @@ export function ChangeEmail({ current }: { current: string }) {
         />
       </div>
 
-      <div>
-        <label htmlFor="current-password" className="field-label">
-          Your current password
-        </label>
-        <input
-          id="current-password"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="field"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <p className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
-          Asked because this moves where password resets are sent. A signed-in session on its own
-          must not be enough to do that.
-        </p>
-      </div>
+      <PasswordField
+        id="current-password"
+        label="Your current password"
+        value={password}
+        onChange={setPassword}
+        autoComplete="current-password"
+        required
+        hint="Asked because this moves where password resets are sent. A signed-in session on its own must not be enough to do that."
+      />
 
       {error && (
         <p role="alert" className="note-danger p-3 text-[0.85rem] leading-relaxed">

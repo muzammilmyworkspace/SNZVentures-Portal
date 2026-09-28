@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { googleConfigured, exchangeCode, verifyState } from "@/lib/auth/oauth";
+import { googleSignInEnabled, exchangeCode, verifyState } from "@/lib/auth/oauth";
 import { createToken, setSessionCookie, authConfigured } from "@/lib/auth/session";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { audit } from "@/lib/db/repos/audit";
@@ -36,7 +36,7 @@ const fail = (request: Request, reason: string) =>
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
-  if (!googleConfigured() || !authConfigured() || !isDatabaseConfigured()) {
+  if (!googleSignInEnabled() || !authConfigured() || !isDatabaseConfigured()) {
     return fail(request, "unavailable");
   }
 

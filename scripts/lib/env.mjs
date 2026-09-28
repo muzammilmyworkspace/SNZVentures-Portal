@@ -16,7 +16,20 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const FILES = [".env.local", ".env"];
+/*
+  `.env.development.local` FIRST, and first for a reason.
+
+  Next.js already reads that file ahead of `.env.local` when running `next dev`,
+  so it is where a local database URL naturally goes. These scripts did not read
+  it at all — which meant `npm run dev` talked to the local database while
+  `npm run db:migrate`, typed two lines later in the same terminal, silently
+  talked to PRODUCTION. Migrating the live database by following the setup
+  instructions is not a mistake anybody should be able to make.
+
+  Earlier file wins, and an exported shell variable still beats all of them. On
+  Vercel the file does not exist, so nothing about a deploy changes.
+*/
+const FILES = [".env.development.local", ".env.local", ".env"];
 
 export function loadLocalEnv() {
   const loaded = [];

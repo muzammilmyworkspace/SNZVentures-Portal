@@ -332,7 +332,12 @@ const PATHWAYS = [
   { key: "business", icon: "🏢", title: "Business setup", blurb: "EU entity, licensing, relocation" },
 ];
 
-export function RegisterForm() {
+/**
+ * `invite` is present only when this form is reached through a consultant's
+ * enrolment link. It is passed straight through to the server, which is the
+ * only place it means anything — nothing here inspects or trusts it.
+ */
+export function RegisterForm({ invite }: { invite?: string } = {}) {
   const [step, setStep] = useState(1);
   const [pathway, setPathway] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -377,6 +382,7 @@ export function RegisterForm() {
         email,
         password,
         pathway,
+        invite,
       });
       if (!res.ok || !data.ok) {
         setError(data.error ?? "We couldn't create that account.");

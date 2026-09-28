@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { googleConfigured, googleAuthUrl, createState } from "@/lib/auth/oauth";
+import { googleSignInEnabled, googleAuthUrl, createState } from "@/lib/auth/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,12 @@ export const dynamic = "force-dynamic";
  * than a sentence telling them to use their password instead.
  */
 export async function GET(request: Request) {
-  if (!googleConfigured()) {
+  /*
+    Checked here too, not only where the button is drawn. Hiding a control does
+    not close the route behind it, and this one could still mint accounts for
+    anybody who kept the URL.
+  */
+  if (!googleSignInEnabled()) {
     return NextResponse.redirect(new URL("/login?oauth=unavailable", request.url));
   }
 

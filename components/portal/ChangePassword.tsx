@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
+import { PasswordField } from "@/components/portal/PasswordField";
 
 /**
  * CHANGE PASSWORD — the same control for every role.
@@ -10,73 +11,6 @@ import { cn } from "@/lib/utils";
  * the field order says why: you prove who you are, then you choose. The server
  * enforces all of it again; nothing here is the boundary.
  */
-
-function EyeIcon({ open }: { open: boolean }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden className="h-[18px] w-[18px]">
-      <path
-        d="M1.7 10S4.6 4.8 10 4.8 18.3 10 18.3 10 15.4 15.2 10 15.2 1.7 10 1.7 10z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="10" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.4" />
-      {!open && <path d="M3.5 3.5l13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />}
-    </svg>
-  );
-}
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  hint,
-  autoComplete,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  hint?: string;
-  autoComplete: string;
-}) {
-  const [reveal, setReveal] = useState(false);
-  return (
-    <div>
-      <label htmlFor={id} className="field-label">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          type={reveal ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete={autoComplete}
-          aria-describedby={hint ? `${id}-hint` : undefined}
-          className="field pr-12"
-        />
-        <button
-          type="button"
-          onClick={() => setReveal((r) => !r)}
-          aria-label="Show password"
-          aria-pressed={reveal}
-          aria-controls={id}
-          className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-[var(--radius-sm)] text-faint transition-colors hover:text-fg"
-        >
-          <EyeIcon open={reveal} />
-        </button>
-      </div>
-      {hint && (
-        <p id={`${id}-hint`} className="mt-1.5 text-[0.75rem] text-faint">
-          {hint}
-        </p>
-      )}
-    </div>
-  );
-}
 
 export function ChangePassword() {
   const [current, setCurrent] = useState("");

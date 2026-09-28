@@ -60,3 +60,7 @@ next-env.d.ts
 # scripts/import-client-images.mjs into public/images as optimised WebP.
 /Images
 migrations.sql
+
+# Local development Postgres (scripts/dev-db.mjs). Never committed: it is a
+# database cluster, and it holds whatever test data was typed into it.
+.dev-postgres/

@@ -8,6 +8,7 @@ import { audit } from "@/lib/db/repos/audit";
 import { homeFor } from "@/lib/portal/roles";
 import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
+import * as invitesRepo from "@/lib/db/repos/invites";
 
 export const runtime = "nodejs";
 
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  const { name, email, password, pathway } = (body ?? {}) as Record<string, unknown>;
+  const { name, email, password, pathway, invite } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof name !== "string" || name.trim().length < 2 || name.length > 120) {
     return NextResponse.json({ ok: false, error: "Please enter your name." }, { status: 400 });
@@ -122,6 +123,40 @@ export async function POST(request: Request) {
   });
 
   /*
+    ENROLMENT, IF THEY ARRIVED THROUGH A CONSULTANT'S LINK.
+
+    Deliberately AFTER the account exists and deliberately unable to fail the
+    registration. A link that has expired between opening the page and
+    submitting the form must not cost somebody the account they just created —
+    they end up in the admin's "unassigned" queue instead, which is exactly the
+    case that queue exists for.
+
+    Every rule about who may be enrolled is enforced inside `claimInvite`, in
+    one transaction, against live rows. Nothing is trusted from here beyond the
+    fact that a string was supplied.
+  */
+  let enrolledWith: string | null = null;
+  if (typeof invite === "string" && invite) {
+    const claim = await invitesRepo.claimInvite(invite, user.id);
+    if (claim.ok) {
+      enrolledWith = claim.consultantName;
+      await audit({
+        action: "invite.claimed",
+        actorId: user.id,
+        actorEmail: user.email,
+        entity: "user",
+        entityId: user.id,
+        meta: { consultantId: claim.consultantId },
+        ip,
+      });
+    } else {
+      // Recorded, not shown. The student can do nothing about it; the admin can.
+      // eslint-disable-next-line no-console
+      console.error("[register] invite claim failed:", claim.reason, "for", user.id);
+    }
+  }
+
+  /*
     The consent row is written with the version from the SERVER's constant,
     never from the request. A browser must not be able to claim it accepted a
     different document — or an older one — than the one it was actually shown.
@@ -171,5 +206,10 @@ export async function POST(request: Request) {
     Returning it means the browser never has to guess where a role belongs, and
     never gets to choose — it follows what the server says.
   */
-  return NextResponse.json({ ok: true, role: user.role, redirectTo: homeFor(user.role) });
+  return NextResponse.json({
+    ok: true,
+    role: user.role,
+    redirectTo: homeFor(user.role),
+    enrolledWith,
+  });
 }
