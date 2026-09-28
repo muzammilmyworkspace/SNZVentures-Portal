@@ -38,6 +38,16 @@ export type MailMessage = {
 
 export const DEFAULT_TO = "info@snzventures.com";
 
+/**
+ * Used when MAIL_FROM is unset — and almost certainly wrong when it is.
+ *
+ * Named rather than left inline so the admin diagnostic can show the operator
+ * the exact address their messages would go out as. A provider rejecting mail
+ * from an address nobody asked it to verify is the failure that survives every
+ * other part of the setup being correct.
+ */
+export const DEFAULT_FROM = "SnZ Ventures <noreply@snzventures.com>";
+
 export function mailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY || process.env.MAIL_WEBHOOK_URL);
 }
@@ -50,7 +60,7 @@ export function mailTransport(): "resend" | "webhook" | "none" {
 
 export async function sendMail(message: MailMessage): Promise<void> {
   const to = message.to ?? env("MAIL_TO") ?? DEFAULT_TO;
-  const from = envOr("MAIL_FROM", "SnZ Ventures <noreply@snzventures.com>");
+  const from = envOr("MAIL_FROM", DEFAULT_FROM);
 
   const transport = mailTransport();
 

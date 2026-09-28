@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/auth/guard";
 import { connectionStatus } from "@/lib/db/repos/drive";
 import { headers } from "next/headers";
 import { driveConfigured, driveRedirectUri, ROOT_FOLDER_NAME } from "@/lib/integrations/drive";
+import { mailStatus } from "@/lib/mail-status";
+import { MailStatusPanel } from "@/components/portal/MailStatus";
 import { envSet } from "@/lib/env";
 import * as mcpTokens from "@/lib/db/repos/mcp-tokens";
 import * as oauthRepo from "@/lib/db/repos/oauth";
@@ -78,6 +80,16 @@ export default async function IntegrationsPage({
       )}
 
       <div className="space-y-6">
+        {/*
+          FIRST, because it is the one that silently breaks everything else.
+          Without a transport there is no password reset, no email
+          verification and no consultant invitation — and each of those fails
+          somewhere far from this page, as "nothing arrived".
+        */}
+        <Panel title="Email">
+          <MailStatusPanel status={await mailStatus()} />
+        </Panel>
+
         <Panel title="Google Drive">
           <DriveConnect
             connected={status.connected}
