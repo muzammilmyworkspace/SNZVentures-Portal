@@ -88,8 +88,20 @@ export type Session = {
    * path is a support view that shows you a different bug.
    */
   impersonator?: Impersonator;
-  /** epoch seconds */
+  /**
+   * IDLE EXPIRY, in epoch seconds. Pushed forward while a tab is open; see
+   * SESSION_IDLE_SECONDS.
+   */
   exp: number;
+  /**
+   * ABSOLUTE EXPIRY, in epoch seconds. Set once at sign-in and copied forward
+   * unchanged by every refresh, so activity can never extend it.
+   *
+   * Optional only for tokens minted before it existed — those are treated as
+   * capped at their own `exp`, which ends them at the next idle window rather
+   * than granting them an unbounded one.
+   */
+  abs?: number;
   /**
    * The value of `users.session_epoch` when this token was minted.
    *

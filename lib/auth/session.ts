@@ -30,7 +30,18 @@ export async function setSessionCookie(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE_SECONDS,
+    /*
+      NO Max-Age, DELIBERATELY — a browser-session cookie.
+
+      With one, the cookie outlived the browser: closing everything and
+      returning the next day still presented a valid session, which is what
+      was reported. Without one, shutting the browser ends it outright.
+
+      That alone is not enough, because closing a TAB is not closing a
+      browser, and "continue where you left off" restores session cookies on
+      relaunch. The token's own idle window is what covers those cases; this
+      just stops the cookie surviving longer than the browser it was set in.
+    */
   });
 }
 

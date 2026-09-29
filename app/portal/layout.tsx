@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
+import { SessionKeepalive } from "@/components/portal/SessionKeepalive";
 import * as repo from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { studentStage, pathOpen, lockReason } from "@/lib/portal/stage";
@@ -96,6 +97,13 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <>
+      {/*
+        Renders nothing. It is what keeps a session alive for somebody reading
+        rather than clicking — and, by stopping when the tab does, what ends
+        one for somebody who has gone.
+      */}
+      <SessionKeepalive />
+
       {/*
         Outside the shell, above everything, and not dismissible. The risk with
         a view-as is not the feature — it is somebody forgetting they left it

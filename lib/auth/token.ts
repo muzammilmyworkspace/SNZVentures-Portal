@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Session } from "./types";
-import { SESSION_MAX_AGE_SECONDS } from "./constants.ts";
+import { SESSION_MAX_AGE_SECONDS, SESSION_ABSOLUTE_SECONDS } from "./constants.ts";
 
 /**
  * SIGNING AND VERIFYING A SESSION TOKEN — WITH NO COOKIE, NO REQUEST, NO DB.
@@ -45,12 +45,20 @@ function sign(payload: string): string {
 }
 
 export function createToken(
-  data: Omit<Session, "exp">,
+  data: Omit<Session, "exp" | "abs"> & { abs?: number },
   maxAgeSeconds = SESSION_MAX_AGE_SECONDS
 ): string {
+  const now = Math.floor(Date.now() / 1000);
+  /*
+    `abs` is carried through when the caller already has one — a refresh passes
+    the existing value so the ceiling stays where sign-in put it. Recomputing
+    it here would make every refresh reset the cap, which is the one thing it
+    exists to prevent.
+  */
   const session: Session = {
     ...data,
-    exp: Math.floor(Date.now() / 1000) + maxAgeSeconds,
+    exp: now + maxAgeSeconds,
+    abs: data.abs ?? now + SESSION_ABSOLUTE_SECONDS,
   };
   const payload = b64url(Buffer.from(JSON.stringify(session)));
   return `${payload}.${sign(payload)}`;
@@ -77,7 +85,12 @@ export function verifyToken(token: string | undefined): Session | null {
 
   try {
     const session = JSON.parse(fromB64url(payload).toString()) as Session;
-    if (!session.exp || session.exp < Math.floor(Date.now() / 1000)) return null;
+    const now = Math.floor(Date.now() / 1000);
+    // Idle window.
+    if (!session.exp || session.exp < now) return null;
+    // Ceiling. Absent on tokens minted before it existed, and those simply run
+    // out at their idle expiry above.
+    if (session.abs && session.abs < now) return null;
     return session;
   } catch {
     return null;
