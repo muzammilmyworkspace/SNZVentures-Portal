@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireStaff, isAdmin } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { getAssignedClients, getCasesForAdvisor } from "@/lib/db/repos/portal";
 import { listInvites } from "@/lib/db/repos/invites";
@@ -34,7 +34,8 @@ export const dynamic = "force-dynamic";
  * at somebody else's book uses Advisors, which is built for exactly that.
  */
 export default async function MyStudentsPage() {
-  const { session } = await requireStaff();
+  const { session, role } = await requireStaff();
+  const admin = isAdmin(role);
 
   if (!isDatabaseConfigured()) {
     return (
@@ -59,15 +60,41 @@ export default async function MyStudentsPage() {
 
   return (
     <>
+      {/*
+        THE SCOPE, SAID OUT LOUD.
+
+        An admin's Cases page is firm-wide and this page is not, so the two
+        counts differ by design and it looked like data going missing. A page
+        that shows a subset has to say which subset, and where the whole is.
+      */}
       <PortalHeading
         eyebrow="Your students"
         title="Students"
-        lead="Everyone you have enrolled, and the links you have sent. You only ever see your own."
+        lead={
+          admin
+            ? "Students assigned to you, and the links you have sent. Cases and Users are firm-wide; this page is only your own book."
+            : "Everyone you have enrolled, and the links you have sent. You only ever see your own."
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Students" value={clients.length} />
-        <StatCard label="Open cases" value={openCases} />
+        {/*
+          One student can hold more than one case, so these two numbers are
+          not meant to match — the hint says so, because when they did not
+          match it read as a student having gone missing.
+        */}
+        <StatCard
+          label="Open cases"
+          value={openCases}
+          hint={
+            clients.length === cases.length
+              ? undefined
+              : `${cases.length} in total across ${clients.length} student${
+                  clients.length === 1 ? "" : "s"
+                }`
+          }
+        />
         <StatCard
           label="Need attention"
           value={needsAttention}
@@ -94,12 +121,43 @@ export default async function MyStudentsPage() {
               body="Create an enrolment link above and send it to your first student."
             />
           ) : (
-            <DataTable columns={["Name", "Email", "Type", "Status"]} caption="Students assigned to you">
+            <DataTable
+              columns={["Name", "Email", "Type", "Cases", "Status"]}
+              caption="Students assigned to you"
+            >
               {clients.map((c) => (
                 <Row key={c.id}>
-                  <Cell>{c.name}</Cell>
+                  {/*
+                    The name opens the file. It always did on Users and never
+                    here, so the one screen a consultant lives on was the one
+                    with no way into a student's record.
+                  */}
+                  <Cell>
+                    <Link
+                      href={`/portal/admin/users/${c.id}`}
+                      className="text-fg underline-offset-4 hover:text-accent hover:underline"
+                    >
+                      {c.name}
+                    </Link>
+                  </Cell>
                   <Cell muted>{c.email}</Cell>
                   <Cell muted>{ROLE_LABEL[c.role as Role]}</Cell>
+                  {/*
+                    WHY THE TWO NUMBERS DIFFER, on the row that explains it.
+                    Without this a student count of 2 beside a case count of 3
+                    is unaccountable, and the only reading is that something is
+                    missing.
+                  */}
+                  <Cell muted>
+                    {c.caseCount === 0 ? (
+                      "None yet"
+                    ) : (
+                      <>
+                        {c.caseCount} case{c.caseCount === 1 ? "" : "s"}
+                        {c.openCases > 0 && ` · ${c.openCases} open`}
+                      </>
+                    )}
+                  </Cell>
                   <Cell>
                     <StatusPill status={c.status} label={c.status === "active" ? "Active" : "Suspended"} />
                   </Cell>

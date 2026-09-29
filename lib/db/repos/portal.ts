@@ -1046,12 +1046,65 @@ export async function getClientsByAdvisor(): Promise<AdvisorClient[]> {
   }, []);
 }
 
+/**
+ * WHOSE CLIENTS ARE MINE — the single definition.
+ *
+ * This is both the list behind Your Students and the authorization check
+ * behind the client file, the document reads and the .zip export. Those must
+ * be the same set or one screen shows a name the next one 404s on.
+ *
+ * TWO WAYS A CLIENT BECOMES YOURS, and this used to count only the first:
+ *
+ *   1. staff_assignments — how enrolment through your link records it, and
+ *      how an admin hands a client over.
+ *   2. a case whose advisor_id is you — a deliberate, explicit assignment of
+ *      that piece of work by an admin.
+ *
+ * getCasesForAdvisor has always honoured both, so a case assigned to an
+ * advisor appeared in their Cases list while its student appeared in their
+ * student list nowhere: the two screens counted different things and the
+ * difference read as missing data. It was the second rule, missing here.
+ *
+ * Widening this widens document access, deliberately: somebody given a case
+ * cannot work it without the file, and the grant is an admin's explicit act,
+ * not something enrolment or registration can produce on its own.
+ *
+ * The case counts come back with the row so the page can show WHY a student
+ * count and a case count differ — one student with two cases is not a missing
+ * student, and a table that shows only names cannot say so.
+ */
 export async function getAssignedClients(advisorId: string) {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email, u.role, u.status, u.created_at
-      FROM staff_assignments sa JOIN users u ON u.id = sa.client_id
-      WHERE sa.advisor_id = ${advisorId}
+      SELECT u.id, u.name, u.email, u.role, u.status, u.created_at,
+             count(c.id)::int AS case_count,
+             count(c.id) FILTER (
+               WHERE c.status NOT IN ('completed','closed')
+             )::int AS open_cases,
+             min(c.reference) AS first_reference
+      FROM users u
+      /*
+        ONLY THE CASES THIS ADVISOR CAN SEE, which is the same condition
+        getCasesForAdvisor uses. Counting all of a client's cases here would
+        make these numbers disagree with the Cases page again, in the other
+        direction — the exact bug this is fixing.
+      */
+      LEFT JOIN cases c
+        ON c.client_id = u.id
+       AND (c.advisor_id = ${advisorId}
+            OR EXISTS (
+              SELECT 1 FROM staff_assignments sa2
+              WHERE sa2.advisor_id = ${advisorId} AND sa2.client_id = u.id
+            ))
+      WHERE EXISTS (
+              SELECT 1 FROM staff_assignments sa
+              WHERE sa.advisor_id = ${advisorId} AND sa.client_id = u.id
+            )
+         OR EXISTS (
+              SELECT 1 FROM cases mine
+              WHERE mine.advisor_id = ${advisorId} AND mine.client_id = u.id
+            )
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.created_at
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -1061,6 +1114,9 @@ export async function getAssignedClients(advisorId: string) {
       role: r.role as Role,
       status: String(r.status),
       createdAt: iso(r.created_at)!,
+      caseCount: Number(r.case_count ?? 0),
+      openCases: Number(r.open_cases ?? 0),
+      firstReference: r.first_reference ? String(r.first_reference) : null,
     }));
   }, []);
 }

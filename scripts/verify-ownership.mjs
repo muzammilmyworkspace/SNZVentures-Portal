@@ -206,6 +206,86 @@ await check("a consultant is nobody's client", async () => {
   if (row.advisor_name !== null) throw new Error("a consultant was given a consultant");
 });
 
+/* ------------------------------------------- the two screens must agree */
+
+/**
+ * getAssignedClients — Your Students, and the authorization check behind the
+ * client file and the document reads.
+ */
+const MINE = `
+  SELECT u.id, u.name,
+         count(c.id)::int AS case_count,
+         count(c.id) FILTER (WHERE c.status NOT IN ('completed','closed'))::int AS open_cases
+  FROM users u
+  LEFT JOIN cases c
+    ON c.client_id = u.id
+   AND (c.advisor_id = $1
+        OR EXISTS (SELECT 1 FROM staff_assignments sa2
+                    WHERE sa2.advisor_id = $1 AND sa2.client_id = u.id))
+  WHERE EXISTS (SELECT 1 FROM staff_assignments sa
+                 WHERE sa.advisor_id = $1 AND sa.client_id = u.id)
+     OR EXISTS (SELECT 1 FROM cases mine
+                 WHERE mine.advisor_id = $1 AND mine.client_id = u.id)
+  GROUP BY u.id, u.name
+  ORDER BY u.name
+`;
+
+/** getCasesForAdvisor — the Cases page, for a consultant. */
+const MY_CASES = `
+  SELECT c.id FROM cases c
+  WHERE c.advisor_id = $1
+     OR EXISTS (SELECT 1 FROM staff_assignments sa
+                 WHERE sa.advisor_id = $1 AND sa.client_id = c.client_id)
+`;
+
+await check("a case assigned to a consultant brings its student with it", async () => {
+  const c = await user("advisor", "Hina Malik");
+  const s = await user("student", "Ali Raza");
+  // Assigned the CASE, never the client. This is how an admin hands over one
+  // piece of work, and Your Students used to ignore it entirely.
+  await openCase(s, { advisorId: c });
+
+  const rows = (await db.query(MINE, [c])).rows;
+  if (rows.length !== 1) throw new Error(`${rows.length} students`);
+  if (rows[0].case_count !== 1) throw new Error(`${rows[0].case_count} cases on the row`);
+});
+
+await check("the student count and the case count come from the same set", async () => {
+  const c = await user("advisor", "Hina Malik");
+  const one = await user("student", "One");
+  const two = await user("student", "Two");
+  await enrol(one, c);
+  await enrol(two, c);
+  // Two students, three cases — which is exactly the shape that read as a
+  // missing student, and is not one.
+  await openCase(one, { title: "Bachelors" });
+  await openCase(one, { title: "Masters" });
+  await openCase(two, { title: "Bachelors" });
+
+  const mine = (await db.query(MINE, [c])).rows;
+  const cases = (await db.query(MY_CASES, [c])).rows;
+  if (mine.length !== 2) throw new Error(`${mine.length} students`);
+  if (cases.length !== 3) throw new Error(`${cases.length} cases`);
+
+  // The whole point: every case the Cases page shows is accounted for by a row
+  // on Your Students. Anything else is a number nobody can explain.
+  const summed = mine.reduce((n, r) => n + r.case_count, 0);
+  if (summed !== cases.length) {
+    throw new Error(`Your Students accounts for ${summed} of ${cases.length} cases`);
+  }
+});
+
+await check("somebody else's student is in neither", async () => {
+  const mineAdv = await user("advisor", "Mine");
+  const rival = await user("advisor", "Rival");
+  const theirs = await user("student");
+  await enrol(theirs, rival);
+  await openCase(theirs);
+
+  if ((await db.query(MINE, [mineAdv])).rows.length) throw new Error("a rival's student leaked");
+  if ((await db.query(MY_CASES, [mineAdv])).rows.length) throw new Error("a rival's case leaked");
+});
+
 /* ------------------------------------------------- the reference, at all */
 
 await check("every case carries the reference the pages now print", async () => {

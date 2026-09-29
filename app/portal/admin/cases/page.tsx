@@ -28,7 +28,16 @@ export default async function AdminCasesPage() {
       <PortalHeading
         eyebrow="Staff"
         title="Cases"
-        lead={isAdmin(role) ? "Every open and closed case." : "Cases assigned to you."}
+        /*
+          Named against the other page. An admin comparing this count with the
+          one on Your Students was comparing every case in the firm with their
+          own book, and read the difference as data going missing.
+        */
+        lead={
+          isAdmin(role)
+            ? "Every open and closed case in the firm — not only your own. Your own book is on Your Students."
+            : "Every case of yours, including clients with more than one."
+        }
       />
       <Panel padded={cases.length === 0}>
         {cases.length === 0 ? (
