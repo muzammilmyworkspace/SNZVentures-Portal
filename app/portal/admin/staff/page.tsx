@@ -86,7 +86,7 @@ export default async function ConsultantsPage() {
               They cannot sign themselves up — an account made here is the only way in. No
               password is chosen for them: they get a single-use link and pick their own.
             </p>
-            {!mailConfigured() && (
+            {!(await mailConfigured()) && (
               <p className="note-warn mb-4 p-3 text-[0.82rem] leading-relaxed">
                 Email is not configured on this deployment, so nothing will be sent
                 automatically. The link will appear here for you to pass on.

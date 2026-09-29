@@ -1,18 +1,14 @@
 import "server-only";
-import { mailTransport } from "./mail";
+import { mailConfig, DEFAULT_FROM } from "./mail";
+import { getStoredMail } from "./db/repos/mail-settings";
 
 /**
  * WHAT THE RUNNING DEPLOYMENT ACTUALLY SEES.
  *
  * "Email is not configured" is a true statement and a useless one: it says the
- * variable is not visible here, and leaves four different causes looking
- * identical — saved to Preview instead of Production, saved but never
- * redeployed, a typo in the NAME, or never saved at all. Every one of them
- * produces the same sentence, so the next move is a guess.
- *
- * scripts/check-config.mjs already answers this, but it answers it about the
- * machine it runs on. The deployment is the only thing that can report its own
- * environment, so this asks it directly and the admin page prints the answer.
+ * setting is not visible here, and leaves several causes looking identical.
+ * The deployment is the only thing that can report its own configuration, so
+ * this asks it directly and the admin page prints the answer.
  *
  * NOTHING SECRET IS RETURNED. Whether a key exists, yes; the key, never — not
  * a prefix, not a length. A sender address and a list of verified domains are
@@ -21,9 +17,8 @@ import { mailTransport } from "./mail";
 
 export type MailStatus = {
   transport: "resend" | "webhook" | "none";
-  /** Present in this environment — not whether it works. */
-  hasResendKey: boolean;
-  hasWebhook: boolean;
+  /** Environment variable, a key entered in the portal, or nothing. */
+  source: "environment" | "portal" | "none";
   from: string | null;
   /** Null when there is no key to test with. */
   keyAccepted: boolean | null;
@@ -31,24 +26,30 @@ export type MailStatus = {
   keyStatus: number | null;
   /** Domains Resend will send from, and whether each is verified. */
   domains: { name: string; status: string }[];
+  /** From the stored settings: what went wrong last, and when one last went out. */
+  lastError: string | null;
+  lastSentAt: string | null;
   /** Populated only when the check itself could not run. */
   error: string | null;
 };
 
 export async function mailStatus(): Promise<MailStatus> {
-  const transport = mailTransport();
+  const cfg = await mailConfig();
+  const stored = cfg.source === "portal" ? await getStoredMail() : null;
+
   const base: MailStatus = {
-    transport,
-    hasResendKey: Boolean(process.env.RESEND_API_KEY),
-    hasWebhook: Boolean(process.env.MAIL_WEBHOOK_URL),
-    from: process.env.MAIL_FROM?.trim() || null,
+    transport: cfg.transport,
+    source: cfg.source,
+    from: cfg.transport === "none" ? null : cfg.from,
     keyAccepted: null,
     keyStatus: null,
     domains: [],
+    lastError: stored?.lastError ?? null,
+    lastSentAt: stored?.lastSentAt ?? null,
     error: null,
   };
 
-  if (transport !== "resend") return base;
+  if (cfg.transport !== "resend" || !cfg.apiKey) return base;
 
   /*
     A live call, because a key that is present and a key that works are
@@ -58,7 +59,7 @@ export async function mailStatus(): Promise<MailStatus> {
   */
   try {
     const res = await fetch("https://api.resend.com/domains", {
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      headers: { Authorization: `Bearer ${cfg.apiKey}` },
       cache: "no-store",
     });
     base.keyStatus = res.status;
@@ -80,12 +81,11 @@ export async function mailStatus(): Promise<MailStatus> {
 }
 
 /**
- * The sender Resend will be asked to use, and whether its domain is one it
- * will accept.
+ * The sender Resend will be asked to use, and whose domain has to be verified.
  *
  * This is the failure that survives everything else being right: the key
- * works, the domain is verified, and mail still bounces because MAIL_FROM is
- * unset and the code falls back to noreply@ on a domain nobody verified.
+ * works, the domain is verified, and mail still bounces because the sender is
+ * on a domain nobody asked Resend to accept.
  */
 export function senderDomain(from: string | null): string | null {
   if (!from) return null;
@@ -94,3 +94,5 @@ export function senderDomain(from: string | null): string | null {
   const at = address.lastIndexOf("@");
   return at === -1 ? null : address.slice(at + 1).toLowerCase();
 }
+
+export { DEFAULT_FROM };

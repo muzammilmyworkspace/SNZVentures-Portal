@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       ip,
     });
 
-    if (mailConfigured()) {
+    if (await mailConfigured()) {
       // Branded HTML with a button, plus the full link as plain text — see
       // lib/mail-templates.ts for why both parts are always sent.
       const mail = passwordResetEmail({ name: user.name, link, minutes: 30 });

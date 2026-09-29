@@ -87,7 +87,7 @@ export default async function IntegrationsPage({
           somewhere far from this page, as "nothing arrived".
         */}
         <Panel title="Email">
-          <MailStatusPanel status={await mailStatus()} />
+          <MailStatusPanel status={await mailStatus()} canEdit={session.role === "super_admin"} />
         </Panel>
 
         <Panel title="Google Drive">

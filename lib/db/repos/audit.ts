@@ -54,6 +54,14 @@ export type AuditAction =
   | "staff.created"
   | "staff.details_updated"
   /*
+    Mail credentials entered through the admin screen (021). A sending key
+    can write to every client as this firm, so who set one and when is worth
+    as much as who changed a role.
+  */
+  | "mail.configured"
+  | "mail.test_sent"
+  | "mail.cleared"
+  /*
     Enrolment links (019). These answer "whose student is this" at the moment a
     consultant's fee depends on the answer, so the whole life of a link is
     recorded: minted, withdrawn, and the account it finally bound. Never the

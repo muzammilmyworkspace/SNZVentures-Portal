@@ -1,14 +1,14 @@
 import type { MailStatus as Status } from "@/lib/mail-status";
 import { senderDomain } from "@/lib/mail-status";
-import { DEFAULT_FROM } from "@/lib/mail";
+import { MailSetup } from "@/components/portal/MailSetup";
 
 /**
  * Whether this deployment can send email, and if not, which step is missing.
  *
- * Written as a checklist rather than a status badge because the useful output
- * is the NEXT ACTION, not the state. Somebody opens this page having already
- * done four things and been told nothing worked; a green tick against the
- * three that did land is what narrows it down.
+ * A checklist rather than a status badge, because the useful output is the
+ * NEXT ACTION. Somebody opens this page having already tried four things and
+ * been told nothing worked; the green ticks against the three that did land
+ * are what narrows it down.
  */
 
 function Line({
@@ -37,15 +37,21 @@ function Line({
   );
 }
 
-export function MailStatusPanel({ status }: { status: Status }) {
-  const from = status.from;
-  const domain = senderDomain(from) ?? senderDomain(DEFAULT_FROM);
+export function MailStatusPanel({
+  status,
+  canEdit,
+}: {
+  status: Status;
+  /** Entering a sending credential is super-admin work. */
+  canEdit: boolean;
+}) {
+  const domain = senderDomain(status.from);
   const matched = status.domains.find((d) => d.name.toLowerCase() === domain);
   const verified = matched?.status?.toLowerCase() === "verified";
 
   const working =
     status.transport === "webhook" ||
-    (status.keyAccepted === true && Boolean(from) && verified);
+    (status.keyAccepted === true && Boolean(status.from) && verified);
 
   return (
     <div className="space-y-4">
@@ -55,35 +61,34 @@ export function MailStatusPanel({ status }: { status: Status }) {
         }
       >
         {working
-          ? "This deployment can send email."
-          : "This deployment cannot send email yet. The first ✗ below is what to fix."}
+          ? status.source === "portal"
+            ? "Email is working, using the key entered here."
+            : "Email is working, using the deployment's own settings."
+          : "Email cannot be sent yet. The first ✗ below is what to fix."}
       </p>
 
       <ul>
         <Line
-          ok={status.hasResendKey || status.hasWebhook}
-          label="A mail transport is set on THIS deployment"
+          ok={status.transport !== "none"}
+          label="A sending key is configured"
           detail={
-            status.hasResendKey || status.hasWebhook ? (
-              status.hasResendKey ? (
-                "RESEND_API_KEY is present."
-              ) : (
-                "MAIL_WEBHOOK_URL is present."
-              )
-            ) : (
+            status.transport === "none" ? (
               <>
-                Neither <code>RESEND_API_KEY</code> nor <code>MAIL_WEBHOOK_URL</code> is visible
-                to the running code. Three things produce this and they look identical: the
-                variable was saved to Preview or Development rather than Production; it was
-                saved but the project has not been redeployed since (variables are read at
-                build, so saving alone changes nothing); or the name is spelt differently.
-                Check the spelling exactly, that Production is ticked, then redeploy.
+                Nothing is set. Add a Resend API key below — it is stored here, encrypted, and
+                takes effect immediately with no redeploy.
               </>
+            ) : status.source === "environment" ? (
+              <>
+                Set on the deployment as an environment variable. That takes priority over
+                anything entered here, so the form below is ignored while it exists.
+              </>
+            ) : (
+              "Entered in this portal and stored encrypted."
             )
           }
         />
 
-        {status.hasResendKey && (
+        {status.transport === "resend" && (
           <Line
             ok={status.keyAccepted}
             label="Resend accepts the key"
@@ -97,24 +102,21 @@ export function MailStatusPanel({ status }: { status: Status }) {
           />
         )}
 
-        <Line
-          ok={Boolean(from)}
-          label="A sender address is set"
-          detail={
-            from ? (
-              <>
-                Sending as <strong className="font-semibold text-fg">{from}</strong>
-              </>
-            ) : (
-              <>
-                <code>MAIL_FROM</code> is not set, so the code falls back to{" "}
-                <code>{DEFAULT_FROM}</code> — an address Resend has almost certainly not been
-                asked to verify, so every message is rejected. Set it to the address you want
-                replies to go to.
-              </>
-            )
-          }
-        />
+        {status.transport !== "none" && (
+          <Line
+            ok={Boolean(status.from)}
+            label="A sender address is set"
+            detail={
+              status.from ? (
+                <>
+                  Sending as <strong className="font-semibold text-fg">{status.from}</strong>
+                </>
+              ) : (
+                "No sender address, so every message would be rejected."
+              )
+            }
+          />
+        )}
 
         {status.keyAccepted === true && (
           <Line
@@ -129,7 +131,7 @@ export function MailStatusPanel({ status }: { status: Status }) {
                 <>
                   Not verified. Resend has:{" "}
                   {status.domains.map((d) => `${d.name} (${d.status})`).join(", ")}. The sender
-                  domain has to be one of these and it has to say verified.
+                  domain has to be one of these, and it has to say verified.
                 </>
               )
             }
@@ -137,8 +139,26 @@ export function MailStatusPanel({ status }: { status: Status }) {
         )}
       </ul>
 
+      {/*
+        THE PROVIDER'S OWN WORDS about the last failure. A rejection here is
+        almost always specific — an unverified sender, a suspended account, a
+        daily limit — and repeating it verbatim is more use than any summary.
+      */}
+      {status.lastError && (
+        <p className="note-danger p-3 text-[0.82rem] leading-relaxed">
+          Last failure: {status.lastError}
+        </p>
+      )}
+      {status.lastSentAt && !status.lastError && (
+        <p className="text-[0.8rem] text-faint">
+          Last message sent {new Date(status.lastSentAt).toLocaleString()}.
+        </p>
+      )}
+
+      {canEdit && <MailSetup source={status.source} />}
+
       <p className="text-[0.78rem] leading-relaxed text-faint">
-        Read live from this deployment each time the page loads. No key is shown here, only
+        Read live from this deployment each time the page loads. No key is shown here — only
         whether one is present and whether the provider accepts it.
       </p>
     </div>

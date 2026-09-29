@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     whether anything went out.
   */
   let emailed = false;
-  if (mailConfigured()) {
+  if (await mailConfigured()) {
     try {
       await sendMail({
         to: user.email,

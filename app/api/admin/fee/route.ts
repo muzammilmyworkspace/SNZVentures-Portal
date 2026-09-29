@@ -104,7 +104,7 @@ export async function PATCH(request: Request) {
     already recorded and the portal already reflects it; a mail outage should
     not roll that back or show staff an error for something that worked.
   */
-  if (mailConfigured()) {
+  if (await mailConfigured()) {
     try {
       const base = siteUrl();
       const mail =

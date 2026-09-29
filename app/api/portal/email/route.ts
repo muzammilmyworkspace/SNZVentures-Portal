@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!mailConfigured()) {
+  if (!(await mailConfigured())) {
     return NextResponse.json(
       {
         ok: false,

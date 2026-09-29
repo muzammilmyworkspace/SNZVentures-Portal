@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (mailConfigured()) {
+  if (await mailConfigured()) {
     /*
       The old address is told it has happened, not just that it was asked for.
       It is the last message that mailbox will ever receive from us, and the

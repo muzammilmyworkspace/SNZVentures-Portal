@@ -173,7 +173,7 @@ export async function POST(request: Request) {
   */
 
   // Verification email — best effort, never blocks registration.
-  if (mailConfigured()) {
+  if (await mailConfigured()) {
     try {
       const token = await store.issueToken(user.id, "email_verify", 60 * 24);
       const base = siteUrl();
