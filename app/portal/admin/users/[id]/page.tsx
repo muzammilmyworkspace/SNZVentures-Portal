@@ -9,7 +9,6 @@ import {
   Panel,
   EmptyState,
   StatusPill,
-  DataRow,
 } from "@/components/portal/Pieces";
 import { AdminNotes } from "@/components/portal/AdminNotes";
 import { PortalAccess } from "@/components/portal/PortalAccess";
@@ -249,27 +248,6 @@ export default async function AdminUserPage({
             </Panel>
           )}
 
-          {/* Sending a file out of the portal is a deliberate act by a named
-              person, so the control lives on the file itself rather than in a
-              bulk tool somewhere else. */}
-          {documents.length > 0 && (
-            <Panel title="Documents">
-              <p className="text-[0.86rem] leading-relaxed text-muted">
-                {documents.length} file{documents.length === 1 ? "" : "s"} on this file.
-              </p>
-              {/*
-                One archive rather than one click per document. Named after the
-                client, with the documents named as they were uploaded.
-              */}
-              <a
-                href={"/api/admin/documents/zip?userId=" + id}
-                className="label mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
-              >
-                Download all as .zip
-              </a>
-            </Panel>
-          )}
-
           {isAdmin(role) && drive.connected && (
             <Panel title="Send to Google Drive">
               <DriveExport userId={id} existing={drive.export} />
@@ -340,7 +318,14 @@ export default async function AdminUserPage({
             )}
           </Panel>
 
-          {/* Documents */}
+          {/*
+            DOCUMENTS. One panel, not two — the .zip used to sit in a second
+            panel with the same title further up the page.
+
+            The review note is shown with the row. It is the whole reason a
+            document reads "Needs revision", and staff were having to open the
+            review queue to find out what had been asked for.
+          */}
           <Panel
             title="Documents"
             action={
@@ -355,35 +340,99 @@ export default async function AdminUserPage({
             {documents.length === 0 ? (
               <EmptyState icon="file" title="Nothing uploaded" body="No documents on file yet." />
             ) : (
-              documents.map((d) => (
-                <DataRow
-                  key={d.id}
-                  label={d.name}
-                  value={<StatusPill status={d.status} label={STATUS_LABEL[d.status] ?? d.status} />}
-                  meta={<span className="label text-faint">{d.category}</span>}
-                />
-              ))
+              <>
+                <ul className="divide-y divide-line">
+                  {documents.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[0.95rem] text-fg">{d.name}</p>
+                        <p className="mt-0.5 text-[0.78rem] text-faint">
+                          {d.category}
+                          {" · "}
+                          {new Date(d.updatedAt).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                        {d.reviewNote && (
+                          <p className="mt-1 text-[0.8rem] leading-relaxed text-muted">
+                            {d.reviewNote}
+                          </p>
+                        )}
+                      </div>
+                      <StatusPill status={d.status} label={STATUS_LABEL[d.status] ?? d.status} />
+                    </li>
+                  ))}
+                </ul>
+                {/*
+                  One archive rather than one click per document. Named after
+                  the client, with the documents named as they were uploaded.
+                */}
+                <a
+                  href={"/api/admin/documents/zip?userId=" + id}
+                  className="label mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+                >
+                  Download all {documents.length} as .zip
+                </a>
+              </>
             )}
           </Panel>
 
-          {/* Cases */}
+          {/*
+            CASES.
+
+            Written out rather than sent through DataRow, which takes a single
+            string label. A case has four things somebody needs at a glance and
+            only one of them is the title: the reference they will quote on the
+            phone, what the case is waiting on, and who owns it.
+
+            OWNERSHIP FALLS BACK TO THE CONSULTANT. cases.advisor_id is only
+            ever set by a deliberate assignment, so for a student who arrived
+            through a consultant's link it is null and this row read "study"
+            and nothing else. The consultant who enrolled them is the answer to
+            "whose client is this", and it is labelled so nobody mistakes it
+            for a case assignment that was never made.
+          */}
           <Panel title="Cases">
             {cases.length === 0 ? (
               <EmptyState icon="file" title="No cases" body="No case has been opened for this client." />
             ) : (
-              cases.map((c) => (
-                <DataRow
-                  key={c.id}
-                  label={c.title}
-                  value={<StatusPill status={c.status} label={c.status.replace(/_/g, " ")} />}
-                  meta={
-                    <span className="label text-faint">
-                      {c.pathway}
-                      {c.advisorName ? ` · ${c.advisorName}` : ""}
-                    </span>
-                  }
-                />
-              ))
+              <ul className="divide-y divide-line">
+                {cases.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      {c.reference && (
+                        <p className="num text-[0.75rem] text-faint">
+                          {c.reference}
+                        </p>
+                      )}
+                      <p className="mt-0.5 text-[0.95rem] text-fg">{c.title}</p>
+                      {c.nextAction && (
+                        <p className="mt-0.5 text-[0.8rem] leading-relaxed text-muted">
+                          Next: {c.nextAction}
+                        </p>
+                      )}
+                      <p className="mt-1 text-[0.78rem] text-faint">
+                        <span className="capitalize">{c.pathway}</span>
+                        {c.country ? ` · ${c.country}` : ""}
+                        {c.advisorName
+                          ? ` · ${c.advisorName}`
+                          : c.consultantName
+                            ? ` · ${c.consultantName} (their consultant)`
+                            : ""}
+                      </p>
+                    </div>
+                    <StatusPill status={c.status} label={c.status.replace(/_/g, " ")} />
+                  </li>
+                ))}
+              </ul>
             )}
           </Panel>
         </div>

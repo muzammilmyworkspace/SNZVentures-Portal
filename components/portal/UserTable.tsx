@@ -16,6 +16,9 @@ type Row = {
   status: string;
   emailVerified: boolean;
   createdAt: string;
+  /** Who they already belong to. Null for staff, and for nobody's client. */
+  advisorId: string | null;
+  advisorName: string | null;
 };
 
 /**
@@ -99,7 +102,7 @@ export function UserTable({
           <caption className="sr-only">Portal users</caption>
           <thead>
             <tr className="border-b border-line">
-              {["User", "Role", "Status", "Advisor", "Actions"].map((h) => (
+              {["User", "Role", "Status", "Consultant", "Actions"].map((h) => (
                 <th key={h} scope="col" className="label px-5 py-3 text-faint">
                   {h}
                 </th>
@@ -208,21 +211,52 @@ export function UserTable({
                     )}
                   </td>
 
+                  {/*
+                    WHO THEY BELONG TO — not just a way to change it.
+
+                    This was an "Assign…" select that never showed the current
+                    assignment, so a page of students could not answer the
+                    question the column exists for. It is now the value of the
+                    select, which also means picking a different consultant is
+                    visibly a MOVE rather than an addition.
+
+                    Only clients have one. A consultant does not belong to a
+                    consultant, and offering the control on their row invited
+                    an assignment the rest of the product does not understand.
+                  */}
                   <td className="px-5 py-3">
-                    {locked || !advisors.length ? (
+                    {!(CLIENT_ROLES as readonly Role[]).includes(u.role) ? (
                       <span className="text-[0.8rem] text-faint">—</span>
+                    ) : locked || !advisors.length ? (
+                      <span className="text-[0.85rem] text-fg">
+                        {u.advisorName ?? <span className="text-faint">Unassigned</span>}
+                      </span>
                     ) : (
                       <select
-                        aria-label={`Assign advisor to ${u.name}`}
-                        defaultValue=""
+                        aria-label={`Consultant for ${u.name}`}
+                        value={u.advisorId ?? ""}
                         disabled={pending}
-                        onChange={(e) =>
-                          e.target.value &&
-                          act(u.id, { action: "assign_advisor", advisorId: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          if (next) {
+                            act(u.id, { action: "assign_advisor", advisorId: next });
+                          } else if (u.advisorId) {
+                            act(u.id, { action: "unassign_advisor", advisorId: u.advisorId });
+                          }
+                        }}
                         className="field py-1.5 text-[0.85rem]"
                       >
-                        <option value="">Assign…</option>
+                        <option value="">Unassigned</option>
+                        {/*
+                          A consultant who has since been deactivated no longer
+                          appears in `advisors`, and without this the select
+                          would silently fall back to "Unassigned" and say the
+                          student has nobody. Their name stays until somebody
+                          chooses a replacement.
+                        */}
+                        {u.advisorId && !advisors.some((a) => a.id === u.advisorId) && (
+                          <option value={u.advisorId}>{u.advisorName ?? "Current"}</option>
+                        )}
                         {advisors.map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.name}

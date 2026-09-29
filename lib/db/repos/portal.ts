@@ -14,10 +14,27 @@ import type { Role } from "@/lib/auth/types";
 
 export type CaseRow = {
   id: string;
+  /**
+   * SNZ-YYYY-NNNN. Generated for every case since 003 and, until now, shown
+   * nowhere — which made it useless for the thing it exists for: naming a case
+   * in an email or on the phone without reading out a UUID.
+   */
+  reference: string | null;
   clientId: string;
   clientName: string;
   advisorId: string | null;
   advisorName: string | null;
+  /**
+   * The consultant the CLIENT is assigned to, which is a different fact from
+   * the advisor on the case.
+   *
+   * Nothing sets `cases.advisor_id` when a consultant enrols a student — that
+   * is a separate, manual assignment — so the Advisor column read "—" for
+   * every case even where the student plainly had somebody. The honest answer
+   * to "whose is this" is the client's consultant, so it is fetched too and
+   * the column falls back to it.
+   */
+  consultantName: string | null;
   pathway: "study" | "career" | "business";
   title: string;
   country: string | null;
@@ -102,10 +119,20 @@ const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null);
 export async function getCasesForClient(clientId: string): Promise<CaseRow[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT c.*, u.name AS client_name, a.name AS advisor_name
+      SELECT c.*, u.name AS client_name, a.name AS advisor_name,
+             cons.name AS consultant_name
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
+      /* Their consultant, for the same reason as in getAllCases. */
+      LEFT JOIN LATERAL (
+        SELECT adv.name
+        FROM staff_assignments sa
+        JOIN users adv ON adv.id = sa.advisor_id
+        WHERE sa.client_id = c.client_id
+        ORDER BY sa.created_at ASC
+        LIMIT 1
+      ) cons ON TRUE
       WHERE c.client_id = ${clientId}
       ORDER BY c.updated_at DESC
     `;
@@ -117,10 +144,24 @@ export async function getCasesForClient(clientId: string): Promise<CaseRow[]> {
 export async function getCasesForAdvisor(advisorId: string): Promise<CaseRow[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT c.*, u.name AS client_name, a.name AS advisor_name
+      SELECT c.*, u.name AS client_name, a.name AS advisor_name,
+             cons.name AS consultant_name
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
+      /*
+        The client's consultant. LATERAL with LIMIT 1 because
+        staff_assignments permits several advisors on one client, and a plain
+        join would duplicate the case.
+      */
+      LEFT JOIN LATERAL (
+        SELECT adv.name
+        FROM staff_assignments sa
+        JOIN users adv ON adv.id = sa.advisor_id
+        WHERE sa.client_id = c.client_id
+        ORDER BY sa.created_at ASC
+        LIMIT 1
+      ) cons ON TRUE
       WHERE c.advisor_id = ${advisorId}
          OR EXISTS (
            SELECT 1 FROM staff_assignments sa
@@ -135,10 +176,24 @@ export async function getCasesForAdvisor(advisorId: string): Promise<CaseRow[]> 
 export async function getAllCases(limit = 100): Promise<CaseRow[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT c.*, u.name AS client_name, a.name AS advisor_name
+      SELECT c.*, u.name AS client_name, a.name AS advisor_name,
+             cons.name AS consultant_name
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
+      /*
+        The client's consultant. LATERAL with LIMIT 1 because
+        staff_assignments permits several advisors on one client, and a plain
+        join would duplicate the case.
+      */
+      LEFT JOIN LATERAL (
+        SELECT adv.name
+        FROM staff_assignments sa
+        JOIN users adv ON adv.id = sa.advisor_id
+        WHERE sa.client_id = c.client_id
+        ORDER BY sa.created_at ASC
+        LIMIT 1
+      ) cons ON TRUE
       ORDER BY c.updated_at DESC LIMIT ${limit}
     `;
     return rows.map(mapCase);
@@ -148,10 +203,12 @@ export async function getAllCases(limit = 100): Promise<CaseRow[]> {
 function mapCase(r: Record<string, unknown>): CaseRow {
   return {
     id: String(r.id),
+    reference: r.reference ? String(r.reference) : null,
     clientId: String(r.client_id),
     clientName: String(r.client_name ?? ""),
     advisorId: r.advisor_id ? String(r.advisor_id) : null,
     advisorName: r.advisor_name ? String(r.advisor_name) : null,
+    consultantName: r.consultant_name ? String(r.consultant_name) : null,
     pathway: r.pathway as CaseRow["pathway"],
     title: String(r.title),
     country: r.country ? String(r.country) : null,

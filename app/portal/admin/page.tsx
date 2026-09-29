@@ -63,7 +63,7 @@ export default async function AdminPage() {
       <>
         <PortalHeading
           eyebrow="Staff"
-          title={admin ? "Administrator overview" : "Advisor overview"}
+          title={admin ? "Administrator overview" : "Consultant overview"}
         />
         <NotConfigured what="Staff tooling" />
       </>
@@ -222,7 +222,7 @@ export default async function AdminPage() {
     <>
       <PortalHeading
         eyebrow="Staff"
-        title={admin ? "Administrator overview" : "Advisor overview"}
+        title={admin ? "Administrator overview" : "Consultant overview"}
         lead={
           admin
             ? "What's waiting on the team right now, and how the portal stands today."

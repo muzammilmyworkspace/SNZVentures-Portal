@@ -253,7 +253,7 @@ export type UserSort = "recent" | "oldest" | "name" | "last_active";
 export async function getUsersPageData(
   filter: UserFilter & { sort?: UserSort } = {}
 ): Promise<{
-  rows: (DbUser & { profileFields: number })[];
+  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null })[];
   total: number;
   page: number;
   pages: number;
@@ -269,7 +269,7 @@ export async function getUsersPageData(
   const sort: UserSort = filter.sort ?? "recent";
 
   const empty = {
-    rows: [] as (DbUser & { profileFields: number })[],
+    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null })[],
     total: 0,
     page: 1,
     pages: 1,
@@ -290,9 +290,29 @@ export async function getUsersPageData(
                        SELECT p.phone UNION ALL SELECT p.nationality
                        UNION ALL SELECT p.country UNION ALL SELECT p.city
                      ) f(v) WHERE v IS NOT NULL AND btrim(v) <> ''
-                   ) AS profile_fields
+                   ) AS profile_fields,
+                   /*
+                     WHO THEY ALREADY BELONG TO.
+
+                     The advisor column offered "Assign…" and nothing else, so
+                     a list of a hundred students could not answer the one
+                     question anybody asks of it — whose client is this. The
+                     assignment was in the database the whole time.
+
+                     LATERAL with LIMIT 1: staff_assignments permits several
+                     advisors on one client, and a plain join would repeat the
+                     user once per advisor. Earliest first, because that is the
+                     consultant who enrolled them.
+                   */
+                   cons.id AS advisor_id, cons.name AS advisor_name
             FROM users u
             LEFT JOIN profiles p ON p.user_id = u.id
+            LEFT JOIN LATERAL (
+              SELECT adv.id, adv.name FROM staff_assignments sa
+              JOIN users adv ON adv.id = sa.advisor_id
+              WHERE sa.client_id = u.id
+              ORDER BY sa.created_at ASC LIMIT 1
+            ) cons ON TRUE
             WHERE (${q}::text IS NULL
                    OR u.name ILIKE ${"%" + (q ?? "") + "%"}
                    OR u.email ILIKE ${"%" + (q ?? "") + "%"})
@@ -339,6 +359,8 @@ export async function getUsersPageData(
       rows: ((r?.rows ?? []) as Record<string, unknown>[]).map((u) => ({
         ...mapUser(u),
         profileFields: Number(u.profile_fields ?? 0),
+        advisorId: u.advisor_id ? String(u.advisor_id) : null,
+        advisorName: u.advisor_name ? String(u.advisor_name) : null,
       })),
       total,
       page: Math.floor(offset / limit) + 1,

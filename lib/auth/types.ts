@@ -29,7 +29,14 @@ export const ROLE_LABEL: Record<Role, string> = {
   student: "Student",
   professional: "Job Seeker",
   business: "Business",
-  advisor: "Advisor",
+  /*
+    "Consultant", not "Advisor". The role is `advisor` in the database and in
+    every function name, and renaming that would be a migration for no gain —
+    but the people using this product call them consultants, the module that
+    onboards them is called Consultants, and a table reading "Advisor" beside
+    one reading "Consultant" for the same person is a support question.
+  */
+  advisor: "Consultant",
   admin: "Administrator",
   super_admin: "Super Administrator",
 };

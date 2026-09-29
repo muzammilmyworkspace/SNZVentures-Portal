@@ -242,7 +242,7 @@ export async function getAdminUserFile(
   pathway: "study" | "career" | "business" | null
 ): Promise<{
   documents: { id: string; name: string; category: string; status: string; reviewNote: string | null; updatedAt: string }[];
-  cases: { id: string; title: string; status: string; pathway: string; country: string | null; reference: string | null; advisorName: string | null; updatedAt: string }[];
+  cases: { id: string; title: string; status: string; pathway: string; country: string | null; reference: string | null; nextAction: string | null; advisorName: string | null; consultantName: string | null; updatedAt: string }[];
   intake: IntakeForm | null;
   history: HistoryEntry[];
   notes: AdminNote[];
@@ -259,8 +259,24 @@ export async function getAdminUserFile(
 
         COALESCE((SELECT json_agg(x) FROM (
           SELECT c.id, c.title, c.status, c.pathway, c.country, c.reference,
-                 c.updated_at, a.name AS advisor_name
+                 c.next_action, c.updated_at, a.name AS advisor_name,
+                 cons.name AS consultant_name
           FROM cases c LEFT JOIN users a ON a.id = c.advisor_id
+          /*
+            Who enrolled them. Nothing sets cases.advisor_id when a consultant
+            signs a student up — that is a separate, manual assignment — so
+            without this the file showed no owner at all for every student who
+            arrived through a consultant's link, which is most of them.
+
+            LATERAL with LIMIT 1 because staff_assignments permits several
+            advisors on one client and a plain join would duplicate the case.
+          */
+          LEFT JOIN LATERAL (
+            SELECT adv.name FROM staff_assignments sa
+            JOIN users adv ON adv.id = sa.advisor_id
+            WHERE sa.client_id = c.client_id
+            ORDER BY sa.created_at ASC LIMIT 1
+          ) cons ON TRUE
           WHERE c.client_id = ${userId}
           ORDER BY c.updated_at DESC LIMIT 50
         ) x), '[]'::json) AS cases,
@@ -312,7 +328,9 @@ export async function getAdminUserFile(
         pathway: String(c.pathway),
         country: c.country ? String(c.country) : null,
         reference: c.reference ? String(c.reference) : null,
+        nextAction: c.next_action ? String(c.next_action) : null,
         advisorName: c.advisor_name ? String(c.advisor_name) : null,
+        consultantName: c.consultant_name ? String(c.consultant_name) : null,
         updatedAt: iso(c.updated_at)!,
       })),
       intake: r?.intake ? mapIntake(r.intake as Record<string, unknown>) : null,

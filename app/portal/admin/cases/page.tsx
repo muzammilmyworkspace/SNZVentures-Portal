@@ -39,7 +39,7 @@ export default async function AdminCasesPage() {
               <caption className="sr-only">Cases</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Client", "Case", "Pathway", "Status", "Advisor", "Updated"].map((h) => (
+                  {["Reference", "Client", "Case", "Pathway", "Status", "Consultant", "Updated"].map((h) => (
                     <th key={h} scope="col" className="label px-5 py-3 text-faint">{h}</th>
                   ))}
                 </tr>
@@ -47,13 +47,52 @@ export default async function AdminCasesPage() {
               <tbody>
                 {cases.map((c) => (
                   <tr key={c.id} className="border-b border-line last:border-0">
-                    <td className="px-5 py-3 text-[0.9rem] text-fg">{c.clientName}</td>
-                    <td className="px-5 py-3 text-[0.85rem] text-muted">{c.title}</td>
+                    {/* Generated for every case since 003 and, until now, shown
+                        nowhere — which made it useless for naming a case in an
+                        email instead of reading out a UUID. */}
+                    <td className="px-5 py-3">
+                      <span className="num text-[0.8rem] text-faint">{c.reference ?? "—"}</span>
+                    </td>
+                    <td className="px-5 py-3 text-[0.9rem] text-fg">
+                      {c.clientName}
+                      {c.country && (
+                        <span className="mt-0.5 block text-[0.78rem] text-faint">{c.country}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-[0.85rem] text-muted">
+                      {c.title}
+                      {/* What the case is waiting for. Written at creation and
+                          never displayed, so the queue said what each case WAS
+                          but not what to do about it. */}
+                      {c.nextAction && (
+                        <span className="mt-0.5 block text-[0.78rem] text-faint">{c.nextAction}</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3"><span className="label text-faint">{c.pathway}</span></td>
                     <td className="px-5 py-3">
                       <StatusPill status={c.status} label={c.status.replace(/_/g, " ")} />
                     </td>
-                    <td className="px-5 py-3 text-[0.85rem] text-muted">{c.advisorName ?? "—"}</td>
+                    {/*
+                      The advisor ON THE CASE if one was assigned, otherwise the
+                      client's consultant. Reading only the first showed "—"
+                      against every case, including students who plainly had
+                      somebody — the two are different facts and nothing sets
+                      the case one when a consultant enrols a student.
+                    */}
+                    <td className="px-5 py-3 text-[0.85rem]">
+                      {c.advisorName ? (
+                        <span className="text-muted">{c.advisorName}</span>
+                      ) : c.consultantName ? (
+                        <span className="text-muted">
+                          {c.consultantName}
+                          <span className="mt-0.5 block text-[0.72rem] text-faint">
+                            via their consultant
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-faint">Unassigned</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-[0.8rem] text-faint">
                       {new Date(c.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     </td>
