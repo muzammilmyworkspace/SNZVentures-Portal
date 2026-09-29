@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 
 /**
@@ -32,6 +34,7 @@ export function FeeReview(props: {
   submittedAt: string;
   receiptDocumentId: string | null;
 }) {
+  const router = useRouter();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<null | "verify" | "reject">(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,9 @@ export function FeeReview(props: {
         return;
       }
       setDone(action === "verify" ? "verified" : "rejected");
+      // The queue above this row still shows the old count until the server
+      // renders again.
+      router.refresh();
     } catch {
       setError("Network problem. Please try again.");
       setBusy(null);

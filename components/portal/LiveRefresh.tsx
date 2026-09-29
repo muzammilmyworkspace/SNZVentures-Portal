@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -26,15 +26,54 @@ import { useRouter } from "next/navigation";
  * while the tab is actually visible, so a portal left open in a background tab
  * overnight makes no requests at all.
  */
-export function LiveRefresh({ everySeconds = 90 }: { everySeconds?: number }) {
+/**
+ * Is the person in the middle of something a refresh would interrupt?
+ *
+ * `router.refresh()` keeps React state, so nothing typed is ever LOST. But
+ * safe is not the same as welcome: a table reordering under a half-filled form,
+ * or behind an open dialog, reads as the page fighting whoever is using it.
+ * The next tick is seconds away, so waiting costs nothing.
+ *
+ * This also guards the focus listener below, which fires every time somebody
+ * clicks back into the window — including mid-sentence.
+ */
+function busy(): boolean {
+  if (typeof document === "undefined") return true;
+
+  // A modal is open, so the person is doing the thing it was opened for.
+  if (document.querySelector("dialog[open]")) return true;
+
+  const el = document.activeElement as HTMLElement | null;
+  if (!el) return false;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) return true;
+  if (el.isContentEditable) return true;
+
+  return false;
+}
+
+export function LiveRefresh({ everySeconds = 30 }: { everySeconds?: number }) {
   const router = useRouter();
+
+  /*
+    Held in a ref so the effect subscribes once. With `router` in the deps it
+    tore down and rebuilt the timer on every navigation, which on the staff
+    side — where people move between queues constantly — meant the interval
+    almost never survived long enough to fire.
+  */
+  const refresh = useRef(() => router.refresh());
+  refresh.current = () => router.refresh();
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;
 
+    const tick = () => {
+      if (document.visibilityState !== "visible" || busy()) return;
+      refresh.current();
+    };
+
     const start = () => {
       if (timer) return;
-      timer = setInterval(() => router.refresh(), everySeconds * 1000);
+      timer = setInterval(tick, everySeconds * 1000);
     };
     const stop = () => {
       if (!timer) return;
@@ -46,23 +85,28 @@ export function LiveRefresh({ everySeconds = 90 }: { everySeconds?: number }) {
       if (document.visibilityState === "visible") {
         // Straight away, because the interesting case is somebody returning to
         // the tab specifically to see whether anything has moved.
-        router.refresh();
+        tick();
         start();
       } else {
         stop();
       }
     };
 
+    // Whatever is on screen is at least as old as the outage.
+    const onOnline = () => tick();
+
     if (document.visibilityState === "visible") start();
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onVisibility);
+    window.addEventListener("online", onOnline);
 
     return () => {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onVisibility);
+      window.removeEventListener("online", onOnline);
     };
-  }, [router, everySeconds]);
+  }, [everySeconds]);
 
   return null;
 }

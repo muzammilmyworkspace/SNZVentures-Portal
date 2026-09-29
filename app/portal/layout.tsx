@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
 import { SessionKeepalive } from "@/components/portal/SessionKeepalive";
+import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import * as repo from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { studentStage, pathOpen, lockReason } from "@/lib/portal/stage";
@@ -103,6 +104,14 @@ export default async function PortalLayout({ children }: { children: React.React
         one for somebody who has gone.
       */}
       <SessionKeepalive />
+
+      {/*
+        HERE, not on individual pages. It was mounted on the client dashboard
+        and the journey page only, so the entire staff side — the queues where
+        somebody else's action is the whole point — never updated on its own,
+        and the answer was to keep pressing reload.
+      */}
+      <LiveRefresh />
 
       {/*
         Outside the shell, above everything, and not dismissible. The risk with

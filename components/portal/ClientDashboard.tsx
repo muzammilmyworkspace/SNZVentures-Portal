@@ -24,7 +24,6 @@ import {
   familyStatus,
   groupsFor,
 } from "@/lib/application/checklist";
-import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import { roleContext, portalRoleFor } from "@/lib/portal/roles";
 import {
   PortalHeading,
@@ -188,7 +187,6 @@ export async function ClientDashboard({ session }: { session: Session }) {
         reviews a document, replies to a message. Without this, a student
         watching the tab sees nothing move and concludes nothing happened.
       */}
-      <LiveRefresh />
 
       <PortalHeading
         eyebrow={ctx.eyebrow}

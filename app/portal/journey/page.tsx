@@ -6,7 +6,6 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { studentStage } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
-import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import { getIntake } from "@/lib/db/repos/operations";
 import { intakeFor, intakeCompletion } from "@/lib/portal/intake";
 import { JOURNEYS, type Role } from "@/lib/auth/types";
@@ -68,7 +67,6 @@ export default async function JourneyPage() {
 
   return (
     <>
-      <LiveRefresh />
 
       <PortalHeading eyebrow="Your route" title="Your journey" lead={position.note} />
 
