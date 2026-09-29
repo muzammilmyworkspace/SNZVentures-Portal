@@ -79,8 +79,22 @@ export async function POST(request: Request) {
     consultantId = forConsultantId;
   }
 
-  if (email !== undefined && email !== null && typeof email !== "string") {
-    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  /*
+    REQUIRED, and checked here rather than only in the form.
+
+    It was optional, and optional meant almost always skipped — the field sat
+    under a sentence explaining that nothing would be sent, so the honest
+    response was to leave it blank and copy the URL. The address is now what
+    the invitation is FOR: enrolling a student means sending them something.
+
+    A consultant who still wants to hand the link over themselves gets it in
+    the response either way, so nothing is taken away by asking.
+  */
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+    return NextResponse.json(
+      { ok: false, error: "Enter the student's email address — the invitation is sent to it." },
+      { status: 400 }
+    );
   }
   if (note !== undefined && note !== null && typeof note !== "string") {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });

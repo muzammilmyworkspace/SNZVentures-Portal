@@ -148,11 +148,12 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
     <form onSubmit={create} className="space-y-4">
       <div>
         <label htmlFor="invite-email" className="field-label">
-          Their email <span className="text-faint">(optional)</span>
+          Their email
         </label>
         <input
           id="invite-email"
           type="email"
+          required
           className="field"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -160,8 +161,8 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
           aria-describedby="invite-email-hint"
         />
         <p id="invite-email-hint" className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
-          Fill this in and we email the link straight to them. Leave it blank and you get the
-          link to send yourself. Either way they can sign up with a different address.
+          We email the link straight to them. They can still sign up with a different address
+          if they prefer — this is where the invitation goes, not a restriction on the account.
         </p>
       </div>
 
@@ -188,10 +189,10 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !email}
           className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
         >
-          {busy ? "Creating…" : "Create link"}
+          {busy ? "Sending…" : "Send invitation"}
         </button>
         <button
           type="button"
