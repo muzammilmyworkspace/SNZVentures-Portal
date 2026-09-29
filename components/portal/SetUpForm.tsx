@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PasswordField } from "@/components/portal/PasswordField";
+import { AvatarPicker } from "@/components/portal/AvatarPicker";
 
 /**
  * FIRST SIGN-IN, IN TWO STEPS.
@@ -43,6 +44,7 @@ export function SetUpForm({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,7 +72,7 @@ export function SetUpForm({
       const res = await fetch("/api/auth/set-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password, ...form }),
+        body: JSON.stringify({ token, password, avatar, ...form }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -142,6 +144,8 @@ export function SetUpForm({
               Set by SnZ Ventures, and what you will sign in with. Tell us if either is wrong.
             </p>
           </div>
+
+          <AvatarPicker value={avatar} onChange={setAvatar} name={name} />
 
           <div className="grid gap-4 sm:grid-cols-2">
             {FIELDS.map((f) => (

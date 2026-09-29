@@ -517,6 +517,21 @@ export async function changeEmail(userId: string, email: string): Promise<boolea
   }, false);
 }
 
+/**
+ * Set or clear a profile photo.
+ *
+ * On `users` rather than `profiles` because that is where 003 put it, and for
+ * the reason 003 gives: an OAuth sign-in supplies one at authentication time,
+ * before a profile row necessarily exists.
+ */
+export async function setAvatar(userId: string, dataUri: string | null): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+  await safeQuery(async () => {
+    await db()`UPDATE users SET avatar_url = ${dataUri}, updated_at = now() WHERE id = ${userId}`;
+    return true;
+  }, false);
+}
+
 export async function sessionEpoch(userId: string): Promise<number | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {

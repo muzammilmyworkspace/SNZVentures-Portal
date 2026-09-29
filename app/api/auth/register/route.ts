@@ -10,6 +10,8 @@ import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import * as invitesRepo from "@/lib/db/repos/invites";
 import * as profilesRepo from "@/lib/db/repos/profiles";
+import { setAvatar } from "@/lib/db/repos/users";
+import { safeAvatar } from "@/lib/auth/avatar";
 
 export const runtime = "nodejs";
 
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  const { name, password, pathway, invite, phone, city, country } = (body ?? {}) as Record<
+  const { name, password, pathway, invite, phone, city, country, avatar } = (body ?? {}) as Record<
     string,
     unknown
   >;
@@ -159,6 +161,10 @@ export async function POST(request: Request) {
     they just created.
   */
   await profilesRepo.saveProfile(user.id, role, contact);
+
+  // Optional. A rejected photo must never cost somebody the account.
+  const photo = safeAvatar(avatar);
+  if (photo) await setAvatar(user.id, photo);
 
   await audit({
     action: "auth.register",

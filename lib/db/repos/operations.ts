@@ -488,9 +488,31 @@ export async function getIntakeById(id: string): Promise<IntakeForm | null> {
 export async function getIntakeQueue(limit = 100) {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT f.*, u.name AS user_name, u.email AS user_email, u.role AS user_role
+      SELECT f.*, u.name AS user_name, u.email AS user_email, u.role AS user_role,
+             adv.name AS consultant_name
       FROM intake_forms f
       JOIN users u ON u.id = f.user_id
+      /*
+        WHOSE STUDENT THIS IS, on the queue rather than one click inside it.
+
+        Without it every submitted form looks the same, and the question staff
+        actually ask first — "is this one of ours or did a consultant bring
+        them" — could only be answered by opening the file. LEFT, because a
+        client who came to us directly has no consultant and that absence is
+        itself the answer.
+
+        LIMIT 1 in the subquery rather than a join: staff_assignments permits
+        several advisors on one client, and a second row would duplicate the
+        intake in the queue.
+      */
+      LEFT JOIN LATERAL (
+        SELECT a.name
+        FROM staff_assignments sa
+        JOIN users a ON a.id = sa.advisor_id
+        WHERE sa.client_id = u.id
+        ORDER BY sa.created_at ASC
+        LIMIT 1
+      ) adv ON TRUE
       WHERE f.status <> 'draft'
       ORDER BY f.submitted_at ASC NULLS LAST
       LIMIT ${limit}
@@ -500,6 +522,7 @@ export async function getIntakeQueue(limit = 100) {
       userName: r.user_name as string,
       userEmail: r.user_email as string,
       userRole: r.user_role as string,
+      consultantName: r.consultant_name ? String(r.consultant_name) : null,
     }));
   }, []);
 }

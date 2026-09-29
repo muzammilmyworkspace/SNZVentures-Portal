@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as store from "@/lib/auth/store";
-import { revokeSessions, setEmailVerified } from "@/lib/db/repos/users";
+import { revokeSessions, setEmailVerified, setAvatar } from "@/lib/db/repos/users";
+import { safeAvatar } from "@/lib/auth/avatar";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import { hashPassword, validatePassword } from "@/lib/auth/password";
 import { createToken, setSessionCookie, authConfigured } from "@/lib/auth/session";
@@ -110,6 +111,14 @@ export async function POST(request: Request) {
   }
 
   await profilesRepo.saveProfile(user.id, user.role, patch);
+
+  /*
+    Optional, and a bad one is dropped rather than refused — see safeAvatar.
+    Trading somebody's account for a rejected photo would be the wrong way
+    round.
+  */
+  const avatar = safeAvatar(fields.avatar);
+  if (avatar) await setAvatar(user.id, avatar);
   await store.setPasswordHash(user.id, await hashPassword(password));
 
   /*

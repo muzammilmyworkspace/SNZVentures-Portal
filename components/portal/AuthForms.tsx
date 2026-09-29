@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { Action } from "@/components/ui/Editorial";
+import { AvatarPicker } from "@/components/portal/AvatarPicker";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -359,6 +360,7 @@ export function RegisterForm({
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -402,6 +404,7 @@ export function RegisterForm({
         phone,
         city,
         country,
+        avatar,
         invite,
       });
       if (!res.ok || !data.ok) {
@@ -486,6 +489,8 @@ export function RegisterForm({
 
       {step === 2 ? (
         <>
+          <AvatarPicker value={avatar} onChange={setAvatar} name={name} />
+
           <Field id="name" label="Full name" value={name} onChange={setName} autoComplete="name" />
 
           {invitedEmail ? (

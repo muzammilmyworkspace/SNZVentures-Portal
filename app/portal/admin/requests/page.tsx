@@ -163,7 +163,7 @@ export default async function AdminRequestsPage({
               <caption className="sr-only">Submitted requests</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Client", "Type", "Account", "Submitted", "Waiting", "Status"].map((h) => (
+                  {["Client", "Brought by", "Type", "Account", "Submitted", "Waiting", "Status"].map((h) => (
                     <th key={h} scope="col" className="label px-5 py-3 text-faint">
                       {h}
                     </th>
@@ -184,6 +184,22 @@ export default async function AdminRequestsPage({
                         {r.userName}
                       </Link>
                       <span className="mt-0.5 block text-[0.8rem] text-faint">{r.userEmail}</span>
+                    </td>
+                    {/*
+                      WHOSE STUDENT THIS IS, beside the name rather than one
+                      click inside the file. "Direct" is not an absence — it
+                      says this person came to SnZ themselves, which is a
+                      different thing from a consultant's client and is read
+                      differently.
+                    */}
+                    <td className="px-5 py-3">
+                      {r.consultantName ? (
+                        <span className="label inline-block rounded-[var(--radius-sm)] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 text-accent">
+                          {r.consultantName}
+                        </span>
+                      ) : (
+                        <span className="label text-faint">Direct</span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <span className="label text-faint">{PATHWAY_LABEL[r.pathway] ?? r.pathway}</span>

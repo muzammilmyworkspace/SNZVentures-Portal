@@ -19,7 +19,14 @@
  * at worst.
  */
 
-export const CONSENT_VERSION = "2026-08-student-v1";
+/*
+  MOVED FOR v2: the initial fee clause. v1 said fees became non-refundable
+  "once the process has commenced", which left the first payment arguable
+  before anything had started — the exact moment people ask for it back.
+  Consents already signed keep pointing at v1, which is the text those people
+  actually read.
+*/
+export const CONSENT_VERSION = "2026-09-student-v2";
 
 export const CONSENT_TITLE = "Student Consent & Undertaking";
 
@@ -45,9 +52,10 @@ export const CONSENT_CLAUSES: { text: string; emphasis: string[] }[] = [
     ],
   },
   {
-    text: "I acknowledge that the consultancy fees paid for services are non-refundable once the admission and visa application process has commenced, regardless of whether the visa is approved or refused.",
+    text: "I acknowledge that the initial consultancy fee is non-refundable from the moment it is paid, and that all consultancy fees paid for services are non-refundable once the admission and visa application process has commenced, regardless of whether the visa is approved or refused.",
     emphasis: [
-      "consultancy fees paid for services are non-refundable once the admission and visa application process has commenced",
+      "initial consultancy fee is non-refundable from the moment it is paid",
+      "non-refundable once the admission and visa application process has commenced",
     ],
   },
   {
