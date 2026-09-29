@@ -201,12 +201,42 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           icon: "messages",
           roles: ["admin", "super_admin"],
         },
-        { href: "/portal/admin/requests", label: "Requests", icon: "requests" },
+        /*
+          ADMIN ONLY, all three, and the reason is the same for each: they are
+          firm-wide QUEUES, not a view of anybody's own work. Requests lists
+          every submitted intake, Documents every uploaded file awaiting
+          approval, Fee verification every payment claimed — none of them
+          scoped to a consultant, because none of them is a consultant's job.
+          Processing is what the firm does; enrolling is what a consultant
+          does.
+
+          They were reachable by an advisor, and the pages fetched everything,
+          so a consultant with no students of their own could read other
+          people's intakes. The guards on the pages are what actually fix that;
+          these entries stop offering a link that now refuses.
+        */
+        {
+          href: "/portal/admin/requests",
+          label: "Requests",
+          icon: "requests",
+          roles: ["admin", "super_admin"],
+        },
         // Sits directly above Documents: verifying a fee is the decision that
         // opens a student's file, so it belongs beside the queue it feeds.
-        { href: "/portal/admin/fees", label: "Fee verification", icon: "requests" },
+        {
+          href: "/portal/admin/fees",
+          label: "Fee verification",
+          icon: "requests",
+          roles: ["admin", "super_admin"],
+        },
+        // Scoped in SQL to the advisor's own clients, so this one stays.
         { href: "/portal/admin/cases", label: "Cases", icon: "applications" },
-        { href: "/portal/admin/documents", label: "Documents", icon: "documents" },
+        {
+          href: "/portal/admin/documents",
+          label: "Documents",
+          icon: "documents",
+          roles: ["admin", "super_admin"],
+        },
         {
           href: "/portal/admin/analytics",
           label: "Analytics",

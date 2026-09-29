@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAdmin } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { listFeeSubmissions } from "@/lib/db/repos/fees";
@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "Fee verification" };
  * not because the page happens to hold a key.
  */
 export default async function AdminFeesPage() {
-  await requireStaff();
+  await requireAdmin();
 
   if (!isDatabaseConfigured()) {
     return (

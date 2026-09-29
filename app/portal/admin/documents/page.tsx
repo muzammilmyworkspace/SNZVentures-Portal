@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAdmin } from "@/lib/auth/guard";
 import { getDocumentsForReview } from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { isStorageConfigured } from "@/lib/storage";
@@ -7,7 +7,7 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { DocumentReview } from "@/components/portal/DocumentReview";
 
 export default async function AdminDocumentsPage() {
-  await requireStaff();
+  await requireAdmin();
 
   if (!isDatabaseConfigured()) {
     return (

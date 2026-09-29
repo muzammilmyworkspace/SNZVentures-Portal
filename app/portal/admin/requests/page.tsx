@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireStaff } from "@/lib/auth/guard";
+import { requireAdmin } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
@@ -59,7 +59,7 @@ export default async function AdminRequestsPage({
 }: {
   searchParams: Promise<{ status?: string; pathway?: string }>;
 }) {
-  await requireStaff();
+  await requireAdmin();
   const params = await searchParams;
 
   if (!isDatabaseConfigured()) {
