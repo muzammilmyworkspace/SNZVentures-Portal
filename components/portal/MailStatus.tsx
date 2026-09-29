@@ -155,7 +155,7 @@ export function MailStatusPanel({
         </p>
       )}
 
-      {canEdit && <MailSetup source={status.source} />}
+      {canEdit && <MailSetup source={status.source} canTest={status.transport !== "none"} />}
 
       <p className="text-[0.78rem] leading-relaxed text-faint">
         Read live from this deployment each time the page loads. No key is shown here — only

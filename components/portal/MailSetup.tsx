@@ -15,7 +15,14 @@ import { useRouter } from "next/navigation";
  * step, because "saved" and "works" are different facts and the gap between
  * them is exactly where this got stuck before.
  */
-export function MailSetup({ source }: { source: "environment" | "portal" | "none" }) {
+export function MailSetup({
+  source,
+  canTest,
+}: {
+  source: "environment" | "portal" | "none";
+  /** A transport exists, wherever it came from — so a test can actually be sent. */
+  canTest: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -91,6 +98,43 @@ export function MailSetup({ source }: { source: "environment" | "portal" | "none
       )}
       {note && <p className="note-ok mb-3 p-3 text-[0.85rem] leading-relaxed">{note}</p>}
 
+      {/*
+        THE TEST IS OFFERED WHEREVER THE KEY CAME FROM.
+
+        It used to appear only for a key entered here, which left the
+        environment-configured case — the one actually in production — with no
+        way to confirm anything from the portal at all. Whether a message goes
+        out is the same question either way, and it is the only one that
+        settles the argument.
+      */}
+      {canTest && (
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={sendTest}
+              disabled={testing}
+              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+            >
+              {testing ? "Sending…" : "Send a test message"}
+            </button>
+          </div>
+          <div className="mt-3">
+            <label htmlFor="mail-test-to" className="field-label">
+              Send the test to <span className="text-faint">(optional)</span>
+            </label>
+            <input
+              id="mail-test-to"
+              type="email"
+              className="field"
+              value={testTo}
+              onChange={(e) => setTestTo(e.target.value)}
+              placeholder="Leave blank to send to yourself"
+            />
+          </div>
+        </div>
+      )}
+
       {source === "environment" ? (
         <p className="text-[0.85rem] leading-relaxed text-muted">
           This deployment sets its own mail credentials, so there is nothing to enter here.
@@ -107,33 +151,7 @@ export function MailSetup({ source }: { source: "environment" | "portal" | "none
               {source === "portal" ? "Replace the key" : "Add a Resend key"}
             </button>
 
-            {source === "portal" && (
-              <button
-                type="button"
-                onClick={sendTest}
-                disabled={testing}
-                className="label min-h-11 rounded-[var(--radius-sm)] border border-line px-4 text-muted transition-colors hover:border-fg hover:text-fg disabled:opacity-50"
-              >
-                {testing ? "Sending…" : "Send a test message"}
-              </button>
-            )}
           </div>
-
-          {source === "portal" && (
-            <div className="mt-3">
-              <label htmlFor="mail-test-to" className="field-label">
-                Send the test to <span className="text-faint">(optional)</span>
-              </label>
-              <input
-                id="mail-test-to"
-                type="email"
-                className="field"
-                value={testTo}
-                onChange={(e) => setTestTo(e.target.value)}
-                placeholder="Leave blank to send to yourself"
-              />
-            </div>
-          )}
 
           {open && (
             <form onSubmit={save} className="mt-4 space-y-3">
