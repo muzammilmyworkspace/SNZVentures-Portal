@@ -5,6 +5,7 @@ import { audit } from "@/lib/db/repos/audit";
 import * as invitesRepo from "@/lib/db/repos/invites";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { siteUrl } from "@/lib/site-url";
+import { sendMail, mailConfigured } from "@/lib/mail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +100,53 @@ export async function POST(request: Request) {
     );
   }
 
+  const link = `${siteUrl()}/join/${created.token}`;
+  const to = typeof email === "string" ? email.trim() : "";
+
+  /*
+    SENT WHEN AN ADDRESS WAS GIVEN, otherwise handed back to be passed on.
+
+    This used to be copy-only for every invite, because no mail transport
+    existed and a feature that silently sent nothing would have been worse than
+    one that admitted it. With mail working, an address in that field should do
+    what the field appears to promise — and a consultant who leaves it blank,
+    because they are about to send the link over WhatsApp, still gets the link.
+
+    A send that fails is NOT an error. The invite is already created and valid,
+    and refusing here would throw away a usable link over a delivery problem.
+    The response says which happened and the panel shows the link either way.
+  */
+  let emailed = false;
+  if (to.includes("@") && (await mailConfigured())) {
+    try {
+      await sendMail({
+        to,
+        subject: `${session.name} has invited you to SnZ Ventures`,
+        text: [
+          "Hello,",
+          "",
+          `${session.name} at SnZ Ventures has invited you to create your account.`,
+          "",
+          "Open this link to get started — it works once, and expires in 14 days:",
+          link,
+          "",
+          "You will be asked to choose a password, and then you can fill in your",
+          "application and upload your documents.",
+          "",
+          "If you were not expecting this, ignore this message. Nothing is created",
+          "until you fill in the form yourself.",
+          "",
+          "SnZ Ventures",
+        ].join("\n"),
+        replyTo: session.email,
+      });
+      emailed = true;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("[invite] email failed:", error);
+    }
+  }
+
   /*
     The audit records the invite id, NOT the token. An audit table that carries
     working enrolment links is a second copy of the secret, readable by every
@@ -110,14 +158,16 @@ export async function POST(request: Request) {
     actorEmail: session.email,
     entity: "invite",
     entityId: created.id,
-    meta: { consultantId, email: typeof email === "string" ? email : null },
+    meta: { consultantId, email: to || null, emailed },
     ip,
   });
 
   return NextResponse.json({
     ok: true,
     id: created.id,
-    link: `${siteUrl()}/join/${created.token}`,
+    emailed,
+    sentTo: emailed ? to : null,
+    link,
     expiresAt: created.expiresAt,
   });
 }

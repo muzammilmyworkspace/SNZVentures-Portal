@@ -24,6 +24,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   async function create(e: FormEvent) {
@@ -40,12 +41,15 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
         ok?: boolean;
         error?: string;
         link?: string;
+        emailed?: boolean;
+        sentTo?: string | null;
       };
       if (!res.ok || !data.ok || !data.link) {
         setError(data.error ?? "We couldn't create that link. Please try again.");
         return;
       }
       setLink(data.link);
+      setSentTo(data.emailed ? (data.sentTo ?? null) : null);
       setEmail("");
       setNote("");
       // The list of pending links below this panel is server-rendered.
@@ -75,9 +79,24 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
   if (link) {
     return (
       <div className="space-y-4">
+        {/*
+          The link is shown even when it was emailed. A consultant who wants to
+          send it over WhatsApp as well should not have to withdraw it and make
+          another to get the URL, and "we emailed it" is not a reason to hide
+          the thing that was emailed.
+        */}
         <p className="note-ok p-4 text-[0.88rem] leading-relaxed">
-          Send this link to <strong className="font-semibold">one</strong> student. It works
-          once, and stops working after 14 days.
+          {sentTo ? (
+            <>
+              Emailed to <strong className="font-semibold">{sentTo}</strong>. The same link is
+              below if you would rather send it yourself as well.
+            </>
+          ) : (
+            <>
+              Send this link to <strong className="font-semibold">one</strong> student. It works
+              once, and stops working after 14 days.
+            </>
+          )}
         </p>
 
         <div className="rail break-all p-4 font-mono text-[0.8rem] leading-relaxed text-fg">
@@ -96,6 +115,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
             type="button"
             onClick={() => {
               setLink(null);
+              setSentTo(null);
               setOpen(false);
             }}
             className="label min-h-11 text-muted underline underline-offset-4 transition-colors hover:text-fg"
@@ -140,8 +160,8 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
           aria-describedby="invite-email-hint"
         />
         <p id="invite-email-hint" className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
-          Only so you can tell your links apart. The student can still sign up with a different
-          address, and the link is not sent anywhere — you send it yourself.
+          Fill this in and we email the link straight to them. Leave it blank and you get the
+          link to send yourself. Either way they can sign up with a different address.
         </p>
       </div>
 
