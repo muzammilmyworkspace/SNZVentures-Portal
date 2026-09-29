@@ -52,6 +52,7 @@ export type AuditAction =
     actually went out.
   */
   | "staff.created"
+  | "staff.details_updated"
   /*
     Enrolment links (019). These answer "whose student is this" at the moment a
     consultant's fee depends on the answer, so the whole life of a link is

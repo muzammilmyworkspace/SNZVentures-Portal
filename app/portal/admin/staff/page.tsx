@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/guard";
-import { getAdvisorsWithLoad, getClientsByAdvisor } from "@/lib/db/repos/portal";
+import { getAdvisorsWithLoad, getClientsByAdvisor, getStaffProfiles } from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { mailConfigured } from "@/lib/mail";
 import { PortalHeading, Panel, EmptyState, StatCard } from "@/components/portal/Pieces";
@@ -38,9 +38,10 @@ export default async function ConsultantsPage() {
     consultants with eight students each is a few dozen rows, which is smaller
     than the loading state that fetching-on-click would need.
   */
-  const [consultants, clients] = await Promise.all([
+  const [consultants, clients, profiles] = await Promise.all([
     getAdvisorsWithLoad(),
     getClientsByAdvisor(),
+    getStaffProfiles(),
   ]);
 
   /*
@@ -110,8 +111,10 @@ export default async function ConsultantsPage() {
             <ConsultantList
               consultants={consultants}
               clients={clients}
+              profiles={profiles}
               canViewAs={isSuperAdmin}
               canDelete={isSuperAdmin}
+              canEdit={isSuperAdmin}
               viewerId={session.userId}
             />
           )}

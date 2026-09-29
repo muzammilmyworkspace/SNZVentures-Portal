@@ -13,7 +13,21 @@ const TABLE: Record<string, string> = {
   business: "business_profiles",
 };
 
-const SHARED = ["phone", "nationality", "country", "city"] as const;
+/*
+  This list is what makes a column readable AND writable. It is the only thing
+  between a posted field name and an UPDATE, so a column missing from here
+  cannot be written no matter what the request claims — which is why the three
+  added in 020 are named rather than the whole table being reflected.
+*/
+const SHARED = [
+  "phone",
+  "nationality",
+  "country",
+  "city",
+  "company",
+  "address_line",
+  "postcode",
+] as const;
 
 const PATHWAY_COLUMNS: Record<string, string[]> = {
   student: ["level", "field_of_study", "destination", "intake", "scholarship", "budget", "language_level"],

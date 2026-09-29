@@ -13,6 +13,7 @@ import {
   Panel,
   EmptyState,
   WorkCard,
+  StatCard,
   AllClear,
   Breakdown,
   StatusPill,
@@ -185,6 +186,38 @@ export default async function AdminPage() {
     { label: "Team", value: m.advisors ?? 0 },
   ];
 
+  /*
+    HOW THE FIRM IS STAFFED AND WHAT IT IS CARRYING.
+
+    Separate from "Needs attention" above, which is a queue: every number there
+    is work somebody has to pick up, and putting a headcount among them would
+    make it read as five consultants waiting to be dealt with.
+
+    These are standing figures — true all day, acted on occasionally — so they
+    sit in their own row underneath, each linking to the page that can change
+    it.
+  */
+  const standing = [
+    {
+      label: "Consultants",
+      value: m.consultants ?? 0,
+      note: "Staff who enrol and carry their own students.",
+      href: "/portal/admin/staff",
+    },
+    {
+      label: "Clients",
+      value: (m.students ?? 0) + (m.professionals ?? 0) + (m.businesses ?? 0),
+      note: "Students, job seekers and businesses with an account.",
+      href: "/portal/admin/users",
+    },
+    {
+      label: "Open cases",
+      value: m.openCases ?? 0,
+      note: "Not yet completed or closed.",
+      href: "/portal/admin/cases",
+    },
+  ];
+
   return (
     <>
       <PortalHeading
@@ -218,6 +251,18 @@ export default async function AdminPage() {
           </div>
         )}
       </section>
+
+      {/* ------------------------------------------- how the firm is staffed */}
+      {admin && (
+        <section className="mb-5">
+          <h2 className="label mb-3.5 text-faint">The firm today</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {standing.map((s) => (
+              <StatCard key={s.label} label={s.label} value={s.value} href={s.href} hint={s.note} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* --------------------------------------------------- the live queues */}
       <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">

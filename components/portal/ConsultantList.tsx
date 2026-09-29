@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, Row, Cell, StatusPill } from "@/components/portal/Pieces";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
-import type { AdvisorLoad, AdvisorClient } from "@/lib/db/repos/portal";
+import type { AdvisorLoad, AdvisorClient, StaffProfile } from "@/lib/db/repos/portal";
 
 /**
  * Consultants, what each one is carrying, and a way into either.
  *
- * Two controls per row, and they are deliberately different weights. "Details"
- * opens a panel — reading. "View as" leaves this page signed in as somebody
- * else — acting. A row where both look alike invites the second when the first
- * was meant.
+ * Three controls per row, at deliberately different weights. The switch is
+ * reversible, the eye only reads, and delete is last and quiet. A row where
+ * they all look alike invites the wrong one.
  */
 
 function EyeIcon() {
@@ -44,6 +43,19 @@ function TrashIcon() {
   );
 }
 
+function CrossIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden className="h-[18px] w-[18px]">
+      <path
+        d="M5.5 5.5l9 9M14.5 5.5l-9 9"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function when(iso: string | null) {
   if (!iso) return "Never";
   return new Date(iso).toLocaleDateString(undefined, {
@@ -53,19 +65,63 @@ function when(iso: string | null) {
   });
 }
 
+/** One headline figure in the panel's top row. */
+function Figure({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="rail p-3">
+      <span className="label block text-faint">{label}</span>
+      <span className="mt-1 block text-[0.95rem] text-fg">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * One contact field, shown even when empty.
+ *
+ * A dash rather than a hidden row: the reason to open this panel is usually to
+ * find a phone number, and "there is no phone row" and "nobody has filled in a
+ * phone number" look identical when empty fields are dropped. One of those is
+ * something you can fix.
+ */
+function Detail({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="border-b border-line pb-2.5">
+      <dt className="label text-faint">{label}</dt>
+      <dd className={`mt-0.5 text-[0.9rem] ${value ? "text-fg" : "text-faint"}`}>
+        {value || "—"}
+      </dd>
+    </div>
+  );
+}
+
+/** Must stay in step with EDITABLE in app/api/admin/staff — the server drops the rest. */
+const FIELDS = [
+  { key: "phone", label: "Phone number", type: "tel" },
+  { key: "company", label: "Company name" },
+  { key: "address_line", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "postcode", label: "Zip / postcode" },
+  { key: "country", label: "Country" },
+] as const;
+
 export function ConsultantList({
   consultants,
   clients,
+  profiles,
   canViewAs,
   canDelete,
+  canEdit,
   viewerId,
 }: {
   consultants: AdvisorLoad[];
   clients: AdvisorClient[];
+  profiles: StaffProfile[];
   /** Only a super admin may step into a consultant. See lib/auth/impersonation. */
   canViewAs: boolean;
   /** Deleting an account is super-admin only, enforced again on the server. */
   canDelete: boolean;
+  /** So is rewriting the company and address a payment would be made out to. */
+  canEdit: boolean;
   /** Nobody operates on their own row — the admin API refuses it outright. */
   viewerId: string;
 }) {
@@ -75,6 +131,8 @@ export function ConsultantList({
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
   const dialogRef = useRef<HTMLDialogElement>(null);
   const confirmRef = useRef<HTMLDialogElement>(null);
 
@@ -99,6 +157,7 @@ export function ConsultantList({
 
   const open = consultants.find((c) => c.id === openId) ?? null;
   const openClients = openId ? clients.filter((c) => c.advisorId === openId) : [];
+  const profile = openId ? profiles.find((p) => p.userId === openId) : undefined;
   const doomed = consultants.find((c) => c.id === confirmId) ?? null;
 
   /** One call for every row action the admin API already exposes. */
@@ -114,6 +173,30 @@ export function ConsultantList({
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
         setError(data.error ?? "That didn't go through.");
+        return false;
+      }
+      router.refresh();
+      return true;
+    } catch {
+      setError("Network problem. Please try again.");
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function saveDetails(id: string) {
+    setError(null);
+    setBusyId(id);
+    try {
+      const res = await fetch("/api/admin/staff", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id, ...form }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setError(data.error ?? "Those details didn't save.");
         return false;
       }
       router.refresh();
@@ -256,7 +339,10 @@ export function ConsultantList({
                 )}
                 <button
                   type="button"
-                  onClick={() => setOpenId(c.id)}
+                  onClick={() => {
+                    setEditing(false);
+                    setOpenId(c.id);
+                  }}
                   aria-label={`Details for ${c.name}`}
                   className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-accent transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
                 >
@@ -304,14 +390,26 @@ export function ConsultantList({
         onClick={(e) => {
           if (e.target === confirmRef.current) setConfirmId(null);
         }}
-        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
+        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg shadow-2xl backdrop:bg-[color-mix(in_srgb,var(--color-navy-950)_70%,transparent)] backdrop:backdrop-blur-[2px]"
       >
         {doomed && (
           <div className="p-6">
-            <h2 className="text-[1.05rem] font-semibold text-fg-strong">
-              Delete {doomed.name}?
-            </h2>
-            <p className="mt-1 text-[0.85rem] text-muted">{doomed.email}</p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-[1.05rem] font-semibold text-fg-strong">
+                  Delete {doomed.name}?
+                </h2>
+                <p className="mt-1 truncate text-[0.85rem] text-muted">{doomed.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmId(null)}
+                aria-label="Close"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)] hover:text-fg"
+              >
+                <CrossIcon />
+              </button>
+            </div>
 
             <div className="note-danger mt-4 p-3 text-[0.85rem] leading-relaxed">
               This cannot be undone.
@@ -349,8 +447,7 @@ export function ConsultantList({
                 type="button"
                 disabled={typed !== "DELETE" || busyId === doomed.id}
                 onClick={async () => {
-                  const id = doomed.id;
-                  const done = await act(id, { action: "delete" });
+                  const done = await act(doomed.id, { action: "delete" });
                   if (done) setConfirmId(null);
                 }}
                 className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] bg-[var(--danger-soft)] px-5 text-danger transition-opacity hover:opacity-80 disabled:opacity-40"
@@ -371,79 +468,164 @@ export function ConsultantList({
 
       <dialog
         ref={dialogRef}
-        onClose={() => setOpenId(null)}
+        onClose={() => {
+          setOpenId(null);
+          setEditing(false);
+        }}
         /* Clicking the backdrop closes it: the click lands on the dialog
            element itself rather than on anything inside it. */
         onClick={(e) => {
           if (e.target === dialogRef.current) setOpenId(null);
         }}
-        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(46rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg backdrop:bg-[color-mix(in_srgb,var(--navy-950)_55%,transparent)]"
+        className="fixed inset-0 m-auto h-fit max-h-[calc(100vh-3rem)] w-[min(46rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--radius)] border border-line bg-bg p-0 text-fg shadow-2xl backdrop:bg-[color-mix(in_srgb,var(--color-navy-950)_70%,transparent)] backdrop:backdrop-blur-[2px]"
       >
         {open && (
-          <div className="p-6">
-            <div className="flex items-start justify-between gap-4 border-b border-line pb-4">
-              <div>
-                <h2 className="text-[1.15rem] font-semibold text-fg-strong">{open.name}</h2>
-                <p className="mt-0.5 text-[0.85rem] text-muted">{open.email}</p>
+          <div>
+            {/* Sticky, so closing stays reachable without scrolling back up
+                when a consultant has a long list of students below. */}
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-bg px-6 py-5">
+              <div className="min-w-0">
+                <h2 className="truncate text-[1.15rem] font-semibold text-fg-strong">
+                  {open.name}
+                </h2>
+                <p className="mt-0.5 truncate text-[0.85rem] text-muted">{open.email}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpenId(null)}
-                className="label min-h-11 px-2 text-muted transition-colors hover:text-fg"
+                aria-label="Close"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)] hover:text-fg"
               >
-                Close
+                <CrossIcon />
               </button>
             </div>
 
-            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[0.9rem] sm:grid-cols-4">
-              <div>
-                <dt className="label text-faint">Role</dt>
-                <dd className="mt-0.5 text-fg">{ROLE_LABEL[open.role as Role]}</dd>
+            <div className="px-6 pb-6">
+              <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                <Figure label="Role" value={ROLE_LABEL[open.role as Role]} />
+                <Figure
+                  label="Status"
+                  value={
+                    <StatusPill
+                      status={open.status}
+                      label={open.status === "active" ? "Active" : "Suspended"}
+                    />
+                  }
+                />
+                <Figure label="Students" value={<span className="num">{open.clientCount}</span>} />
+                <Figure label="Last signed in" value={when(open.lastLoginAt)} />
               </div>
-              <div>
-                <dt className="label text-faint">Status</dt>
-                <dd className="mt-0.5">
-                  <StatusPill
-                    status={open.status}
-                    label={open.status === "active" ? "Active" : "Suspended"}
-                  />
-                </dd>
-              </div>
-              <div>
-                <dt className="label text-faint">Students</dt>
-                <dd className="num mt-0.5 text-fg">{open.clientCount}</dd>
-              </div>
-              <div>
-                <dt className="label text-faint">Last signed in</dt>
-                <dd className="mt-0.5 text-fg">{when(open.lastLoginAt)}</dd>
-              </div>
-            </dl>
 
-            <h3 className="label mt-6 text-faint">Their students</h3>
-            {openClients.length === 0 ? (
-              <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">
-                None yet. They enrol students by sending a link from Your students.
-              </p>
-            ) : (
-              <div className="mt-2 max-h-[22rem] overflow-y-auto">
-                <DataTable
-                  columns={["Name", "Email", "Type", "Open cases"]}
-                  caption={`Students assigned to ${open.name}`}
-                  minWidth={520}
-                >
-                  {openClients.map((s) => (
-                    <Row key={s.id}>
-                      <Cell>{s.name}</Cell>
-                      <Cell muted>{s.email}</Cell>
-                      <Cell muted>{ROLE_LABEL[s.role as Role]}</Cell>
-                      <Cell>
-                        <span className="num">{s.openCases}</span>
-                      </Cell>
-                    </Row>
-                  ))}
-                </DataTable>
+              <div className="mt-6 flex items-center justify-between gap-4">
+                <h3 className="label text-faint">Consultant details</h3>
+                {canEdit && !editing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm({
+                        phone: profile?.phone ?? "",
+                        company: profile?.company ?? "",
+                        address_line: profile?.addressLine ?? "",
+                        city: profile?.city ?? "",
+                        postcode: profile?.postcode ?? "",
+                        country: profile?.country ?? "",
+                      });
+                      setEditing(true);
+                    }}
+                    className="label text-accent underline underline-offset-4 transition-opacity hover:opacity-80"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-            )}
+
+              {editing ? (
+                <form
+                  className="mt-3 grid gap-3 sm:grid-cols-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const done = await saveDetails(open.id);
+                    if (done) setEditing(false);
+                  }}
+                >
+                  {/*
+                    Name and email are NOT here. Changing where somebody signs
+                    in is a different act with its own consequences, and it
+                    already has its own controls in Users — putting it beside a
+                    postcode would make it look like the same kind of edit.
+                  */}
+                  {FIELDS.map((f) => (
+                    <div key={f.key}>
+                      <label htmlFor={`f-${f.key}`} className="field-label">
+                        {f.label}
+                      </label>
+                      <input
+                        id={`f-${f.key}`}
+                        type={"type" in f ? f.type : "text"}
+                        className="field"
+                        value={form[f.key] ?? ""}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, [f.key]: e.target.value }))
+                        }
+                      />
+                    </div>
+                  ))}
+                  <div className="mt-1 flex flex-wrap items-center gap-3 sm:col-span-2">
+                    <button
+                      type="submit"
+                      disabled={busyId === open.id}
+                      className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+                    >
+                      {busyId === open.id ? "Saving…" : "Save details"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(false)}
+                      className="label min-h-11 text-muted underline underline-offset-4 transition-colors hover:text-fg"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <Detail label="Full name" value={open.name} />
+                  <Detail label="Email" value={open.email} />
+                  <Detail label="Phone number" value={profile?.phone} />
+                  <Detail label="Company name" value={profile?.company} />
+                  <Detail label="Address" value={profile?.addressLine} />
+                  <Detail label="City" value={profile?.city} />
+                  <Detail label="Zip / postcode" value={profile?.postcode} />
+                  <Detail label="Country" value={profile?.country} />
+                </dl>
+              )}
+
+              <h3 className="label mt-7 text-faint">Their students</h3>
+              {openClients.length === 0 ? (
+                <p className="mt-2 text-[0.88rem] leading-relaxed text-muted">
+                  None yet. They enrol students by sending a link from Your students.
+                </p>
+              ) : (
+                <div className="mt-2 max-h-[22rem] overflow-y-auto">
+                  <DataTable
+                    columns={["Name", "Email", "Type", "Open cases"]}
+                    caption={`Students assigned to ${open.name}`}
+                    minWidth={520}
+                  >
+                    {openClients.map((s) => (
+                      <Row key={s.id}>
+                        <Cell>{s.name}</Cell>
+                        <Cell muted>{s.email}</Cell>
+                        <Cell muted>{ROLE_LABEL[s.role as Role]}</Cell>
+                        <Cell>
+                          <span className="num">{s.openCases}</span>
+                        </Cell>
+                      </Row>
+                    ))}
+                  </DataTable>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </dialog>

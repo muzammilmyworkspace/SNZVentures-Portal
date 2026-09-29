@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { apiRequireSuperAdmin } from "@/lib/auth/guard";
 import * as usersRepo from "@/lib/db/repos/users";
+import * as profilesRepo from "@/lib/db/repos/profiles";
 import * as store from "@/lib/auth/store";
 import { hashPassword } from "@/lib/auth/password";
 import { audit } from "@/lib/db/repos/audit";
@@ -182,4 +183,87 @@ export async function POST(request: Request) {
     emailed,
     expiresInHours: SETUP_TTL_MINUTES / 60,
   });
+}
+
+
+/** Fields a super admin may fill in on a consultant's behalf. */
+const EDITABLE = ["phone", "company", "address_line", "city", "postcode", "country"] as const;
+
+/**
+ * FILL IN A CONSULTANT'S CONTACT DETAILS.
+ *
+ * Done by the firm rather than by the consultant, because the firm is who
+ * needs them: an address and a company name are what go on a contract, and
+ * waiting for six people to each complete a profile page is how a directory
+ * stays half empty for a year.
+ *
+ * Super admin only, matching creation. These are ordinary contact fields
+ * rather than anything that grants access — but somebody who can rewrite the
+ * company name and address attached to a consultant can change who a payment
+ * appears to be owed to, which is not an ordinary admin's business.
+ *
+ * `saveProfile` whitelists column names, so a field not in EDITABLE and a
+ * field not in the profiles table are both dropped rather than written.
+ */
+export async function PATCH(request: Request) {
+  const guard = await apiRequireSuperAdmin();
+  if (!guard.ok) return guard.response;
+  const { session } = guard;
+
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json(
+      { ok: false, error: "The portal database is not configured yet." },
+      { status: 503 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  }
+  const { userId, ...rest } = (body ?? {}) as Record<string, unknown>;
+  if (typeof userId !== "string" || !userId) {
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  }
+
+  const target = await usersRepo.findById(userId);
+  if (!target) {
+    return NextResponse.json({ ok: false, error: "User not found." }, { status: 404 });
+  }
+
+  /*
+    Staff only. This endpoint is reached from the Consultants page and has no
+    business editing a client — clients have their own file, with its own
+    audit trail, and an edit made here would not appear on it.
+  */
+  if (!["advisor", "admin", "super_admin"].includes(target.role)) {
+    return NextResponse.json(
+      { ok: false, error: "This is for staff accounts." },
+      { status: 400 }
+    );
+  }
+
+  const patch: Record<string, string> = {};
+  for (const key of EDITABLE) {
+    const value = rest[key];
+    if (typeof value === "string") patch[key] = value;
+  }
+
+  await profilesRepo.saveProfile(userId, target.role, patch);
+
+  await audit({
+    action: "staff.details_updated",
+    actorId: session.userId,
+    actorEmail: session.email,
+    entity: "user",
+    entityId: userId,
+    // The fields touched, never their values — an address is personal data and
+    // the audit log is read far more widely than the profile it came from.
+    meta: { fields: Object.keys(patch) },
+    ip: clientIp(request),
+  });
+
+  return NextResponse.json({ ok: true });
 }

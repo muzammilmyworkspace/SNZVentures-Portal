@@ -904,6 +904,44 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   }, []);
 }
 
+export type StaffProfile = {
+  userId: string;
+  phone: string | null;
+  company: string | null;
+  addressLine: string | null;
+  city: string | null;
+  postcode: string | null;
+  country: string | null;
+};
+
+/**
+ * The contact block for every staff account, in one statement.
+ *
+ * Loaded with the Consultants page for the same reason their students are:
+ * the panel opens on click and a spinner over six fields reads as broken
+ * rather than as loading. There is one row per staff member at most, so the
+ * whole set is smaller than a single case.
+ */
+export async function getStaffProfiles(): Promise<StaffProfile[]> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT p.user_id, p.phone, p.company, p.address_line, p.city, p.postcode, p.country
+      FROM profiles p
+      JOIN users u ON u.id = p.user_id
+      WHERE u.role IN ('advisor','admin','super_admin')
+    `;
+    return rows.map((r) => ({
+      userId: String(r.user_id),
+      phone: r.phone ? String(r.phone) : null,
+      company: r.company ? String(r.company) : null,
+      addressLine: r.address_line ? String(r.address_line) : null,
+      city: r.city ? String(r.city) : null,
+      postcode: r.postcode ? String(r.postcode) : null,
+      country: r.country ? String(r.country) : null,
+    }));
+  }, []);
+}
+
 export type AdvisorClient = {
   advisorId: string;
   id: string;
@@ -977,7 +1015,14 @@ export type AdminMetrics = {
   students: number;
   professionals: number;
   businesses: number;
+  /** Every staff account: advisors, admins and super admins. */
   advisors: number;
+  /**
+   * Consultants ONLY. Kept apart from `advisors` because that counts everyone
+   * who works the operational side, and "how many consultants do we have" is a
+   * different question with a different answer — an admin is not one.
+   */
+  consultants: number;
   openCases: number;
   pendingDocuments: number;
   applications: number;
@@ -1151,6 +1196,7 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
         (SELECT count(*)::int FROM users WHERE role='professional') AS professionals,
         (SELECT count(*)::int FROM users WHERE role='business') AS businesses,
         (SELECT count(*)::int FROM users WHERE role IN ('advisor','admin','super_admin')) AS advisors,
+        (SELECT count(*)::int FROM users WHERE role='advisor') AS consultants,
         (SELECT count(*)::int FROM cases WHERE status NOT IN ('completed','closed')) AS open_cases,
         (SELECT count(*)::int FROM documents WHERE status IN ('uploaded','pending_review')) AS pending_documents,
         (SELECT count(*)::int FROM applications) AS applications,
@@ -1163,6 +1209,7 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
       professionals: Number(r.professionals),
       businesses: Number(r.businesses),
       advisors: Number(r.advisors),
+      consultants: Number(r.consultants),
       openCases: Number(r.open_cases),
       pendingDocuments: Number(r.pending_documents),
       applications: Number(r.applications),
@@ -1171,7 +1218,7 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
     };
   }, {
     totalUsers: 0, students: 0, professionals: 0, businesses: 0, advisors: 0,
-    openCases: 0, pendingDocuments: 0, applications: 0, appointments: 0,
-    unreadMessages: 0,
+    consultants: 0, openCases: 0, pendingDocuments: 0, applications: 0,
+    appointments: 0, unreadMessages: 0,
   });
 }
