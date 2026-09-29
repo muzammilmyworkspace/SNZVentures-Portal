@@ -337,11 +337,28 @@ const PATHWAYS = [
  * enrolment link. It is passed straight through to the server, which is the
  * only place it means anything — nothing here inspects or trusts it.
  */
-export function RegisterForm({ invite }: { invite?: string } = {}) {
+export function RegisterForm({
+  invite,
+  invitedEmail,
+}: { invite?: string; invitedEmail?: string | null } = {}) {
+  /*
+    1 pathway, 2 details, 3 password. Splitting the details off the password
+    is what makes room to ask for a phone number and a location without the
+    sign-up form becoming one long column somebody abandons.
+  */
   const [step, setStep] = useState(1);
   const [pathway, setPathway] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  /*
+    Locked to the invitation when there is one. The consultant addressed it to
+    this person at this address, and that is where it arrived — letting it be
+    changed here would quietly detach the account from the invitation everyone
+    involved is expecting.
+  */
+  const [email, setEmail] = useState(invitedEmail ?? "");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -382,6 +399,9 @@ export function RegisterForm({ invite }: { invite?: string } = {}) {
         email,
         password,
         pathway,
+        phone,
+        city,
+        country,
         invite,
       });
       if (!res.ok || !data.ok) {
@@ -464,40 +484,114 @@ export function RegisterForm({ invite }: { invite?: string } = {}) {
         {PATHWAYS.find((p) => p.key === pathway)?.title}
       </button>
 
-      <Field id="name" label="Full name" value={name} onChange={setName} autoComplete="name" />
-      <Field
-        id="email"
-        label="Email"
-        type="email"
-        value={email}
-        onChange={setEmail}
-        autoComplete="email"
-        placeholder="you@example.com"
-      />
-      <Field
-        id="password"
-        label="Password"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="new-password"
-        hint="At least 4 characters."
-      />
-      <Field
-        id="confirm"
-        label="Confirm password"
-        type="password"
-        value={confirm}
-        onChange={setConfirm}
-        autoComplete="new-password"
-        error={confirm && password !== confirm ? "These don't match yet." : undefined}
-      />
+      {step === 2 ? (
+        <>
+          <Field id="name" label="Full name" value={name} onChange={setName} autoComplete="name" />
 
-      {error && <ErrorNote>{error}</ErrorNote>}
+          {invitedEmail ? (
+            <div>
+              <span className="field-label">Email</span>
+              <div className="rail mt-1 px-4 py-3 text-[0.9rem] text-fg">{invitedEmail}</div>
+              <p className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
+                The address your invitation was sent to. Tell your consultant if it is wrong —
+                they can send a new invitation in a few seconds.
+              </p>
+            </div>
+          ) : (
+            <Field
+              id="email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
+          )}
 
-      <Action type="submit" size="lg" className="w-full">
-        {busy ? "Creating your account…" : "Create account"}
-      </Action>
+          <Field
+            id="phone"
+            label="Phone number"
+            type="tel"
+            value={phone}
+            onChange={setPhone}
+            autoComplete="tel"
+            placeholder="+92 300 1234567"
+            hint="So we can reach you about your application."
+          />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              id="city"
+              label="City"
+              value={city}
+              onChange={setCity}
+              autoComplete="address-level2"
+            />
+            <Field
+              id="country"
+              label="Country"
+              value={country}
+              onChange={setCountry}
+              autoComplete="country-name"
+            />
+          </div>
+
+          {error && <ErrorNote>{error}</ErrorNote>}
+
+          <Action
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setError(null);
+              if (!name.trim()) return setError("Enter your full name.");
+              if (!invitedEmail && !email.trim()) return setError("Enter your email address.");
+              if (!phone.trim()) return setError("Enter your phone number.");
+              if (!city.trim()) return setError("Enter your city.");
+              if (!country.trim()) return setError("Enter your country.");
+              setStep(3);
+            }}
+          >
+            Continue
+          </Action>
+        </>
+      ) : (
+        <>
+          <Field
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            hint="At least 4 characters."
+          />
+          <Field
+            id="confirm"
+            label="Confirm password"
+            type="password"
+            value={confirm}
+            onChange={setConfirm}
+            autoComplete="new-password"
+            error={confirm && password !== confirm ? "These don't match yet." : undefined}
+          />
+
+          {error && <ErrorNote>{error}</ErrorNote>}
+
+          <Action type="submit" size="lg" className="w-full">
+            {busy ? "Creating your account…" : "Create account"}
+          </Action>
+
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            className="label min-h-11 w-full text-muted underline underline-offset-4 transition-colors hover:text-fg"
+          >
+            Back to your details
+          </button>
+        </>
+      )}
 
       <p className="text-center text-[0.78rem] leading-relaxed text-faint">
         Creating an account means you accept our{" "}

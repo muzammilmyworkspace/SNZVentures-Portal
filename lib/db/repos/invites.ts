@@ -120,6 +120,8 @@ export async function createInvite(input: {
 
 export type InvitePreview = {
   consultantName: string;
+  /** The address the invitation was sent to; the account is created with it. */
+  email: string | null;
   expiresAt: string;
 };
 
@@ -138,7 +140,7 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
   if (!isDatabaseConfigured() || !rawToken) return null;
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT i.expires_at, u.name AS consultant_name
+      SELECT i.expires_at, i.email, u.name AS consultant_name
         FROM student_invites i
         JOIN users u ON u.id = i.consultant_id
        WHERE i.token_hash = ${hashToken(rawToken)}
@@ -152,6 +154,7 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
     if (!rows[0]) return null;
     return {
       consultantName: String(rows[0].consultant_name),
+      email: rows[0].email ? String(rows[0].email) : null,
       expiresAt: new Date(String(rows[0].expires_at)).toISOString(),
     };
   }, null);

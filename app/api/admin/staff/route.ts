@@ -119,8 +119,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const link = `${siteUrl()}/reset-password?token=${encodeURIComponent(
-    await store.issueToken(user.id, "password_reset", SETUP_TTL_MINUTES)
+  /*
+    `account_setup`, not `password_reset`, and /set-up rather than
+    /reset-password. The two screens ask for different things — this one also
+    collects the contact details the firm needs — and the kinds keep each link
+    usable only on its own page. See migration 022.
+  */
+  const link = `${siteUrl()}/set-up?token=${encodeURIComponent(
+    await store.issueToken(user.id, "account_setup", SETUP_TTL_MINUTES)
   )}`;
 
   /*
@@ -145,7 +151,7 @@ export async function POST(request: Request) {
           "",
           `You sign in with: ${user.email}`,
           "",
-          "Choose your password here — the link works once and expires in three days:",
+          "Set up your account here — the link works once and expires in three days:",
           link,
           "",
           "After that you can enrol your students by sending them a link from",

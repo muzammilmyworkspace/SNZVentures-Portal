@@ -29,6 +29,8 @@ export type AuditAction =
   | "auth.password_reset_requested"
   | "auth.password_reset"
   | "auth.email_verified"
+  /* First sign-in on an account somebody else created (022). */
+  | "auth.account_set_up"
   | "user.role_changed"
   | "user.suspended"
   | "user.activated"

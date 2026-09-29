@@ -82,7 +82,16 @@ export const setEmailVerified = usersRepo.setEmailVerified;
 
 const hashToken = (raw: string) => createHash("sha256").update(raw).digest("hex");
 
-export type TokenKind = "email_verify" | "password_reset" | "email_change";
+/*
+  `account_setup` is a first sign-in rather than a password reset: it collects
+  contact details as well as a password, and the two screens accept only their
+  own kind. See migration 022.
+*/
+export type TokenKind =
+  | "email_verify"
+  | "password_reset"
+  | "email_change"
+  | "account_setup";
 
 export async function issueToken(
   userId: string,
@@ -131,6 +140,43 @@ export async function isTokenValid(raw: string, kind: TokenKind): Promise<boolea
     `;
     return rows.length > 0;
   }, false);
+}
+
+/**
+ * Who a still-valid token belongs to, WITHOUT consuming it.
+ *
+ * The set-up screen shows the name and address the account was created with,
+ * because "who am I setting this up as" is the first thing anybody checks and
+ * neither value is something they typed. Reading it has to leave the token
+ * alone: loading the page must not burn the link, for the same reason
+ * `isTokenValid` exists.
+ *
+ * Returns null for a token that is missing, spent, expired or of another kind,
+ * with no way to tell those apart — the caller shows one message either way.
+ */
+export async function userForToken(
+  raw: string,
+  kind: TokenKind
+): Promise<{ id: string; name: string; email: string } | null> {
+  if (!isDatabaseConfigured() || !raw) return null;
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT u.id, u.name, u.email
+        FROM user_tokens t
+        JOIN users u ON u.id = t.user_id
+       WHERE t.token_hash = ${hashToken(raw)}
+         AND t.kind = ${kind}
+         AND t.used_at IS NULL
+         AND t.expires_at > now()
+       LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    return {
+      id: String(rows[0].id),
+      name: String(rows[0].name),
+      email: String(rows[0].email),
+    };
+  }, null);
 }
 
 /**

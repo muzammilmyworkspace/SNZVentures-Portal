@@ -9,6 +9,7 @@ import { homeFor } from "@/lib/portal/roles";
 import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import * as invitesRepo from "@/lib/db/repos/invites";
+import * as profilesRepo from "@/lib/db/repos/profiles";
 
 export const runtime = "nodejs";
 
@@ -51,7 +52,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  const { name, email, password, pathway, invite } = (body ?? {}) as Record<string, unknown>;
+  const { name, password, pathway, invite, phone, city, country } = (body ?? {}) as Record<
+    string,
+    unknown
+  >;
+  let { email } = body as { email?: unknown };
+
+  /*
+    AN INVITED ACCOUNT IS CREATED WITH THE ADDRESS IT WAS INVITED TO.
+
+    The form locks the field, and this is the half that actually decides it —
+    a locked input is a courtesy to the person typing, not a constraint on
+    what arrives here. Taking the address from the invite also means the
+    consultant who addressed it and the account that appears are the same
+    thing, which is what makes "did my student sign up yet" answerable.
+
+    A token that does not resolve falls through to whatever was typed; the
+    claim then fails later and the account lands in Unassigned, which is the
+    behaviour that already existed for an expired link.
+  */
+  if (typeof invite === "string" && invite) {
+    const invited = await invitesRepo.previewInvite(invite);
+    if (invited?.email) email = invited.email;
+  }
 
   if (typeof name !== "string" || name.trim().length < 2 || name.length > 120) {
     return NextResponse.json({ ok: false, error: "Please enter your name." }, { status: 400 });
@@ -76,6 +99,24 @@ export async function POST(request: Request) {
   }
   // Role is decided here, never taken from the client.
   const role: Role = PATHWAY_TO_ROLE[pathway as keyof typeof PATHWAY_TO_ROLE];
+
+  /*
+    Asked for once, at the only moment everybody passes through. A profile
+    filled in later is a profile mostly left empty — the consultant details
+    sat blank for exactly that reason — and a phone number is what turns a
+    stalled application into a phone call.
+  */
+  const contact: Record<string, string> = {};
+  for (const [key, value, label] of [
+    ["phone", phone, "phone number"],
+    ["city", city, "city"],
+    ["country", country, "country"],
+  ] as const) {
+    if (typeof value !== "string" || !value.trim()) {
+      return NextResponse.json({ ok: false, error: `Enter your ${label}.` }, { status: 400 });
+    }
+    contact[key] = value.trim().slice(0, 200);
+  }
 
   /*
     NO UNDERTAKING IS TAKEN AT SIGN-UP.
@@ -111,6 +152,13 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  /*
+    After the account, never before: a profile row with no user is not a thing
+    this schema allows, and a failure here must not cost somebody the account
+    they just created.
+  */
+  await profilesRepo.saveProfile(user.id, role, contact);
 
   await audit({
     action: "auth.register",
