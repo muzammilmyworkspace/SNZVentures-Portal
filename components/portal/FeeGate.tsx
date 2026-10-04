@@ -150,10 +150,10 @@ export function FeeGate({
 /* ------------------------------------------------------------------ note */
 
 const TONES = {
-  ok: "border-moss-400/45 bg-moss-400/10",
-  warn: "border-amber-400/45 bg-amber-400/10",
-  error: "border-red-500/45 bg-red-500/10",
-  action: "border-line bg-raised",
+  ok: "border-moss-400/45 bg-moss-400/10 before:bg-moss-400",
+  warn: "border-amber-400/45 bg-amber-400/10 before:bg-amber-400",
+  error: "border-red-500/45 bg-red-500/10 before:bg-red-500",
+  action: "border-line bg-[image:var(--panel-bg)] before:bg-[#6FA6F7]",
 } as const;
 
 /**
@@ -238,10 +238,10 @@ function Note({
 }) {
   return (
     <div
-      className={`mb-6 flex flex-col gap-4 rounded-[var(--radius-md)] border p-5 sm:flex-row sm:items-center ${TONES[tone]}`}
+      className={`portal-rise relative mb-6 flex flex-col gap-4 overflow-hidden rounded-[16px] border p-5 pl-6 shadow-[var(--panel-shadow)] before:absolute before:inset-y-0 before:left-0 before:w-1 sm:flex-row sm:items-center ${TONES[tone]}`}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-[0.98rem] font-semibold text-fg">{title}</p>
+        <p className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold text-fg-strong">{title}</p>
         <p className="mt-1 text-[0.88rem] leading-relaxed text-muted">{children}</p>
       </div>
       {cta &&

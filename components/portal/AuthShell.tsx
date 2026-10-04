@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { company } from "@/data/company";
 import { AuthSky, AuthPass } from "./AuthScene";
+import { AfterMount } from "./AfterMount";
 
 /**
  * Shared frame for login / register / password screens.
@@ -36,7 +37,7 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="tone-deep relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+    <div className="tone-deep auth-split relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/*
         BOARDING PASS (2026-10-04). The brand panel is now the website's night
         sky: chart grid, arcs drawing themselves, drifting waves, and a boarding
@@ -45,7 +46,9 @@ export function AuthShell({
         see a dark ground under the white type (see the note that used to be
         here about gradients with no background-color).
       */}
-      <aside className="relative hidden overflow-hidden bg-[#070B1A] lg:flex lg:flex-col lg:justify-between lg:p-14">
+      <aside className="relative hidden overflow-hidden border-r border-[rgb(111_166_247/0.22)] bg-[#060A17] shadow-[24px_0_60px_-30px_rgba(0,0,0,0.9)] lg:flex lg:flex-col lg:justify-between lg:p-14">
+        {/* The seam between the two halves: a thin glowing line. */}
+        <span aria-hidden className="pointer-events-none absolute right-0 top-0 z-[5] h-full w-px bg-gradient-to-b from-transparent via-[#6FA6F7]/70 to-transparent" />
         <AuthSky />
         <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(61,113,201,0.28),transparent)]" />
         <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-32 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(114,196,60,0.16),transparent)]" />
@@ -87,7 +90,7 @@ export function AuthShell({
       </aside>
 
       {/* Form panel */}
-      <main id="main" className="flex flex-col justify-center px-5 py-12 sm:px-10 lg:px-16">
+      <main id="main" className="auth-form-side flex flex-col justify-center px-5 py-12 sm:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-md">
           {/*
             A WAY BACK OUT, at every width.
@@ -133,7 +136,19 @@ export function AuthShell({
           <h1 className="d-1 mt-4 text-fg-strong">{title}</h1>
           <p className="mt-4 text-[1.05rem] leading-relaxed text-muted">{lead}</p>
 
-          <div className="mt-9">{children}</div>
+          <div className="mt-9">
+            <AfterMount
+              fallback={
+                <div aria-hidden className="space-y-5">
+                  <div className="h-[74px] rounded-[10px] bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]" />
+                  <div className="h-[74px] rounded-[10px] bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]" />
+                  <div className="h-14 w-36 rounded-full bg-[color-mix(in_srgb,var(--fg)_6%,transparent)]" />
+                </div>
+              }
+            >
+              {children}
+            </AfterMount>
+          </div>
 
           {footer && <div className="mt-9">{footer}</div>}
 

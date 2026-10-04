@@ -510,17 +510,20 @@ html::-webkit-scrollbar-thumb:hover {
       never starts at 0 (0.001) so audits do not read content as hidden. */
 
 /* 1 */
+/* Portal dark is a step LIGHTER than the website's night (owner request,
+   2026-10-04): people work in here for hours, and a deep-navy ground with
+   lifted cards reads more comfortably than near-black. */
 .portal-shell.tone-soft {
   --surface-wash: none;
-  --surface: #070B1A;
-  background-color: #070B1A;
+  --surface: #111A33;
+  background-color: #111A33;
 }
 [data-theme="light"] .portal-shell.tone-soft {
   --surface: #F4F6FB;
   background-color: #F4F6FB;
 }
 .portal-shell .portal-side {
-  background: linear-gradient(180deg, rgb(12 19 40 / 0.85), rgb(7 11 26 / 0.85));
+  background: linear-gradient(180deg, #0C1328, #0A1124);
 }
 [data-theme="light"] .portal-shell .portal-side {
   background: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(238 242 249 / 0.85));
@@ -542,8 +545,8 @@ html::-webkit-scrollbar-thumb:hover {
 
 /* 3 */
 .portal-shell {
-  --panel-bg: linear-gradient(160deg, rgb(31 43 82 / 0.55), rgb(12 19 40 / 0.7));
-  --panel-shadow: 0 24px 50px -30px rgb(0 0 0 / 0.8);
+  --panel-bg: linear-gradient(165deg, #1D2848 0%, #172140 100%);
+  --panel-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 20px 40px -26px rgb(0 0 0 / 0.75);
 }
 [data-theme="light"] .portal-shell {
   --panel-bg: linear-gradient(160deg, #FFFFFF, #F0F3F9);
@@ -570,4 +573,19 @@ html::-webkit-scrollbar-thumb:hover {
 .portal-stagger > *:nth-child(n + 6), .portal-shell main .grid:not(form .grid) > *:nth-child(n + 6) { animation-delay: 0.25s; }
 @media (prefers-reduced-motion: reduce) {
   .portal-rise, .portal-stagger > *, .portal-shell main .grid > * { animation: none !important; }
+}
+
+/* The two halves of the sign-in screen read as two surfaces: the deep night
+   sky on the left, a lifted navy panel on the right (pale in light mode). */
+.auth-split .auth-form-side {
+  background:
+    radial-gradient(70% 50% at 100% 0%, rgb(111 166 247 / 0.10), transparent 70%),
+    radial-gradient(60% 45% at 0% 100%, rgb(114 196 60 / 0.08), transparent 70%),
+    #121B36;
+}
+[data-theme="light"] .auth-split .auth-form-side {
+  background:
+    radial-gradient(70% 50% at 100% 0%, rgb(61 113 201 / 0.10), transparent 70%),
+    radial-gradient(60% 45% at 0% 100%, rgb(114 196 60 / 0.10), transparent 70%),
+    #F6F8FC;
 }

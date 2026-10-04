@@ -17,16 +17,16 @@ import { cn } from "@/lib/utils";
 const TONE: Record<FlowState, { dot: string; card: string; label: string }> = {
   done: { dot: "border-moss-400 bg-moss-400 text-navy-950", card: "border-line", label: "Done" },
   current: {
-    dot: "border-moss-400 text-accent",
+    dot: "border-moss-400 bg-[var(--surface)] text-accent shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)]",
     card: "border-moss-400/50 bg-moss-400/[0.06]",
     label: "Your move",
   },
   waiting: {
-    dot: "border-amber-300/70 text-warn",
+    dot: "border-amber-300/70 bg-[var(--surface)] text-warn",
     card: "border-amber-300/40 bg-amber-300/[0.06]",
     label: "With us",
   },
-  upcoming: { dot: "border-line text-faint", card: "border-line opacity-70", label: "Later" },
+  upcoming: { dot: "border-line bg-[var(--surface)] text-faint", card: "border-line", label: "Later" },
 };
 
 export function FlowTrack({
@@ -42,7 +42,15 @@ export function FlowTrack({
   completion?: { percent: number; answered: number; total: number } | null;
 }) {
   return (
-    <ol className={cn(compact ? "space-y-2" : "space-y-3")}>
+    <ol
+      className={cn(
+        /* One route through every stage: a vertical line behind the nodes,
+           like the journey rail on the website. */
+        "relative",
+        "before:absolute before:bottom-6 before:top-6 before:w-px before:bg-[var(--line-strong)]",
+        compact ? "space-y-2 before:left-[24px]" : "space-y-3 before:left-[33px] sm:before:left-[37px]"
+      )}
+    >
       {STUDENT_FLOW.map((stage, i) => {
         const state = stateOf(i, current, waiting);
         const tone = TONE[state];
@@ -52,7 +60,7 @@ export function FlowTrack({
           <li
             key={stage.key}
             className={cn(
-              "flex gap-3 rounded-[var(--radius-md)] border transition-colors",
+              "relative flex gap-3 rounded-[14px] border transition-colors",
               compact ? "p-3" : "gap-4 p-4 sm:p-5",
               tone.card
             )}
@@ -60,8 +68,8 @@ export function FlowTrack({
             <span
               aria-hidden
               className={cn(
-                "mt-0.5 flex shrink-0 items-center justify-center rounded-full border font-mono",
-                compact ? "h-6 w-6 text-[0.62rem]" : "h-7 w-7 text-[0.7rem]",
+                "relative z-[1] mt-0.5 flex shrink-0 items-center justify-center rounded-full border font-mono",
+                compact ? "h-6 w-6 text-[0.72rem]" : "h-8 w-8 text-[0.72rem]",
                 tone.dot
               )}
             >
@@ -78,7 +86,7 @@ export function FlowTrack({
                 >
                   {stage.name}
                 </h3>
-                <span className="label shrink-0 text-[0.6rem] text-faint">
+                <span className="label shrink-0 text-[0.72rem] text-faint">
                   {state === "upcoming" && stage.advisorLed ? "We handle this" : tone.label}
                 </span>
               </div>

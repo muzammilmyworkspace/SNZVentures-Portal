@@ -85,8 +85,13 @@ export function Panel({
       )}
     >
       {(title || action) && (
-        <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
-          {title && <h2 className="label text-faint">{title}</h2>}
+        <header className="flex items-center justify-between gap-4 border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] px-5 py-3.5">
+          {title && (
+            <h2 className="label flex items-center gap-2.5 text-[0.75rem] text-muted">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+              {title}
+            </h2>
+          )}
           {action}
         </header>
       )}
@@ -232,30 +237,47 @@ export function StatCard({
   urgent?: boolean;
   hint?: string;
 }) {
+  /*
+    A figure laid out like an instrument reading: the label as a mono caption
+    on top, the number large, the explanation underneath, and a thin rule at
+    the foot that lights up for anything urgent or clickable.
+  */
   const inner = (
     <>
-      <span
-        className={cn(
-          "num block text-[2.3rem] leading-none",
-          urgent ? "text-accent" : "text-fg-strong"
+      <span className="flex items-center justify-between gap-3">
+        <span className="label text-[0.72rem] text-faint">{label}</span>
+        {href && (
+          <span
+            aria-hidden
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line text-muted transition-all duration-300 group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[#070B1A]"
+          >
+            <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
+              <path d="M2.5 9.5l7-7M4 2.5h5.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         )}
-      >
-        {value}
       </span>
-      <span className="mt-2.5 block text-[0.85rem] leading-snug text-muted">{label}</span>
-      {hint && <span className="mt-1 block text-[0.75rem] text-faint">{hint}</span>}
+      <span className={cn("num mt-4 block text-[2.6rem] leading-none", urgent ? "text-accent" : "text-fg-strong")}>{value}</span>
+      {hint && <span className="mt-3 block text-[0.82rem] leading-relaxed text-muted">{hint}</span>}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 bottom-0 h-[3px] transition-opacity duration-300",
+          urgent ? "bg-[var(--accent)]" : "bg-gradient-to-r from-[#6FA6F7]/70 to-[#72C43C]/70 opacity-0 group-hover:opacity-100"
+        )}
+      />
     </>
   );
 
   const base = cn(
-    "block rounded-[16px] border p-5 bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)] transition-all duration-300",
-    urgent ? "border-moss-400/35" : "border-line"
+    "group relative block overflow-hidden rounded-[16px] border p-5 bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)] transition-all duration-300",
+    urgent ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : "border-line"
   );
 
   return href ? (
     <Link
       href={href}
-      className={cn(base, "hover:-translate-y-0.5 hover:border-moss-400/60 motion-reduce:transform-none")}
+      className={cn(base, "hover:-translate-y-1 hover:border-line-strong motion-reduce:transform-none")}
     >
       {inner}
     </Link>
@@ -301,49 +323,47 @@ export function WorkCard({
     <Link
       href={href}
       className={cn(
-        "group relative block rounded-[16px] border p-5 shadow-[var(--panel-shadow)] transition-all duration-300",
-        "hover:-translate-y-0.5 motion-reduce:transform-none",
+        "group relative flex h-full flex-col overflow-hidden rounded-[16px] border p-5 shadow-[var(--panel-shadow)] transition-all duration-300",
+        "hover:-translate-y-1 motion-reduce:transform-none",
         waiting
-          ? "border-moss-400/40 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] hover:border-moss-400/70"
+          ? "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[image:var(--panel-bg)] hover:border-[var(--accent)]"
           : "border-line bg-[image:var(--panel-bg)] hover:border-line-strong"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* A soft accent glow in the corner of any card that holds work. */}
+      {waiting && (
         <span
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--accent)_30%,transparent),transparent)]"
+        />
+      )}
+      <span className="relative flex items-start justify-between gap-3">
+        <span className={cn("text-[0.95rem] font-semibold leading-snug", waiting ? "text-fg-strong" : "text-muted")}>{label}</span>
+        <span
+          aria-hidden
           className={cn(
-            "num block text-[2.3rem] leading-none",
-            waiting ? "text-accent-ink" : "text-faint"
+            "grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-all duration-300",
+            waiting
+              ? "border-[var(--accent)] bg-[var(--accent)] text-[#070B1A] group-hover:scale-110"
+              : "border-line text-faint group-hover:border-line-strong group-hover:text-muted"
           )}
         >
-          {value}
-        </span>
-        {waiting && (
-          <svg
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden
-            className="mt-1 h-3 w-3 shrink-0 text-accent transition-transform duration-300 group-hover:translate-x-1"
-          >
-            <path
-              d="M1 6h9M6.5 2.5L10 6l-3.5 3.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
+            <path d="M2.5 9.5l7-7M4 2.5h5.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        )}
-      </div>
-
-      <span
-        className={cn(
-          "mt-3 block text-[0.95rem] font-semibold leading-snug",
-          waiting ? "text-fg-strong" : "text-muted"
-        )}
-      >
-        {label}
+        </span>
       </span>
-      <span className="mt-1.5 block text-[0.8rem] leading-relaxed text-faint">{note}</span>
+
+      <span className="relative mt-5 flex items-end gap-3">
+        <span className={cn("num block text-[2.8rem] leading-none", waiting ? "text-fg-strong" : "text-faint")}>{value}</span>
+        {waiting && (
+          <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] px-2.5 py-1 text-[0.72rem] font-semibold text-accent">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)] motion-reduce:animate-none" />
+            Needs action
+          </span>
+        )}
+      </span>
+      <span className="relative mt-auto block pt-3 text-[0.82rem] leading-relaxed text-faint">{note}</span>
     </Link>
   );
 }
@@ -487,25 +507,33 @@ export function NextAction({
   href: string;
   eyebrow?: string;
 }) {
+  /*
+    THE NEXT STEP, AS A BOARDING PASS. The one card on the dashboard that
+    asks the student to act, so it is the only one drawn as a ticket: the
+    instruction on the main part, a stub with a mono "gate" label and a
+    plane flying a dashed route. Decorative parts are aria-hidden.
+  */
   return (
-    <Panel accent padded={false} className="overflow-hidden">
-      <div className="relative p-6 sm:p-7">
-        <span
-          aria-hidden
-          className="bloom-moss pointer-events-none absolute -right-20 -top-20 h-60 w-60 opacity-40"
-        />
-        <div className="relative">
+    <section
+      className="portal-rise relative overflow-hidden rounded-[18px] border border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)]"
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--accent)_22%,transparent),transparent)]"
+      />
+      <div className="relative grid md:grid-cols-[1fr_240px]">
+        <div className="p-6 sm:p-7">
           <p className="label flex items-center gap-3 text-accent">
-            <span aria-hidden className="inline-block h-px w-5 bg-current opacity-60" />
+            <span aria-hidden className="inline-block h-px w-8 bg-current" />
             {eyebrow}
           </p>
-          <h2 className="mt-4 text-[1.4rem] font-bold leading-tight tracking-[-0.025em] text-fg-strong sm:text-[1.75rem]">
+          <h2 className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.025em] text-fg-strong sm:text-[1.9rem]">
             {title}
           </h2>
           <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{body}</p>
           <Link
             href={href}
-            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] group mt-7 inline-flex min-h-11 items-center gap-2.5 rounded-full bg-moss-400 px-5 text-[#070B1A] shadow-[0_8px_24px_-10px_rgba(114,196,60,0.6)] transition-all duration-300 hover:-translate-y-px hover:bg-moss-300 motion-reduce:transform-none"
+            className="group mt-7 inline-flex min-h-12 items-center gap-2.5 rounded-full bg-moss-400 px-6 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[#070B1A] shadow-[0_12px_30px_-12px_rgba(114,196,60,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-moss-300 motion-reduce:transform-none"
           >
             {cta}
             <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1">
@@ -513,8 +541,25 @@ export function NextAction({
             </svg>
           </Link>
         </div>
+
+        {/* The stub */}
+        <div aria-hidden className="relative hidden flex-col justify-between border-l-2 border-dashed border-line-strong p-6 md:flex">
+          <span className="absolute -left-[11px] -top-[11px] h-5 w-5 rounded-full bg-[var(--surface)]" />
+          <span className="absolute -bottom-[11px] -left-[11px] h-5 w-5 rounded-full bg-[var(--surface)]" />
+          <span>
+            <span className="label block text-[0.72rem] text-faint">Gate</span>
+            <span className="font-[family-name:var(--font-display)] text-[2rem] font-bold leading-none text-fg-strong">SNZ</span>
+          </span>
+          <svg viewBox="0 0 180 70" className="w-full overflow-visible">
+            <path d="M4 62 C 60 62, 110 40, 176 8" fill="none" stroke="currentColor" className="text-line-strong" strokeWidth="1.4" strokeDasharray="3 6" />
+            <path d="M22.5 12c0-.8-.7-1.4-1.6-1.4h-5.4L10.3 2.3a.8.8 0 00-.7-.4H8.2c-.4 0-.6.4-.5.7l2.6 8H5.1L3.4 8.2a.6.6 0 00-.5-.3H1.8c-.3 0-.5.3-.4.6L2.6 12l-1.2 3.5c-.1.3.1.6.4.6h1.1c.2 0 .4-.1.5-.3l1.7-2.4h5.2l-2.6 8c-.1.3.1.7.5.7h1.4c.3 0 .5-.2.7-.4l5.2-8.3h5.4c.9 0 1.6-.6 1.6-1.4z" transform="translate(-12 -12) scale(0.85)" fill="var(--accent)" className="motion-reduce:hidden">
+              <animateMotion dur="5s" repeatCount="indefinite" rotate="auto" path="M4 62 C 60 62, 110 40, 176 8" />
+            </path>
+          </svg>
+          <span className="bp-barcode h-8 text-[var(--fg-strong)] opacity-60" />
+        </div>
       </div>
-    </Panel>
+    </section>
   );
 }
 
