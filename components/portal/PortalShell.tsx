@@ -10,6 +10,9 @@ import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey } from "@/l
 import { clearDraft } from "@/lib/portal/fee-draft";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
+import { PortalBackdrop } from "./PortalBackdrop";
+import { useReduced } from "./useReduced";
 
 /**
  * PORTAL CHROME
@@ -168,6 +171,8 @@ export function PortalShell({
       .join("")
       .toUpperCase() || "—";
 
+  const reduce = useReduced();
+
   const isActive = (href: string) =>
     href === home ? pathname === home : pathname === href || pathname.startsWith(`${href}/`);
 
@@ -175,7 +180,7 @@ export function PortalShell({
     <nav aria-label="Portal" className="flex flex-col gap-6">
       {groups.map((g) => (
         <div key={g.group}>
-          <p className="label px-3 pb-2 text-[0.6rem] text-faint">{g.group}</p>
+          <p className="label px-3 pb-2 text-[0.72rem] text-faint">{g.group}</p>
           <ul className="flex flex-col gap-0.5">
             {g.items.map((item) => {
               const on = isActive(item.href);
@@ -197,7 +202,7 @@ export function PortalShell({
                     <span
                       aria-disabled="true"
                       title={lockNote ?? undefined}
-                      className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-[var(--radius-sm)] px-3 text-[0.9rem] text-faint opacity-60"
+                      className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-[10px] px-3 text-[0.9rem] text-faint"
                     >
                       <Icon name={item.icon} />
                       <span className="flex-1">{item.label}</span>
@@ -217,13 +222,26 @@ export function PortalShell({
                     href={item.href}
                     aria-current={on ? "page" : undefined}
                     className={cn(
-                      "group flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 text-[0.9rem] transition-colors",
+                      "group relative flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[0.9rem] transition-colors",
                       on
-                        ? "bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] font-medium text-accent-ink"
+                        ? "font-semibold text-fg-strong"
                         : "text-muted hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg"
                     )}
                   >
-                    <Icon name={item.icon} />
+                    {/* The active marker slides between items (shared layout). */}
+                    {on && (
+                      <motion.span
+                        layoutId="portal-nav-active"
+                        aria-hidden
+                        className="absolute inset-0 -z-10 rounded-[10px] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)]"
+                        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }}
+                      >
+                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
+                      </motion.span>
+                    )}
+                    <span className={on ? "text-accent" : undefined}>
+                      <Icon name={item.icon} />
+                    </span>
                     <span className="flex-1">{item.label}</span>
                     {count > 0 && (
                       <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-moss-400 px-1.5 text-[0.7rem] font-semibold text-navy-950">
@@ -241,15 +259,16 @@ export function PortalShell({
   );
 
   return (
-    <div className="tone-soft min-h-screen">
-      <div className="mx-auto flex w-full max-w-[100rem]">
+    <div className="portal-shell tone-soft relative isolate min-h-screen">
+      <PortalBackdrop />
+      <div className="relative z-10 mx-auto flex w-full max-w-[100rem]">
         {/* Sidebar — desktop */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
+        <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 backdrop-blur-xl lg:flex">
           <Link href={home} className="mb-8 flex items-center gap-2.5 px-2">
             <Image src="/brand/snz-mark.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
             <span className="flex flex-col leading-none">
-              <span className="text-[1rem] font-bold tracking-[-0.02em] text-fg">SnZ Ventures</span>
-              <span className="label mt-1 text-[0.6rem] text-faint">Client portal</span>
+              <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.02em] text-fg">SnZ Ventures</span>
+              <span className="label mt-1 text-[0.72rem] text-faint">Client portal</span>
             </span>
           </Link>
 
@@ -262,7 +281,7 @@ export function PortalShell({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[0.85rem] font-semibold text-fg">{name}</span>
-                <span className="label block text-[0.6rem] text-faint">{ROLE_LABEL[role]}</span>
+                <span className="label block text-[0.72rem] text-faint">{ROLE_LABEL[role]}</span>
               </span>
             </div>
             <button
@@ -306,7 +325,7 @@ export function PortalShell({
             {/* "Back to site" removed — see the note in AuthShell. */}
 
             {/* Where you are. */}
-            <p className="min-w-0 flex-1 truncate text-[0.9rem] font-semibold text-fg">
+            <p className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.015em] text-fg-strong">
               {here ?? name}
             </p>
 
@@ -363,7 +382,7 @@ export function PortalShell({
                 >
                   <div className="border-b border-line px-4 py-3">
                     <p className="truncate text-[0.88rem] font-semibold text-fg">{name}</p>
-                    <p className="label mt-0.5 text-[0.6rem] text-faint">{ROLE_LABEL[role]}</p>
+                    <p className="label mt-0.5 text-[0.72rem] text-faint">{ROLE_LABEL[role]}</p>
                   </div>
                   <Link
                     role="menuitem"
@@ -410,7 +429,17 @@ export function PortalShell({
           )}
 
           <main id="main" className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-            {children}
+            {/* Each page rises in on navigation. Keyed by path; skipped under
+                reduced motion. Opacity starts at 0.001 rather than 0 so the
+                content is never invisible to tools that test for opacity 0. */}
+            <motion.div
+              key={pathname}
+              initial={reduce ? false : { opacity: 0.001, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {children}
+            </motion.div>
           </main>
         </div>
       </div>

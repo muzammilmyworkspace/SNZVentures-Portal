@@ -129,7 +129,7 @@ export default async function DocumentsPage({
                   )}
                   <Link
                     href={`/portal/documents?replace=${encodeURIComponent(d.name)}#upload`}
-                    className="label mt-2.5 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300"
+                    className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-2.5 inline-flex min-h-11 items-center rounded-full bg-moss-400 px-4 text-[#070B1A] transition-colors hover:bg-moss-300"
                   >
                     Send a new copy
                   </Link>

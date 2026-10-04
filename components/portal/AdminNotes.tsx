@@ -93,7 +93,7 @@ export function AdminNotes({
         type="button"
         onClick={add}
         disabled={busy || !draft.trim()}
-        className="label mt-3 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+        className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-3 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Saving…" : "Save note"}
       </button>

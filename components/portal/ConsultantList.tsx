@@ -450,7 +450,7 @@ export function ConsultantList({
                   const done = await act(doomed.id, { action: "delete" });
                   if (done) setConfirmId(null);
                 }}
-                className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] bg-[var(--danger-soft)] px-5 text-danger transition-opacity hover:opacity-80 disabled:opacity-40"
+                className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-[var(--danger-line)] bg-[var(--danger-soft)] px-5 text-danger transition-opacity hover:opacity-80 disabled:opacity-40"
               >
                 {busyId === doomed.id ? "Deleting…" : "Delete permanently"}
               </button>
@@ -574,7 +574,7 @@ export function ConsultantList({
                     <button
                       type="submit"
                       disabled={busyId === open.id}
-                      className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+                      className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
                     >
                       {busyId === open.id ? "Saving…" : "Save details"}
                     </button>

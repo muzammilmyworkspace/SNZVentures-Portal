@@ -61,7 +61,7 @@ export function DevSignIn({ accounts }: { accounts: readonly Account[] }) {
             onClick={() => signIn(a.key)}
             disabled={busy !== null}
             title={a.email}
-            className="label min-h-11 rounded-[var(--radius-sm)] border border-line px-4 text-muted transition-colors hover:border-fg hover:text-fg disabled:opacity-50"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] min-h-11 rounded-full border border-line px-4 text-muted transition-colors hover:border-fg hover:text-fg disabled:opacity-50"
           >
             {busy === a.key ? "Signing in…" : a.label}
           </button>

@@ -175,7 +175,7 @@ export default async function AuthorizePage({
               type="submit"
               name="decision"
               value="allow"
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
             >
               Allow
             </button>
@@ -183,7 +183,7 @@ export default async function AuthorizePage({
               type="submit"
               name="decision"
               value="deny"
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:text-fg"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-muted transition-colors hover:text-fg"
             >
               Cancel
             </button>

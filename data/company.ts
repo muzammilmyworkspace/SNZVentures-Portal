@@ -24,22 +24,23 @@ export const company = {
 
   /** Verified — published on the live site. */
   contact: {
-    phone: "+370 603 05146",
-    phoneHref: "+37060305146",
-    email: "info@snzventures.com",
+    phone: "+370 623 93857",
+    phoneHref: "+37062393857",
+    email: "study@snzventures.com",
     /**
      * Where consultation enquiries are delivered.
      *
      * ⚠ DIFFERENT DOMAIN, ON PURPOSE — client-specified. General contact
-     * remains info@snzventures.com (above); the consultation form goes here.
+     * Owner instruction 2026-10-04: one email (study@snzventures.com) and one
+     * number (+370 623 93857, calls and WhatsApp) everywhere, as on the website.
      * `MAIL_TO` overrides this at runtime without a code change, so if this
      * address is ever wrong it can be corrected from the environment.
      *
      * See CONTENT-HANDOFF § 2 — this one needs confirming before launch.
      */
-    consultationEmail: "info@maincharacter.nl",
+    consultationEmail: "study@snzventures.com",
     /** Live site links a WhatsApp channel on the same published number. */
-    whatsapp: "37060305146",
+    whatsapp: "37062393857",
     city: "Vilnius",
     country: "Lithuania",
     countryCode: "LT",

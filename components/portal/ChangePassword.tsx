@@ -105,7 +105,7 @@ export function ChangePassword() {
         type="submit"
         disabled={busy || !current || !next || !confirm}
         className={cn(
-          "label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300",
+          "inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold text-[#070B1A] transition-colors hover:bg-moss-300",
           "disabled:cursor-not-allowed disabled:opacity-50"
         )}
       >

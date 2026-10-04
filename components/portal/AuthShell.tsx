@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { company } from "@/data/company";
+import { AuthSky, AuthPass } from "./AuthScene";
 
 /**
  * Shared frame for login / register / password screens.
@@ -35,55 +36,19 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="tone-deep grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      {/* Brand panel */}
+    <div className="tone-deep relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/*
-        The gradient is the ELEMENT'S OWN background, not an overlay div.
-
-        It was briefly a sibling `<div class="absolute inset-0">` sitting above
-        a photograph, which looked right but left the <aside> itself with no
-        background at all. Anything resolving the effective background by
-        walking up the ancestor chain — the contrast audit, forced-colors
-        modes, a text-only reader — saw the page ground instead and measured
-        white-on-white. Painting it here means the panel genuinely has this
-        background rather than appearing to.
+        BOARDING PASS (2026-10-04). The brand panel is now the website's night
+        sky: chart grid, arcs drawing themselves, drifting waves, and a boarding
+        pass stepping through the portal's real stages. Solid night colour as
+        the element's own background, so contrast tools and forced-colors modes
+        see a dark ground under the white type (see the note that used to be
+        here about gradients with no background-color).
       */}
-      <aside
-        className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-14"
-        style={{
-          /*
-            A SOLID COLOUR AS WELL AS THE GRADIENT, on purpose.
-
-            A gradient is a background-IMAGE. With no background-color behind
-            it, anything that cannot paint the image — a forced-colors mode, a
-            printed page, an old engine, or a tool measuring contrast — falls
-            through to whatever is underneath, which here is the light page
-            ground. That is how white text ends up on a white background.
-
-            This value is sampled from the middle of the ramp, so the fallback
-            is representative rather than merely dark.
-          */
-          backgroundColor: "#0F3257",
-          backgroundImage:
-            "radial-gradient(120% 90% at 15% 15%, rgba(255,255,255,0.12) 0%, transparent 55%), radial-gradient(90% 70% at 85% 95%, rgba(114,196,60,0.28) 0%, transparent 60%), linear-gradient(150deg, #08152F 0%, #0F3257 38%, #155A5C 68%, #236437 100%)",
-        }}
-      >
-        {/*
-          The photograph is texture, not subject — held well back so the brand
-          colour beneath stays the thing you actually see.
-        */}
-        <Image
-          src="/images/study-campus.webp"
-          alt=""
-          fill
-          priority
-          sizes="55vw"
-          className="object-cover opacity-[0.30] mix-blend-soft-light"
-        />
-        <div
-          aria-hidden
-          className="graticule pointer-events-none absolute inset-0 z-[3] opacity-[0.22]"
-        />
+      <aside className="relative hidden overflow-hidden bg-[#070B1A] lg:flex lg:flex-col lg:justify-between lg:p-14">
+        <AuthSky />
+        <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(61,113,201,0.28),transparent)]" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-32 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(114,196,60,0.16),transparent)]" />
 
         <Link href="/" className="relative z-[4] inline-flex items-center gap-3">
           <Image
@@ -93,49 +58,31 @@ export function AuthShell({
             height={44}
             className="no-grade h-11 w-11 rounded-full ring-1 ring-white/20"
           />
-          <span className="text-[1.35rem] font-bold tracking-[-0.02em] text-white">
+          <span className="font-[family-name:var(--font-display)] text-[1.35rem] font-semibold tracking-[-0.02em] text-white">
             SnZ Ventures
+          </span>
+          <span className="ml-1 rounded-full border border-white/20 px-2.5 py-1 font-mono text-[0.72rem] uppercase tracking-[0.16em] text-[#A9C9FA]">
+            Portal
           </span>
         </Link>
 
-        <div className="relative z-[4] max-w-xl">
-          {/*
-            Set in capitals with open tracking — at this size lowercase read as
-            a sentence someone had typed, where the brand wants a statement.
-            `d-1`, not `d-2`: it is the panel's only headline and was sitting at
-            the same size as the form heading opposite it.
-          */}
-          <p className="d-1 uppercase tracking-[-0.01em] text-white">
-            One Place For
-            <br />
-            The Whole Journey.
+        <div className="relative z-[4]">
+          <p className="flex items-center gap-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-[#6FA6F7]">
+            <span className="h-px w-8 bg-current" /> Your student portal
           </p>
-          <p className="mt-6 max-w-lg text-[1.15rem] leading-relaxed ink-on-photo">
-            Every document, every application, every honest next step — held by
-            the same people you actually speak to.
+          <p className="mt-5 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.4rem,3.6vw,3.6rem)] font-semibold leading-[1.02] tracking-[-0.035em] text-white">
+            One boarding pass for <span className="text-[#72C43C]">the whole journey.</span>
           </p>
-          <ul className="mt-10 space-y-4">
-            {[
-              "Every document you send us, in one place",
-              "The next step, always named",
-              "Your advisor, one message away",
-            ].map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3.5 text-[1rem] leading-relaxed ink-on-photo"
-              >
-                <span
-                  aria-hidden
-                  className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-moss-300"
-                />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <p className="mt-5 max-w-lg text-[1.05rem] leading-relaxed text-[#C9D2E3]">
+            Every document, every application and every next step, held by the same people you actually speak to.
+          </p>
+          <div className="mt-10">
+            <AuthPass />
+          </div>
         </div>
 
-        <p className="relative z-[4] text-[0.85rem] ink-on-photo-soft">
-          {company.contact.city}, {company.contact.country}
+        <p className="relative z-[4] font-mono text-[0.75rem] uppercase tracking-[0.16em] text-[#A9B3C9]">
+          {company.contact.city}, {company.contact.country} · VNO
         </p>
       </aside>
 
@@ -180,7 +127,10 @@ export function AuthShell({
             */}
           </div>
 
-          <h1 className="d-1 text-fg-strong">{title}</h1>
+          <p className="flex items-center gap-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-accent">
+            <span className="h-px w-8 bg-current" /> Check in
+          </p>
+          <h1 className="d-1 mt-4 text-fg-strong">{title}</h1>
           <p className="mt-4 text-[1.05rem] leading-relaxed text-muted">{lead}</p>
 
           <div className="mt-9">{children}</div>

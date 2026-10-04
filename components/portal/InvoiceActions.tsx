@@ -51,7 +51,7 @@ export function InvoiceActions({
   }
 
   const btn =
-    "label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] px-4 transition-colors disabled:opacity-50";
+    "inline-flex min-h-11 items-center rounded-full px-4 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold transition-colors disabled:opacity-50";
 
   return (
     <>

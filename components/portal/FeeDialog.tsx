@@ -351,7 +351,7 @@ export function FeeDialog({
             type="button"
             disabled={busy}
             onClick={step === "sign" ? submit : next}
-            className="label ml-auto inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] ml-auto inline-flex min-h-11 items-center gap-2 rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
           >
             {busy
               ? "Submitting…"
@@ -413,7 +413,7 @@ function Receipt({ file, onFile }: { file: File | null; onFile: (f: File | null)
             e.stopPropagation();
             input.current?.click();
           }}
-          className="label mt-5 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
         >
           <svg
             width="16"

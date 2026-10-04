@@ -24,14 +24,17 @@
    * colour — white on #72C43C, about 1.9:1. Defining it fixes that everywhere
    * at once, and keeps working when the surrounding theme flips.
    */
-  --color-void: #060D1C;
+  --color-void: #070B1A;
 
-  --color-navy-950: #060D1C;
-  --color-navy-900: #0A1730; /* deep — page ground */
-  --color-navy-850: #0D1D3C;
-  --color-navy-800: #102142; /* soft — alternating band */
-  --color-navy-700: #16305D;
-  --color-navy-600: #1D3F79;
+  /* Navy re-pointed at the website's Boarding Pass night palette (2026-10-04),
+     so every navy-* class across the portal moves with it. 500 and lighter
+     are the logo blue family and stay. */
+  --color-navy-950: #04070F;
+  --color-navy-900: #070B1A; /* deep — page ground (website night-900) */
+  --color-navy-850: #0A1022;
+  --color-navy-800: #0C1328; /* soft — alternating band */
+  --color-navy-700: #141D3A;
+  --color-navy-600: #1F2B52;
   --color-navy-500: #2755A2;
   --color-navy-400: #3D71C9;
   --color-navy-300: #7BA0DF;
@@ -62,7 +65,22 @@
   --color-ink: #0C1526;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Boarding Pass (website) tokens, used by app/boarding.css. */
+  --color-night-950: #04070F;
+  --color-night-900: #070B1A;
+  --color-night-800: #0C1328;
+  --color-night-700: #141D3A;
+  --color-night-600: #1F2B52;
+  --color-ticket: #F6F3EC;
+  --color-ticket-ink: #121726;
+  --color-runway: #72C43C;
+  --color-runway-300: #93D667;
+  --color-aurora: #6FA6F7;
+  --color-aurora-300: #A9C9FA;
+  --font-grotesk: var(--font-space), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-xs: 3px;
   --radius-sm: 5px;
@@ -210,7 +228,7 @@
 
 .tone-deep {
   --surface: var(--color-navy-900);
-  --surface-raised: #0E1E3C;
+  --surface-raised: #0C1328;
   --fg: var(--color-paper);
   --ok: #9be07a;
   --ok-soft: rgba(155, 224, 122, 0.11);
@@ -222,8 +240,8 @@
   --danger-soft: rgba(255, 156, 147, 0.10);
   --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
-  --fg-muted: var(--color-navy-200);
-  --fg-faint: var(--color-navy-300);
+  --fg-muted: #A9B3C9; /* website --bp-muted, 9:1 on night */
+  --fg-faint: #8B97B0; /* website-like faint, AA on night */
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: rgba(255, 255, 255, 0.22);
   --accent: var(--color-moss-400);
@@ -232,7 +250,7 @@
 
 .tone-soft {
   --surface: var(--color-navy-800);
-  --surface-raised: #16295080;
+  --surface-raised: #141D3A80;
   --fg: var(--color-paper);
   --ok: #9be07a;
   --ok-soft: rgba(155, 224, 122, 0.11);
@@ -244,8 +262,8 @@
   --danger-soft: rgba(255, 156, 147, 0.10);
   --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
-  --fg-muted: var(--color-navy-200);
-  --fg-faint: var(--color-navy-300);
+  --fg-muted: #A9B3C9; /* website --bp-muted, 9:1 on night */
+  --fg-faint: #8B97B0; /* website-like faint, AA on night */
   --line: rgba(255, 255, 255, 0.13);
   --line-strong: rgba(255, 255, 255, 0.24);
   --accent: var(--color-moss-400);
@@ -464,8 +482,8 @@
   --danger-soft: rgba(255, 156, 147, 0.10);
   --danger-line: rgba(255, 156, 147, 0.36);
   --fg-strong: #ffffff;
-  --fg-muted: var(--color-navy-200);
-  --fg-faint: var(--color-navy-300);
+  --fg-muted: #A9B3C9; /* website --bp-muted, 9:1 on night */
+  --fg-faint: #8B97B0; /* website-like faint, AA on night */
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: rgba(255, 255, 255, 0.22);
   --accent: var(--color-moss-400);
@@ -623,6 +641,7 @@ body {
    ========================================================================== */
 
 .d-hero {
+  font-family: var(--font-display);
   font-size: clamp(2.5rem, 1.5rem + 4.6vw, 5.2rem);
   line-height: 1.02;
   letter-spacing: -0.035em;
@@ -630,6 +649,7 @@ body {
 }
 
 .d-1 {
+  font-family: var(--font-display);
   font-size: clamp(2rem, 1.4rem + 2.9vw, 3.6rem);
   line-height: 1.06;
   letter-spacing: -0.032em;
@@ -637,6 +657,7 @@ body {
 }
 
 .d-2 {
+  font-family: var(--font-display);
   font-size: clamp(1.65rem, 1.25rem + 1.9vw, 2.6rem);
   line-height: 1.1;
   letter-spacing: -0.028em;
@@ -644,6 +665,7 @@ body {
 }
 
 .d-3 {
+  font-family: var(--font-display);
   font-size: clamp(1.25rem, 1.1rem + 0.8vw, 1.65rem);
   line-height: 1.2;
   letter-spacing: -0.022em;
@@ -728,9 +750,11 @@ body {
  * costs the design nothing.
  */
 .label {
+  /* Boarding Pass: labels are "ticket data", set in the mono face. */
+  font-family: var(--font-mono);
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
 }

@@ -35,16 +35,16 @@ export function PortalHeading({
   meta?: ReactNode;
 }) {
   return (
-    <header className="mb-8">
+    <header className="portal-rise mb-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           {eyebrow && (
             <p className="label mb-3 flex items-center gap-3 text-accent">
-              <span aria-hidden className="inline-block h-px w-6 bg-current opacity-50" />
+              <span aria-hidden className="inline-block h-px w-8 bg-current" />
               {eyebrow}
             </p>
           )}
-          <h1 className="text-[1.75rem] font-bold leading-[1.1] tracking-[-0.03em] text-fg-strong sm:text-[2rem]">
+          <h1 className="font-[family-name:var(--font-display)] text-[1.9rem] font-semibold leading-[1.05] tracking-[-0.035em] text-fg-strong sm:text-[2.4rem]">
             {title}
           </h1>
           {lead && (
@@ -78,9 +78,8 @@ export function Panel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border",
-        "bg-gradient-to-b from-[color-mix(in_srgb,var(--fg)_5%,transparent)] to-[color-mix(in_srgb,var(--fg)_2%,transparent)]",
-        "shadow-[inset_0_1px_0_color-mix(in_srgb,var(--fg)_9%,transparent)]",
+        "portal-rise relative overflow-hidden rounded-[18px] border",
+        "bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)]",
         accent ? "border-moss-400/35" : "border-line",
         className
       )}
@@ -154,7 +153,7 @@ export function EmptyState({
         {action && (
           <Link
             href={action.href}
-            className="label mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 font-[family-name:var(--font-display)] text-[0.92rem] font-semibold text-fg transition-colors hover:border-[var(--accent)] hover:text-accent"
           >
             {action.label}
           </Link>
@@ -237,7 +236,7 @@ export function StatCard({
     <>
       <span
         className={cn(
-          "num block text-[2rem] leading-none tracking-[-0.03em]",
+          "num block text-[2.3rem] leading-none",
           urgent ? "text-accent" : "text-fg-strong"
         )}
       >
@@ -249,7 +248,7 @@ export function StatCard({
   );
 
   const base = cn(
-    "block rounded-[var(--radius-md)] border p-5 bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] transition-all duration-300",
+    "block rounded-[16px] border p-5 bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)] transition-all duration-300",
     urgent ? "border-moss-400/35" : "border-line"
   );
 
@@ -302,17 +301,17 @@ export function WorkCard({
     <Link
       href={href}
       className={cn(
-        "group relative block rounded-[var(--radius-md)] border p-5 transition-all duration-300",
+        "group relative block rounded-[16px] border p-5 shadow-[var(--panel-shadow)] transition-all duration-300",
         "hover:-translate-y-0.5 motion-reduce:transform-none",
         waiting
           ? "border-moss-400/40 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] hover:border-moss-400/70"
-          : "border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] hover:border-line-strong"
+          : "border-line bg-[image:var(--panel-bg)] hover:border-line-strong"
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <span
           className={cn(
-            "num block text-[2rem] leading-none tracking-[-0.03em]",
+            "num block text-[2.3rem] leading-none",
             waiting ? "text-accent-ink" : "text-faint"
           )}
         >
@@ -388,7 +387,7 @@ export function AllClear({
       {action && (
         <Link
           href={action.href}
-          className="label inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
         >
           {action.label}
         </Link>
@@ -506,7 +505,7 @@ export function NextAction({
           <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{body}</p>
           <Link
             href={href}
-            className="label group mt-7 inline-flex min-h-11 items-center gap-2.5 rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 shadow-[0_8px_24px_-10px_rgba(114,196,60,0.6)] transition-all duration-300 hover:-translate-y-px hover:bg-moss-300 motion-reduce:transform-none"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] group mt-7 inline-flex min-h-11 items-center gap-2.5 rounded-full bg-moss-400 px-5 text-[#070B1A] shadow-[0_8px_24px_-10px_rgba(114,196,60,0.6)] transition-all duration-300 hover:-translate-y-px hover:bg-moss-300 motion-reduce:transform-none"
           >
             {cta}
             <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1">

@@ -291,7 +291,7 @@ export function DocumentReview({ documents }: { documents: Doc[] }) {
                             type="button"
                             disabled={busy === d.id || reason.trim().length < 5}
                             onClick={() => review(d.id, returning.status, reason.trim())}
-                            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+                            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-4 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
                           >
                             {busy === d.id ? "Sending…" : "Send it back"}
                           </button>

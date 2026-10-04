@@ -304,9 +304,9 @@ export function Action({
   ariaLabel?: string;
 }) {
   const sizes = {
-    sm: "h-9 px-4 text-[0.75rem]",
-    md: "h-12 px-6 text-[0.8rem]",
-    lg: "h-14 px-8 text-[0.8rem]",
+    sm: "h-10 px-4 text-[0.85rem]",
+    md: "h-12 px-6 text-[0.95rem]",
+    lg: "h-14 px-8 text-[1rem]",
   }[size];
 
   const variants = {
@@ -317,7 +317,8 @@ export function Action({
      * green light source.
      */
     solid:
-      "grad-brand bg-moss-400 text-void shadow-[0_10px_34px_-14px_rgba(61,113,201,0.55),0_10px_34px_-14px_rgba(114,196,60,0.55)] hover:-translate-y-0.5 hover:shadow-[0_18px_46px_-12px_rgba(61,113,201,0.75),0_18px_46px_-12px_rgba(114,196,60,0.75)]",
+      /* Boarding Pass: the website's runway-green pill, dark label. */
+      "bg-[var(--color-runway)] text-[#070B1A] shadow-[0_12px_30px_-14px_rgba(114,196,60,0.7)] hover:-translate-y-0.5 hover:bg-[var(--color-runway-300)]",
     /**
      * Outline variants lift and pick up a tinted ground on hover, not just a
      * border colour. A border-only change is easy to miss on a busy plate; the
@@ -331,7 +332,7 @@ export function Action({
   const inner = (
     <span
       className={cn(
-        "group/act relative inline-flex items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-[var(--radius-sm)] font-semibold uppercase tracking-[0.12em] transition-all duration-400 ease-[var(--ease-out-expo)] active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none",
+        "group/act relative inline-flex items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full font-[family-name:var(--font-display)] font-semibold tracking-[-0.005em] transition-all duration-400 ease-[var(--ease-out-expo)] active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none",
         sizes,
         variants,
         className

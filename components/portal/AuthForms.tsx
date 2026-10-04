@@ -866,7 +866,7 @@ export function VerifyEmailConfirm({ token }: { token: string }) {
       */}
       <a
         href="/portal"
-        className="label inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+        className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-12 w-full items-center justify-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
       >
         Go to your portal
       </a>

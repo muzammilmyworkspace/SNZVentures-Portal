@@ -25,7 +25,7 @@ export type Fault = {
   status: number;
 };
 
-const CONTACT = "info@snzventures.com";
+const CONTACT = "study@snzventures.com";
 
 /** Postgres SQLSTATEs that mean "the schema is not what this code expects". */
 const SCHEMA_CODES = new Set([

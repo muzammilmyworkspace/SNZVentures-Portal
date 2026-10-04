@@ -56,8 +56,8 @@ export default async function SettingsPage() {
           <p className="text-[0.9rem] leading-relaxed text-muted">
             Under the GDPR you can ask us for a copy of your data, ask us to
             correct it, or ask us to delete it. Email{" "}
-            <a href="mailto:info@snzventures.com" className="text-accent underline underline-offset-4">
-              info@snzventures.com
+            <a href="mailto:study@snzventures.com" className="text-accent underline underline-offset-4">
+              study@snzventures.com
             </a>{" "}
             and we will respond within the statutory period.
           </p>

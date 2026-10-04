@@ -561,13 +561,13 @@ export function IntakeForm({
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/portal/documents"
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
           >
             Upload documents
           </Link>
           <Link
             href="/portal/journey"
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
           >
             Track progress
           </Link>
@@ -775,7 +775,7 @@ export function IntakeForm({
           <button
             type="button"
             onClick={back}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
           >
             Back
           </button>
@@ -786,7 +786,7 @@ export function IntakeForm({
             type="button"
             onClick={submit}
             disabled={saving}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-6 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-60"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-6 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-60"
           >
             {saving ? "Submitting…" : "Submit application"}
           </button>
@@ -795,7 +795,7 @@ export function IntakeForm({
             type="button"
             onClick={next}
             disabled={saving}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-6 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-60"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-6 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save & continue"}
           </button>

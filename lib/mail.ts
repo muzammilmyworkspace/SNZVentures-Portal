@@ -10,7 +10,7 @@
  *                      a CRM intake, or your own SMTP relay service)
  *
  * MAIL_FROM   sender address on a domain you control and have verified
- * MAIL_TO     destination (defaults to info@snzventures.com)
+ * MAIL_TO     destination (defaults to study@snzventures.com)
  *
  * If neither transport is configured, `sendMail` throws rather than silently
  * discarding the message — a lost enquiry is worse than a visible failure.
@@ -36,7 +36,7 @@ export type MailMessage = {
   replyTo?: string;
 };
 
-export const DEFAULT_TO = "info@snzventures.com";
+export const DEFAULT_TO = "study@snzventures.com";
 
 /**
  * Used when MAIL_FROM is unset — and almost certainly wrong when it is.

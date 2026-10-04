@@ -143,7 +143,7 @@ export function InvoiceForm() {
                   type="button"
                   aria-label={`Remove line ${i + 1}`}
                   onClick={() => setLines((p) => p.filter((_, n) => n !== i))}
-                  className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-3 text-muted transition-colors hover:text-danger"
+                  className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-3 text-muted transition-colors hover:text-danger"
                 >
                   ×
                 </button>
@@ -226,14 +226,14 @@ export function InvoiceForm() {
           type="button"
           disabled={busy}
           onClick={save}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
         >
           {busy ? "Saving…" : "Save and open it"}
         </button>
         <button
           type="button"
           onClick={() => router.push("/portal/admin/invoices")}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:text-fg"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-muted transition-colors hover:text-fg"
         >
           Cancel
         </button>

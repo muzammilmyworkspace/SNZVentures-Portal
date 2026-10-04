@@ -122,14 +122,14 @@ export function McpConnect({
             <button
               type="button"
               onClick={copy}
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-4 text-[#070B1A] transition-colors hover:bg-moss-300"
             >
               {copied ? "Copied" : "Copy the command"}
             </button>
             <button
               type="button"
               onClick={() => setFresh(null)}
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-muted transition-colors hover:text-fg"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-4 text-muted transition-colors hover:text-fg"
             >
               I have saved it
             </button>
@@ -167,7 +167,7 @@ export function McpConnect({
                   type="button"
                   disabled={busy}
                   onClick={() => disconnect(g.clientId, g.clientName)}
-                  className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-red-500/40 px-4 text-danger transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                  className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-red-500/40 px-4 text-danger transition-colors hover:bg-red-500/10 disabled:opacity-50"
                 >
                   Disconnect
                 </button>
@@ -197,7 +197,7 @@ export function McpConnect({
                 type="button"
                 disabled={busy}
                 onClick={() => remove(t.id, t.label)}
-                className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-red-500/40 px-4 text-danger transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-red-500/40 px-4 text-danger transition-colors hover:bg-red-500/10 disabled:opacity-50"
               >
                 Withdraw
               </button>
@@ -221,7 +221,7 @@ export function McpConnect({
           type="button"
           disabled={busy}
           onClick={create}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-4 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
         >
           {busy ? "Working…" : "Create a key"}
         </button>

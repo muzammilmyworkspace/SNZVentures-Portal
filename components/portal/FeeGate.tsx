@@ -248,7 +248,7 @@ function Note({
         (cta.href ? (
           <a
             href={cta.href}
-            className="label inline-flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
           >
             {cta.label}
           </a>
@@ -256,7 +256,7 @@ function Note({
           <button
             type="button"
             onClick={cta.onClick}
-            className="label inline-flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
           >
             {cta.label}
           </button>

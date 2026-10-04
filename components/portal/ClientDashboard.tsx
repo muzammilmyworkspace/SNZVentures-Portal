@@ -305,7 +305,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
               />
               <Link
                 href={position.index >= 2 ? "/portal/application" : "/portal/student"}
-                className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+                className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-6 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
               >
                 {intakeDone
                   ? "Review what you sent"
@@ -356,7 +356,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
               )}
               <Link
                 href="/portal/profile"
-                className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+                className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-6 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
               >
                 Complete profile
               </Link>

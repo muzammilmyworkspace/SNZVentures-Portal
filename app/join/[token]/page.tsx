@@ -152,10 +152,10 @@ export default async function JoinPage({
           Not expecting this, or don&rsquo;t recognise that name? Don&rsquo;t continue — close
           this page and tell us at{" "}
           <a
-            href="mailto:info@snzventures.com"
+            href="mailto:study@snzventures.com"
             className="underline underline-offset-4 hover:text-fg"
           >
-            info@snzventures.com
+            study@snzventures.com
           </a>
           .
         </p>

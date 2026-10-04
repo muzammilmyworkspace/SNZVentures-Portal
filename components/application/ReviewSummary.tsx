@@ -81,7 +81,7 @@ export function ReviewSummary({
               <button
                 type="button"
                 onClick={() => onEdit(index)}
-                className="label min-h-11 rounded-[var(--radius-sm)] border border-line px-3 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+                className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] min-h-11 rounded-full border border-line px-3 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
               >
                 Edit
               </button>

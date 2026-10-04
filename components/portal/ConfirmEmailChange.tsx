@@ -70,7 +70,7 @@ export function ConfirmEmailChange({ token }: { token: string | null }) {
         </p>
         <Link
           href="/portal"
-          className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-6 inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
         >
           Go to the portal
         </Link>
@@ -99,7 +99,7 @@ export function ConfirmEmailChange({ token }: { token: string | null }) {
         type="button"
         onClick={confirm}
         disabled={busy}
-        className="label mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+        className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-6 inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
       >
         {busy ? "Confirming…" : "Confirm this address"}
       </button>

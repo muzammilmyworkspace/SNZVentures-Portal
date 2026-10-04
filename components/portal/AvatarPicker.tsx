@@ -109,7 +109,7 @@ export function AvatarPicker({
             type="button"
             disabled={busy}
             onClick={() => input.current?.click()}
-            className="label min-h-11 rounded-[var(--radius-sm)] border border-line px-4 text-muted transition-colors hover:border-fg hover:text-fg disabled:opacity-50"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] min-h-11 rounded-full border border-line px-4 text-muted transition-colors hover:border-fg hover:text-fg disabled:opacity-50"
           >
             {busy ? "Preparing…" : value ? "Change photo" : "Add a photo"}
           </button>

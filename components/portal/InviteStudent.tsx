@@ -107,7 +107,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
           <button
             type="button"
             onClick={copy}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
           >
             {copied ? "Copied" : "Copy link"}
           </button>
@@ -137,7 +137,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+        className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
       >
         Add new student
       </button>
@@ -190,7 +190,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
         <button
           type="submit"
           disabled={busy || !email}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
         >
           {busy ? "Sending…" : "Send invitation"}
         </button>

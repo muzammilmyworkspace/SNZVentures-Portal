@@ -78,7 +78,7 @@ export function DriveConnect({
       <div className="flex flex-wrap gap-3">
         <a
           href="/api/admin/drive"
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
         >
           {connected || unreadable ? "Reconnect" : "Connect Google Drive"}
         </a>
@@ -87,7 +87,7 @@ export function DriveConnect({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-50"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-50"
           >
             {busy ? "Disconnecting…" : "Disconnect"}
           </button>

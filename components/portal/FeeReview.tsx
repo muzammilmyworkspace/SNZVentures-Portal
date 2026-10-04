@@ -127,7 +127,7 @@ export function FeeReview(props: {
           href={`/api/portal/documents/${props.receiptDocumentId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="label mt-4 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-line px-4 text-accent transition-colors hover:border-moss-400/70"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-accent transition-colors hover:border-moss-400/70"
         >
           Open the receipt
         </a>
@@ -164,7 +164,7 @@ export function FeeReview(props: {
             type="button"
             disabled={busy !== null}
             onClick={() => decide("verify")}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
           >
             {busy === "verify" ? "Verifying…" : "Verify — open their application"}
           </button>
@@ -172,7 +172,7 @@ export function FeeReview(props: {
             type="button"
             disabled={busy !== null || note.trim().length < 5}
             onClick={() => decide("reject")}
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-40"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-5 text-muted transition-colors hover:border-red-400/50 hover:text-danger disabled:opacity-40"
           >
             {busy === "reject" ? "Returning…" : "Return for correction"}
           </button>

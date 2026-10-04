@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import "./boarding.css";
 
 /**
  * ROOT LAYOUT — PORTAL ORIGIN.
@@ -31,6 +32,11 @@ const jakarta = Plus_Jakarta_Sans({
  * means a page added later is private by default rather than private only if
  * somebody remembered.
  */
+/** The website's Boarding Pass faces: Space Grotesk for display type,
+ *  JetBrains Mono for labels and ticket data. Jakarta stays for body copy. */
+const space = Space_Grotesk({ subsets: ["latin"], variable: "--font-space", display: "swap", weight: ["400", "500", "600", "700"] });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-face", display: "swap", weight: ["400", "500", "700"] });
+
 export const metadata: Metadata = {
   title: {
     default: "SnZ Ventures — Client Portal",
@@ -41,7 +47,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FAFBFD",
+  themeColor: "#070B1A",
   width: "device-width",
   initialScale: 1,
   colorScheme: "light dark",
@@ -51,7 +57,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={jakarta.variable} suppressHydrationWarning>
+    <html lang="en" className={`${jakarta.variable} ${space.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         {/*
           Theme, applied BEFORE first paint. This has to be a blocking inline
@@ -62,7 +68,7 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('snz-theme');if(t!=='light'&&t!=='dark')t='light';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('snz-theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
           }}
         />
         {/*

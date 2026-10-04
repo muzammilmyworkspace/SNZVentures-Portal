@@ -57,7 +57,7 @@ export function JoinExisting({
         <button
           type="button"
           onClick={() => router.push("/portal")}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
         >
           Go to your portal
         </button>
@@ -83,15 +83,15 @@ export function JoinExisting({
         type="button"
         onClick={link}
         disabled={busy}
-        className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+        className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
       >
         {busy ? "Linking…" : `Make ${consultantName} my consultant`}
       </button>
 
       <p className="text-[0.8rem] leading-relaxed text-faint">
         Don&rsquo;t recognise that name? Don&rsquo;t continue — close this page and tell us at{" "}
-        <a href="mailto:info@snzventures.com" className="underline underline-offset-4 hover:text-fg">
-          info@snzventures.com
+        <a href="mailto:study@snzventures.com" className="underline underline-offset-4 hover:text-fg">
+          study@snzventures.com
         </a>
         .
       </p>

@@ -295,7 +295,7 @@ function Slot({
           type="button"
           disabled={busy}
           onClick={() => input.current?.click()}
-          className="label inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center gap-2 rounded-full bg-moss-400 px-4 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
         >
           {busy ? "Uploading…" : attached ? "Replace" : "Attach"}
         </button>

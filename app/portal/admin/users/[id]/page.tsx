@@ -154,7 +154,7 @@ export default async function AdminUserPage({
         action={
           <Link
             href="/portal/admin/users"
-            className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+            className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
           >
             All users
           </Link>
@@ -374,7 +374,7 @@ export default async function AdminUserPage({
                 */}
                 <a
                   href={"/api/admin/documents/zip?userId=" + id}
-                  className="label mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+                  className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-4 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
                 >
                   Download all {documents.length} as .zip
                 </a>

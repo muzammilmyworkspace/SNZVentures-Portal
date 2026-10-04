@@ -28,7 +28,7 @@ export function company(): Company {
   return {
     name: envOr("INVOICE_COMPANY_NAME", "SnZ Ventures"),
     address: envOr("INVOICE_COMPANY_ADDRESS", "Vilnius, Lithuania"),
-    email: envOr("INVOICE_COMPANY_EMAIL", "info@snzventures.com"),
+    email: envOr("INVOICE_COMPANY_EMAIL", "study@snzventures.com"),
     site: envOr("INVOICE_COMPANY_SITE", "portal.snzventures.com"),
     /* Printed only when set — an empty VAT line reads as an oversight. */
     vatNumber: env("INVOICE_VAT_NUMBER") ?? null,

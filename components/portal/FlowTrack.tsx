@@ -114,7 +114,7 @@ export function FlowTrack({
                 <Link
                   href={stage.action!.href}
                   className={cn(
-                    "label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-4 text-navy-950 transition-colors hover:bg-moss-300",
+                    "inline-flex min-h-11 items-center rounded-full bg-moss-400 px-4 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold text-[#070B1A] transition-colors hover:bg-moss-300",
                     compact ? "mt-2.5" : "mt-3"
                   )}
                 >

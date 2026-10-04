@@ -26,7 +26,7 @@ export function MailSetup({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [from, setFrom] = useState("SnZ Ventures <info@snzventures.com>");
+  const [from, setFrom] = useState("SnZ Ventures <noreply@snzventures.com>");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -114,7 +114,7 @@ export function MailSetup({
               type="button"
               onClick={sendTest}
               disabled={testing}
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
             >
               {testing ? "Sending…" : "Send a test message"}
             </button>
@@ -146,7 +146,7 @@ export function MailSetup({
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300"
             >
               {source === "portal" ? "Replace the key" : "Add a Resend key"}
             </button>
@@ -199,7 +199,7 @@ export function MailSetup({
                 <button
                   type="submit"
                   disabled={busy || !apiKey || !from}
-                  className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+                  className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Save"}
                 </button>

@@ -94,7 +94,7 @@ export function DriveExport({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
         >
           {existing ? "Send again" : "Send this file to Drive"}
         </button>
@@ -128,7 +128,7 @@ export function DriveExport({
               type="button"
               onClick={run}
               disabled={busy}
-              className="label inline-flex min-h-11 items-center rounded-[var(--radius-sm)] bg-moss-400 px-5 text-navy-950 transition-colors hover:bg-moss-300 disabled:opacity-50"
+              className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 items-center rounded-full bg-moss-400 px-5 text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50"
             >
               {busy ? "Sending…" : "Send to Drive"}
             </button>

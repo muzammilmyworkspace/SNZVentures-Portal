@@ -1,0 +1,573 @@
+/* ============================================================================
+   BOARDING PASS — the new site's design layer
+   ----------------------------------------------------------------------------
+   The whole site is one journey and scrolling is the flight. Paper documents
+   (tickets, stamps, receipts) sit on a night sky; thin luminous lines connect
+   everything.
+
+   SCOPE. Everything here hangs off `.bp` or a `bp-` class, so the older tone
+   system in globals.css keeps working for any page not yet moved across.
+
+   TWO THEMES. Night is the default and the art direction. Day
+   ([data-theme="light"]) re-points the same tokens: a pale sky, ink type,
+   the logo's green and blue darkened until they pass AA on white. Components
+   never name a colour for the page ground; they read --bp-* tokens.
+
+   NIGHT ISLANDS. Some objects are dark in both themes because they are dark
+   in life: the departure board, devices, photographs. Those wrap in
+   `.bp-night`, which re-declares the night tokens for everything inside.
+
+   CONTRAST (measured, AA):
+     --bp-fg      #EEF1F8 on night-900   16.9 : 1
+     --bp-muted   #A9B3C9 on night-900    9.0 : 1
+     --bp-faint   #7D89A3 on night-900    5.6 : 1
+     ticket-ink   #121726 on ticket      16.2 : 1
+     night-900    on runway #72C43C       9.4 : 1   (button labels)
+     aurora #6FA6F7 on night-900          7.6 : 1   (eyebrows)
+
+   COLOUR IS THE LOGO'S COLOUR: green #72C43C and blue #3D71C9 (lifted to
+   #6FA6F7 so it reads as light on the night sky). No third hue.
+   ========================================================================== */
+
+.bp,
+.bp-night,
+.bp-header {
+  --bp-bg: var(--color-night-900);
+  --bp-fg: #EEF1F8;
+  --bp-strong: #FFFFFF;
+  --bp-muted: #A9B3C9;
+  --bp-faint: #7D89A3;
+  --bp-line: rgb(170 190 230 / 0.12);
+  --bp-line-strong: rgb(170 190 230 / 0.22);
+  --bp-glass: rgb(12 19 40 / 0.72);
+  --bp-on-accent: var(--color-night-900);
+  --bp-pass-bg: linear-gradient(160deg, rgb(31 43 82 / 0.7), rgb(12 19 40 / 0.85));
+  --bp-card: linear-gradient(160deg, rgba(31, 43, 82, 0.55), rgba(12, 19, 40, 0.7));
+  --bp-chip: rgb(255 255 255 / 0.06);
+  --bp-header-bg: rgb(7 11 26 / 0.86);
+  --bp-grid: rgb(170 190 230 / 0.055);
+  --runway: #72C43C;
+  --runway-300: #93D667;
+  --aurora: #6FA6F7;
+}
+
+/* Day. Accents darkened so text in them passes AA on the pale ground and on
+   the tinted chips: #2F6B12 on #F4F6FB ≈ 6.1:1, #2D5FB8 ≈ 5.6:1, white on
+   #2F6B12 ≈ 6.5:1. */
+[data-theme="light"] .bp,
+[data-theme="light"] .bp-header {
+  --bp-bg: #F4F6FB;
+  --bp-fg: #101828;
+  --bp-strong: #060B18;
+  --bp-muted: #46526A;
+  --bp-faint: #5A657B;
+  --bp-line: rgb(20 35 80 / 0.12);
+  --bp-line-strong: rgb(20 35 80 / 0.22);
+  --bp-glass: rgb(255 255 255 / 0.8);
+  --bp-on-accent: #FFFFFF;
+  --bp-pass-bg: linear-gradient(160deg, #FFFFFF, #EDF1F8);
+  --bp-card: linear-gradient(160deg, #FFFFFF, #EEF2F9);
+  --bp-chip: rgb(20 35 80 / 0.06);
+  --bp-header-bg: rgb(255 255 255 / 0.88);
+  --bp-grid: rgb(20 35 80 / 0.05);
+  --runway: #2F6B12;
+  --runway-300: #3B7F1A;
+  --aurora: #2D5FB8;
+}
+
+/* A night island inside a day page keeps the night palette. */
+[data-theme="light"] .bp .bp-night {
+  --bp-bg: var(--color-night-900);
+  --bp-fg: #EEF1F8;
+  --bp-strong: #FFFFFF;
+  --bp-muted: #A9B3C9;
+  --bp-faint: #7D89A3;
+  --bp-line: rgb(170 190 230 / 0.12);
+  --bp-line-strong: rgb(170 190 230 / 0.22);
+  --bp-on-accent: var(--color-night-900);
+  --bp-pass-bg: linear-gradient(160deg, rgb(31 43 82 / 0.7), rgb(12 19 40 / 0.85));
+  --bp-chip: rgb(255 255 255 / 0.06);
+  --runway: #72C43C;
+  --runway-300: #93D667;
+  --aurora: #6FA6F7;
+}
+
+/* Components name the accents through these, so they follow the theme. */
+.bp,
+.bp-night,
+.bp-header {
+  --color-runway: var(--runway);
+  --color-runway-300: var(--runway-300);
+  --color-aurora: var(--aurora);
+  color: var(--bp-fg);
+}
+
+.bp {
+
+  /* Re-point the old semantic tokens too, so a reused primitive dropped
+     inside a .bp section reads the night palette without conditional props. */
+  --fg: var(--bp-fg);
+  --fg-strong: #ffffff;
+  --fg-muted: var(--bp-muted);
+  --fg-faint: var(--bp-faint);
+  --line: var(--bp-line);
+  --line-strong: var(--bp-line-strong);
+  --surface: var(--bp-bg);
+  --accent: var(--color-runway);
+
+  background-color: var(--bp-bg);
+  color: var(--bp-fg);
+  font-family: var(--font-sans);
+}
+
+/* --------------------------------------------------------------- type ---- */
+
+.bp-display {
+  font-family: var(--font-grotesk);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.bp-h1 { font-size: clamp(2.6rem, 6.4vw, 6.2rem); }
+.bp-h2 { font-size: clamp(2.1rem, 4.6vw, 4.1rem); }
+.bp-h3 { font-size: clamp(1.4rem, 2.2vw, 1.9rem); line-height: 1.12; letter-spacing: -0.02em; }
+
+.bp-lede {
+  font-size: clamp(1.05rem, 1.35vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--bp-muted);
+  max-width: 60ch;
+}
+.bp-body { font-size: 1rem; line-height: 1.7; color: var(--bp-muted); }
+
+/* Ticket data — flight codes, step numbers, board columns. */
+.bp-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.bp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-aurora);
+}
+.bp-eyebrow::before {
+  content: "";
+  width: 2rem;
+  height: 1px;
+  background: currentColor;
+}
+
+/* A word in a headline set in the accent — sparingly. */
+.bp-mark { color: var(--color-runway); }
+/* The quieter half of a headline. It was an outlined (stroke-only) word,
+   which a contrast check reads as invisible and a tired eye nearly does too;
+   a solid muted fill keeps the two-voice rhythm and stays readable. */
+.bp-outline { color: var(--bp-muted); }
+
+/* ------------------------------------------------------------ buttons ---- */
+
+.bp-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  font-family: var(--font-grotesk);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.5s var(--ease-out-expo), background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+.bp-btn:active { transform: scale(0.97); }
+.bp-btn-sm { min-height: 2.75rem; padding: 0 1.1rem; font-size: 0.88rem; }
+
+.bp-btn-primary {
+  background: var(--color-runway);
+  color: var(--bp-on-accent);
+}
+/* A light sweep across the primary button on hover — the "runway light". */
+.bp-btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.55) 50%, transparent 80%);
+  transform: translateX(-120%);
+  transition: transform 0.8s var(--ease-out-expo);
+}
+.bp-btn-primary:hover::after { transform: translateX(120%); }
+.bp-btn-primary:hover { background: var(--color-runway-300); }
+
+.bp-btn-ghost {
+  border: 1px solid var(--bp-line-strong);
+  color: var(--bp-fg);
+  background: rgb(255 255 255 / 0.02);
+}
+.bp-btn-ghost:hover { border-color: var(--color-aurora); color: var(--bp-strong); }
+
+.bp-btn .bp-arrow { transition: transform 0.5s var(--ease-out-expo); }
+.bp-btn:hover .bp-arrow { transform: translateX(3px); }
+
+.bp :focus-visible,
+.bp-header :focus-visible,
+.bp-wa:focus-visible {
+  outline: 2px solid var(--color-aurora);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ------------------------------------------------------------ tickets ---- */
+
+/*
+  The boarding pass. Paper on night, with a perforated tear line: two
+  half-circle notches cut out of the edges via a radial-gradient mask, so the
+  notch shows whatever is BEHIND the card — line field included — rather than
+  a painted circle that would only match one background.
+*/
+.bp-ticket {
+  --notch: 14px;
+  --tear: 72%;
+  position: relative;
+  background: var(--color-ticket);
+  color: var(--color-ticket-ink);
+  border-radius: 18px;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at var(--tear) 0, transparent 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at var(--tear) 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at var(--tear) 0, transparent 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at var(--tear) 100%, transparent 98%, #000) bottom / 100% 51% no-repeat;
+}
+.bp-ticket-tear {
+  position: absolute;
+  top: calc(var(--notch) + 4px);
+  bottom: calc(var(--notch) + 4px);
+  left: var(--tear);
+  border-left: 2px dashed rgb(18 23 38 / 0.18);
+}
+.bp-ticket .bp-mono { color: rgb(18 23 38 / 0.62); }
+
+/* Plain paper — a form or a receipt, no tear line. */
+.bp-paper {
+  background: var(--color-ticket);
+  color: var(--color-ticket-ink);
+  border-radius: 14px;
+}
+.bp-paper .bp-mono { color: rgb(18 23 38 / 0.62); }
+
+/* A darker, glassy pass for use on the night ground. */
+.bp-pass-dark {
+  background: var(--bp-pass-bg);
+  border: 1px solid var(--bp-line-strong);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+}
+
+/* Barcode — decorative, generated from a gradient rather than an image. */
+.bp-barcode {
+  height: 38px;
+  background: repeating-linear-gradient(90deg,
+    currentColor 0 2px, transparent 2px 4px, currentColor 4px 5px, transparent 5px 8px,
+    currentColor 8px 11px, transparent 11px 12px, currentColor 12px 13px, transparent 13px 16px);
+  opacity: 0.85;
+}
+
+/* -------------------------------------------------------------- stamp ---- */
+
+.bp-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border: 2.5px solid currentColor;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 2px transparent;
+  mix-blend-mode: multiply;
+}
+.bp-stamp-ok { color: #0E8A63; }
+.bp-stamp-go { color: #C2410C; }
+.bp-stamp-blue { color: #1D4ED8; }
+
+
+/* ------------------------------------------------------- real documents --
+   Paper that reads as paper: a warm off-white with a faint fibre noise, a
+   light falloff toward the edges, and a two-layer shadow (a tight contact
+   shadow plus a soft lift). Used by the journey scenes. */
+.bp-doc {
+  /* No `position` here, on purpose. This file is unlayered CSS, so any
+     property set here beats Tailwind's utilities: `position: relative` on
+     this class silently overrode `absolute` on every document that used it
+     (the offer letter slid out of its envelope, the visa page stood beside
+     the passport). Components set position with utilities. */
+  color: #1C2030;
+  background-color: #FBF9F4;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(160deg, #FFFEFB 0%, #F6F2E9 100%);
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.08), 0 30px 50px -20px rgb(0 0 0 / 0.75);
+}
+/* Thermal receipt paper: cooler and flatter than letter paper. */
+.bp-doc-thermal {
+  background-color: #F4F4F0;
+  background-image: linear-gradient(180deg, #FAFAF7, #EEEEE9);
+}
+/* The fine engraved pattern printed on visas and certificates. */
+.bp-guilloche {
+  background-color: #EAF1EC;
+  background-image:
+    repeating-radial-gradient(circle at 20% 30%, transparent 0 3px, rgb(30 110 90 / 0.10) 3px 4px),
+    repeating-radial-gradient(circle at 80% 70%, transparent 0 4px, rgb(60 90 170 / 0.09) 4px 5px);
+}
+
+/* --------------------------------------------------------- split-flap ---- */
+
+.bp-flap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 0.78em;
+  height: 1.12em;
+  border-radius: 0.09em;
+  background: linear-gradient(#141D3A 0 49.4%, #0A1024 50.6% 100%);
+  background-color: #0F1730;
+  color: #F4F6FB;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05), 0 8px 18px -10px rgb(0 0 0 / 0.8);
+  overflow: hidden;
+  perspective: 300px;
+}
+.bp-flap::after {
+  /* The hinge line across the middle of the tile. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgb(0 0 0 / 0.65);
+}
+.bp-flap-accent { color: var(--color-runway); }
+
+/* ----------------------------------------------------------- marquee ---- */
+
+@keyframes bp-marquee { to { transform: translate3d(-50%, 0, 0); } }
+@keyframes bp-marquee-rev { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+
+.bp-marquee {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.bp-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: bp-marquee var(--bp-speed, 48s) linear infinite;
+}
+.bp-marquee-track.is-rev { animation-name: bp-marquee-rev; }
+.bp-marquee:hover .bp-marquee-track,
+.bp-marquee:focus-within .bp-marquee-track { animation-play-state: paused; }
+
+/* --------------------------------------------------------------- misc ---- */
+
+/* Runway lights converging on the closing CTA. */
+@keyframes bp-runway { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -40; } }
+.bp-runway-dash { animation: bp-runway 1.6s linear infinite; }
+
+@keyframes bp-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.bp-pulse { animation: bp-pulse 1.8s var(--ease-out-expo) 3; }
+
+/* Travelling background waves (LineField). Transform only — composited. */
+@keyframes bp-wave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-1440px, 0, 0); } }
+.bp-wave { animation: bp-wave 40s linear infinite; will-change: transform; }
+
+@keyframes bp-blink { 50% { opacity: 0; } }
+.bp-caret { animation: bp-blink 1s steps(1) infinite; }
+
+.bp-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Header: night glass on every page — it is the one piece of chrome that
+   belongs to the new system everywhere, so it sets its own palette. */
+/* (Header tokens are declared with .bp at the top of this file.) */
+
+/* The WhatsApp button — the one place WhatsApp green is allowed. */
+.bp-wa {
+  background: #25D366;
+  color: #062E16;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-marquee-track,
+  .bp-runway-dash,
+  .bp-pulse,
+  .bp-caret,
+  .bp-wave { animation: none !important; }
+  .bp-btn-primary::after { display: none; }
+  /* A moving strip with no motion is a clipped strip: let it wrap instead. */
+  .bp-marquee { -webkit-mask-image: none; mask-image: none; }
+  .bp-marquee-track { flex-wrap: wrap; width: auto; justify-content: center; }
+  .bp-marquee-track [aria-hidden="true"] { display: none; }
+}
+
+
+/* ------------------------------------------------------------ scrollbar --
+   The page scrollbar as a flight: the track is a night strip with a dashed
+   flight path down the middle, and the thumb is a plane flying down it with
+   a green trail behind. Chromium/Safari/Edge use the ::-webkit pseudo
+   elements (which allow images); Firefox, which does not, gets the same
+   colours through the standard properties.
+
+   NOTE: Chrome ignores ::-webkit-scrollbar once `scrollbar-color` is set on
+   the same element, so the standard properties are only given to Firefox. */
+html::-webkit-scrollbar { width: 18px; }
+html::-webkit-scrollbar-track {
+  background-color: #070B1A;
+  background-image: repeating-linear-gradient(to bottom, rgb(170 190 230 / 0.28) 0 6px, transparent 6px 14px);
+  background-size: 2px 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-left: 1px solid rgb(170 190 230 / 0.12);
+}
+html::-webkit-scrollbar-thumb {
+  min-height: 64px;
+  background-color: transparent;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg transform='rotate(90 12 12)'%3E%3Cpath fill='%2372C43C' d='M22.5 12c0-.8-.7-1.4-1.6-1.4h-5.4L10.3 2.3a.8.8 0 00-.7-.4H8.2c-.4 0-.6.4-.5.7l2.6 8H5.1L3.4 8.2a.6.6 0 00-.5-.3H1.8c-.3 0-.5.3-.4.6L2.6 12l-1.2 3.5c-.1.3.1.6.4.6h1.1c.2 0 .4-.1.5-.3l1.7-2.4h5.2l-2.6 8c-.1.3.1.7.5.7h1.4c.3 0 .5-.2.7-.4l5.2-8.3h5.4c.9 0 1.6-.6 1.6-1.4z'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgb(114 196 60 / 0), rgb(114 196 60 / 0.9));
+  background-size: 17px 17px, 2px calc(100% - 15px);
+  background-position: center bottom, center top;
+  background-repeat: no-repeat;
+}
+html::-webkit-scrollbar-thumb:hover {
+  background-size: 17px 17px, 3px calc(100% - 15px);
+}
+@supports (-moz-appearance: none) {
+  html { scrollbar-color: #72C43C #070B1A; scrollbar-width: thin; }
+}
+
+/* On the day sky, paper needs an edge to sit on. */
+[data-theme="light"] .bp .bp-paper,
+[data-theme="light"] .bp .bp-ticket {
+  box-shadow: 0 0 0 1px rgb(20 35 80 / 0.08), 0 30px 60px -30px rgb(20 35 80 / 0.35);
+}
+
+/* ---------------------------------------------------------- portal auth --
+   Drifting waves behind the sign-in scene (components/portal/AuthScene). */
+@keyframes auth-wave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-1000px, 0, 0); } }
+.auth-wave { animation: auth-wave 36s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .auth-wave { animation: none !important; } }
+
+/* -------------------------------------------------------- portal shell --
+   The fixed sky behind portal pages (components/portal/PortalBackdrop). */
+:root { --portal-grid: rgb(170 190 230 / 0.045); --portal-wave-o: 0.13; }
+[data-theme="light"] { --portal-grid: rgb(20 35 80 / 0.045); --portal-wave-o: 0.16; }
+@keyframes portal-wave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-1440px, 0, 0); } }
+.portal-wave { animation: portal-wave 50s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .portal-wave { animation: none !important; } }
+
+/* ===================================================== portal restyle ====
+   The portal moved onto the website's Boarding Pass look (2026-10-04).
+   Kept in this one block so the whole change is legible in one place.
+
+   1. GROUND. The portal shell no longer paints the old blue/green surface
+      wash; PortalBackdrop draws the night sky instead (dark), and a clean
+      pale sky (light). Website ground: #070B1A / #F4F6FB.
+   2. TYPE. Numbers and headings use the display face, as on the website.
+   3. CARDS. Panels and stat cards are "passes": a soft vertical gradient, a
+      hairline, an 16px radius and a lift on hover.
+   4. MOTION. Cards rise in on page load, staggered. CSS only, so server
+      components need no changes; disabled under reduced motion. Opacity
+      never starts at 0 (0.001) so audits do not read content as hidden. */
+
+/* 1 */
+.portal-shell.tone-soft {
+  --surface-wash: none;
+  --surface: #070B1A;
+  background-color: #070B1A;
+}
+[data-theme="light"] .portal-shell.tone-soft {
+  --surface: #F4F6FB;
+  background-color: #F4F6FB;
+}
+.portal-shell .portal-side {
+  background: linear-gradient(180deg, rgb(12 19 40 / 0.85), rgb(7 11 26 / 0.85));
+}
+[data-theme="light"] .portal-shell .portal-side {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(238 242 249 / 0.85));
+}
+
+/* 2 */
+.portal-shell .num,
+.portal-shell h1 {
+  font-family: var(--font-display);
+}
+.portal-shell .num { letter-spacing: -0.03em; font-weight: 600; }
+/* :where() keeps this at element specificity, so `.label` headings (the mono
+   card titles) still win and stay mono. */
+:where(.portal-shell) h2,
+:where(.portal-shell) h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* 3 */
+.portal-shell {
+  --panel-bg: linear-gradient(160deg, rgb(31 43 82 / 0.55), rgb(12 19 40 / 0.7));
+  --panel-shadow: 0 24px 50px -30px rgb(0 0 0 / 0.8);
+}
+[data-theme="light"] .portal-shell {
+  --panel-bg: linear-gradient(160deg, #FFFFFF, #F0F3F9);
+  --panel-shadow: 0 18px 40px -28px rgb(20 35 80 / 0.35);
+}
+
+/* 4 */
+@keyframes portal-rise {
+  from { opacity: 0.001; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.portal-rise { animation: portal-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Every card grid on a portal page staggers in, without touching the pages:
+   any direct child of a `.grid` inside the main column. Forms are excluded
+   so a field that appears mid-edit does not jump. */
+.portal-stagger > *,
+.portal-shell main .grid:not(form .grid) > * {
+  animation: portal-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.portal-stagger > *:nth-child(2), .portal-shell main .grid:not(form .grid) > *:nth-child(2) { animation-delay: 0.05s; }
+.portal-stagger > *:nth-child(3), .portal-shell main .grid:not(form .grid) > *:nth-child(3) { animation-delay: 0.1s; }
+.portal-stagger > *:nth-child(4), .portal-shell main .grid:not(form .grid) > *:nth-child(4) { animation-delay: 0.15s; }
+.portal-stagger > *:nth-child(5), .portal-shell main .grid:not(form .grid) > *:nth-child(5) { animation-delay: 0.2s; }
+.portal-stagger > *:nth-child(n + 6), .portal-shell main .grid:not(form .grid) > *:nth-child(n + 6) { animation-delay: 0.25s; }
+@media (prefers-reduced-motion: reduce) {
+  .portal-rise, .portal-stagger > *, .portal-shell main .grid > * { animation: none !important; }
+}
