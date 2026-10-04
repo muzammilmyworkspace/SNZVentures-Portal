@@ -1252,6 +1252,60 @@ export async function getDashboardCharts(): Promise<{
   }, { weeks: [], cases: [] });
 }
 
+/**
+ * The consultant dashboard's data: each of THIS advisor's clients with the
+ * stage they are at. Scope is exactly getAssignedClients' (assigned, or on a
+ * case the advisor holds), so the two can never disagree.
+ *
+ * The stage is computed with the same rules as lib/portal/stage.ts
+ * (studentStage), in one statement for all clients rather than one query
+ * each. Keep the two in step: if a rule changes there, change it here.
+ */
+export async function getAdvisorBoard(advisorId: string): Promise<
+  { id: string; name: string; role: string; stage: string; created_at: string }[]
+> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT u.id, u.name, u.role::text AS role, u.created_at,
+        CASE
+          WHEN u.role <> 'student' THEN 'other'
+          WHEN f.live IS NULL AND f.rejected > 0 THEN 'fee_rejected'
+          WHEN f.live IS NULL THEN 'fee_due'
+          WHEN f.live = 'submitted' THEN 'fee_review'
+          WHEN i.status IS NULL OR i.status = 'draft' THEN 'application'
+          WHEN k.n = 0 THEN 'consent_due'
+          ELSE 'complete'
+        END AS stage
+      FROM users u
+      LEFT JOIN LATERAL (
+        SELECT
+          (SELECT status::text FROM fee_submissions
+            WHERE user_id = u.id AND status IN ('submitted','verified') LIMIT 1) AS live,
+          (SELECT count(*)::int FROM fee_submissions
+            WHERE user_id = u.id AND status = 'rejected') AS rejected
+      ) f ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT status::text AS status FROM intake_forms
+        WHERE user_id = u.id AND pathway = 'study' LIMIT 1
+      ) i ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT count(*)::int AS n FROM consents
+        WHERE user_id = u.id AND kind = 'student_undertaking'
+      ) k ON TRUE
+      WHERE EXISTS (
+              SELECT 1 FROM staff_assignments sa
+              WHERE sa.advisor_id = ${advisorId} AND sa.client_id = u.id
+            )
+         OR EXISTS (
+              SELECT 1 FROM cases mine
+              WHERE mine.advisor_id = ${advisorId} AND mine.client_id = u.id
+            )
+      ORDER BY u.name
+    `;
+    return rows as unknown as { id: string; name: string; role: string; stage: string; created_at: string }[];
+  }, []);
+}
+
 export async function getAdminOverview(limitCases = 12, limitDocs = 10, limitUsers = 8) {
   return safeQuery(async () => {
     const [r] = await db()`

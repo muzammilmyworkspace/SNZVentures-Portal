@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { ActivityChart, BarList } from "@/components/portal/DashboardCharts";
+import { ActivityChart, BarList, StudentRoster } from "@/components/portal/DashboardCharts";
+import { stageRows } from "@/lib/portal/advisor-stages";
 import { requireStaff } from "@/lib/auth/guard";
 import { isAdmin } from "@/lib/auth/guard";
 import {
   getAdminOverview,
   getDashboardCharts,
+  getAdvisorBoard,
   getCasesForAdvisor,
   getAssignedClients,
 } from "@/lib/db/repos/portal";
@@ -105,11 +107,12 @@ export default async function AdminPage() {
     ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts()])
     : [null, null];
 
-  const [advisorCases, myClients] = admin
-    ? [[], []]
+  const [advisorCases, myClients, board] = admin
+    ? [[], [], []]
     : await Promise.all([
         getCasesForAdvisor(session.userId),
         getAssignedClients(session.userId),
+        getAdvisorBoard(session.userId),
       ]);
 
   const m = (overview?.metrics ?? {}) as Record<string, number>;
@@ -305,6 +308,31 @@ export default async function AdminPage() {
                 rows={charts.cases
                   .filter((c) => c.status !== "closed")
                   .map((c) => ({ label: CASE_LABEL[c.status] ?? c.status, value: c.count }))}
+              />
+            </Panel>
+          </div>
+        </section>
+      )}
+
+      {/* ------------------------------------------------ consultant charts */}
+      {!admin && (
+        <section className="dash-charts mb-5 grid items-start gap-5">
+          <Panel title="My students">
+            <StudentRoster clients={board} />
+          </Panel>
+          <div className="grid content-start gap-5">
+            <Panel title="Where my students are">
+              <BarList title="My students by stage" rows={stageRows(board)} />
+            </Panel>
+            <Panel title="My case pipeline">
+              <BarList
+                title="My cases by status"
+                colorBy="category"
+                rows={[
+                  { label: "Open", value: advisorCases.filter((c) => !["completed", "closed", "awaiting_client"].includes(String(c.status))).length },
+                  { label: "Waiting on client", value: advisorCases.filter((c) => String(c.status) === "awaiting_client").length },
+                  { label: "Completed", value: advisorCases.filter((c) => ["completed", "closed"].includes(String(c.status))).length },
+                ]}
               />
             </Panel>
           </div>

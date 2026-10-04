@@ -15,6 +15,8 @@ import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/inta
 import { studentStage } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
+import { ProgressGauges } from "@/components/portal/DashboardCharts";
+import { STUDENT_FLOW } from "@/lib/portal/journey-flow";
 import { ticksFor } from "@/lib/db/repos/checklist";
 import {
   ADMISSION_CHECKLIST,
@@ -194,6 +196,34 @@ export async function ClientDashboard({ session }: { session: Session }) {
         lead={ctx.lead}
       />
 
+      {/* Progress at a glance (students): journey, application, documents. */}
+      {role === "student" && position && admissionDocs && (
+        <div className="mb-5">
+          <ProgressGauges
+            items={[
+              {
+                label: "Journey",
+                value: Math.round(((position.index + (position.waiting ? 0.5 : 0)) / (STUDENT_FLOW.length - 1)) * 100),
+                caption: `Stage ${position.index + 1} of ${STUDENT_FLOW.length}: ${STUDENT_FLOW[position.index]?.name ?? ""}`,
+                href: "/portal/journey",
+              },
+              {
+                label: "Application",
+                value: intakeDone ? 100 : intakePercent,
+                caption: intakeDone ? "Submitted" : intake ? "Saves as you go" : "Not started yet",
+                href: "/portal/application",
+              },
+              {
+                label: "Documents",
+                value: admissionDocs.percent,
+                caption: `${admissionDocs.done} of ${admissionDocs.total} on the checklist`,
+                href: "/portal/checklist",
+              },
+            ]}
+          />
+        </div>
+      )}
+
       <NextAction {...nextStep} />
 
       {/*
@@ -208,7 +238,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
         "what do I do now"; these are the answer to "where does my case stand",
         which is the second question, not the first.
       */}
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="dash-work mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <WorkCard
           label="Documents needing you"
           value={actionDocs.length}

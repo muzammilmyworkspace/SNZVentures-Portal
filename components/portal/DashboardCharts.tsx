@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useReduced } from "./useReduced";
 import { cn } from "@/lib/utils";
+import { STAGES, STAGE_BY_KEY } from "@/lib/portal/advisor-stages";
 
 /**
  * THE ADMIN DASHBOARD CHARTS.
@@ -302,5 +303,133 @@ export function BarList({
         </tbody>
       </table>
     </figure>
+  );
+}
+
+/* ------------------------------------------------------------ advisor board */
+
+
+/**
+ * The consultant's students as a roster: name, a five-segment track that
+ * fills to the stage they have reached, and the stage named in text (so the
+ * track is never colour-only). Rows link to the client file.
+ */
+export function StudentRoster({
+  clients,
+}: {
+  clients: { id: string; name: string; role: string; stage: string }[];
+}) {
+  const reduce = useReduced();
+  const students = clients.filter((c) => c.role === "student");
+  if (students.length === 0) {
+    return <p className="py-2 text-[0.92rem] text-muted">No students assigned to you yet.</p>;
+  }
+  return (
+    <ul className="divide-y divide-[var(--line)]">
+      {students.map((c, i) => {
+        const st = STAGE_BY_KEY[c.stage] ?? STAGES[0];
+        const warn = c.stage === "fee_rejected";
+        return (
+          <li key={c.id}>
+            <a
+              href={`/portal/admin/users/${c.id}`}
+              className="group -mx-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-[10px] px-2 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--viz-1)_22%,transparent)] font-[family-name:var(--font-display)] text-[0.8rem] font-semibold text-fg-strong">
+                  {c.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                </span>
+                <span className="truncate font-semibold text-fg">{c.name}</span>
+              </span>
+              <span className="col-span-2 flex gap-1 sm:col-span-1" aria-hidden>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <motion.span
+                    key={n}
+                    className="h-1.5 flex-1 rounded-full"
+                    style={{
+                      background: n <= st.step ? (warn ? "var(--warn)" : "var(--viz-3)") : "color-mix(in srgb, var(--fg) 10%, transparent)",
+                      transformOrigin: "0% 50%",
+                    }}
+                    initial={reduce ? false : { scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ delay: 0.15 + i * 0.05 + n * 0.04, duration: 0.5 }}
+                  />
+                ))}
+              </span>
+              <span
+                className={cn(
+                  "row-start-1 justify-self-end whitespace-nowrap rounded-full px-2.5 py-1 text-[0.75rem] font-semibold sm:col-start-3",
+                  warn
+                    ? "bg-[color-mix(in_srgb,var(--warn)_16%,transparent)] text-warn"
+                    : st.step === 5
+                      ? "bg-[color-mix(in_srgb,var(--viz-3)_18%,transparent)] text-fg-strong"
+                      : "bg-[color-mix(in_srgb,var(--fg)_7%,transparent)] text-muted"
+                )}
+              >
+                {st.label} · {st.step}/5
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+
+/* -------------------------------------------------------------- gauges */
+
+/**
+ * The student's progress at a glance: three rings that fill on load. Each
+ * carries its value and a caption in text, so colour is never the only cue.
+ */
+export function ProgressGauges({
+  items,
+}: {
+  items: { label: string; value: number; caption: string; href?: string }[];
+}) {
+  const reduce = useReduced();
+  const R = 30;
+  const C = 2 * Math.PI * R;
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      {items.map((it, i) => {
+        const v = Math.max(0, Math.min(100, it.value));
+        const hue = `var(--viz-${(i % 3) + 1})`;
+        const body = (
+          <div className="group relative flex h-full items-center gap-5 overflow-hidden rounded-[16px] border border-line bg-[image:var(--panel-bg)] p-5 shadow-[var(--panel-shadow)] transition-all duration-300 hover:-translate-y-1 hover:border-line-strong motion-reduce:transform-none">
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] opacity-80" style={{ background: hue }} />
+            <svg viewBox="0 0 76 76" className="h-[76px] w-[76px] shrink-0 -rotate-90" aria-hidden>
+              <circle cx="38" cy="38" r={R} fill="none" stroke="color-mix(in srgb, var(--fg) 10%, transparent)" strokeWidth="7" />
+              <motion.circle
+                cx="38"
+                cy="38"
+                r={R}
+                fill="none"
+                stroke={hue}
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray={C}
+                initial={reduce ? false : { strokeDashoffset: C }}
+                animate={{ strokeDashoffset: C * (1 - v / 100) }}
+                transition={{ delay: 0.2 + i * 0.12, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </svg>
+            <span className="min-w-0">
+              <span className="label block text-[0.72rem] text-faint">{it.label}</span>
+              <span className="num mt-1 block text-[2rem] leading-none text-fg-strong">{v}%</span>
+              <span className="mt-1.5 block text-[0.85rem] leading-snug text-muted">{it.caption}</span>
+            </span>
+          </div>
+        );
+        return it.href ? (
+          <a key={it.label} href={it.href} className="block">
+            {body}
+          </a>
+        ) : (
+          <div key={it.label}>{body}</div>
+        );
+      })}
+    </div>
   );
 }

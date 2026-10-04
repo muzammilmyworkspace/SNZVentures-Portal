@@ -137,11 +137,12 @@ export function EmptyState({
   };
 
   return (
-    <div className="flex items-start gap-4 py-3">
+    <div className="flex items-start gap-4 rounded-[14px] border border-dashed border-line-strong bg-[color-mix(in_srgb,var(--fg)_2%,transparent)] p-5">
       <span
         aria-hidden
-        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-accent"
+        className="relative mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent"
       >
+        <span className="absolute inset-0 rounded-[14px] ring-1 ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]" />
         <svg viewBox="0 0 22 22" fill="none" className="h-[18px] w-[18px]">
           <path
             d={paths[icon]}
@@ -769,7 +770,7 @@ export function DataRow({
   meta?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-3.5 last:border-0">
+    <div className="-mx-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[8px] border-b border-line px-2 py-3.5 transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
       <span className="min-w-0 text-[0.95rem] text-fg">{label}</span>
       <span className="flex shrink-0 items-center gap-3">
         {meta}
@@ -798,9 +799,9 @@ export function DataTable({
       <table className="w-full text-left" style={{ minWidth }}>
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
-          <tr className="border-b border-line">
+          <tr className="border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)]">
             {columns.map((c, i) => (
-              <th key={`${c}-${i}`} scope="col" className="label whitespace-nowrap px-5 py-3 text-faint">
+              <th key={`${c}-${i}`} scope="col" className="label whitespace-nowrap px-5 py-3 text-[0.72rem] text-faint">
                 {c}
               </th>
             ))}
@@ -814,7 +815,7 @@ export function DataTable({
 
 export function Row({ children }: { children: ReactNode }) {
   return (
-    <tr className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
+    <tr className="group/row relative border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] [&>td:first-child]:shadow-[inset_3px_0_0_transparent] hover:[&>td:first-child]:shadow-[inset_3px_0_0_var(--accent)]">
       {children}
     </tr>
   );
@@ -830,7 +831,7 @@ export function Cell({
   className?: string;
 }) {
   return (
-    <td className={cn("px-5 py-3.5 text-[0.9rem]", muted ? "text-muted" : "text-fg", className)}>
+    <td className={cn("px-5 py-4 text-[0.92rem]", muted ? "text-muted" : "text-fg", className)}>
       {children}
     </td>
   );
@@ -858,14 +859,23 @@ export function Tabs({
             href={t.href}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "inline-flex min-h-10 items-center rounded-full px-4 text-[0.85rem] transition-colors",
+              "inline-flex min-h-10 items-center gap-2 rounded-full px-4 font-[family-name:var(--font-display)] text-[0.88rem] font-medium transition-all duration-300",
               on
-                ? "bg-moss-400 font-medium text-navy-950"
-                : "border border-line text-muted hover:border-moss-400/60 hover:text-fg"
+                ? "bg-moss-400 text-[#070B1A] shadow-[0_8px_20px_-10px_rgba(114,196,60,0.7)]"
+                : "border border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] text-muted hover:border-line-strong hover:text-fg"
             )}
           >
             {t.label}
-            {t.count !== undefined && <span className="ml-1.5 opacity-65">{t.count}</span>}
+            {t.count !== undefined && (
+              <span
+                className={cn(
+                  "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[0.72rem]",
+                  on ? "bg-[#070B1A]/15" : "bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]"
+                )}
+              >
+                {t.count}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -881,10 +891,10 @@ export function ActivityTimeline({
   items: { title: string; meta?: string; body?: string }[];
 }) {
   return (
-    <ol className="space-y-4">
+    <ol className="relative space-y-4 before:absolute before:bottom-2 before:left-[4px] before:top-2 before:w-px before:bg-[var(--line-strong)]">
       {items.map((a, i) => (
-        <li key={i} className="flex gap-3.5">
-          <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-moss-400/70" />
+        <li key={i} className="relative flex gap-3.5">
+          <span aria-hidden className="relative z-[1] mt-[6px] h-[9px] w-[9px] shrink-0 rounded-full border-2 border-[var(--accent)] bg-[var(--panel-solid)]" />
           <span className="min-w-0">
             <span className="block text-[0.9rem] leading-relaxed text-fg">{a.title}</span>
             {a.body && (
@@ -920,10 +930,20 @@ export function DocumentCard({
   actions?: ReactNode;
 }) {
   return (
-    <div className="border-b border-line py-4 last:border-0">
+    <div className="group flex gap-4 border-b border-line py-4 last:border-0">
+      <span
+        aria-hidden
+        className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-line bg-[color-mix(in_srgb,var(--viz-1)_14%,transparent)] text-[var(--viz-1)] transition-transform duration-300 group-hover:-rotate-3"
+      >
+        <svg viewBox="0 0 20 20" fill="none" className="h-[18px] w-[18px]">
+          <path d="M5 2.5h6.5L15 6v11.5H5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[0.95rem] font-medium text-fg">{name}</p>
+          <p className="text-[0.95rem] font-semibold text-fg">{name}</p>
           {(owner || category || uploaded) && (
             <p className="mt-0.5 text-[0.8rem] text-faint">
               {[owner, category, uploaded].filter(Boolean).join(" · ")}
@@ -934,6 +954,7 @@ export function DocumentCard({
       </div>
       {note && <p className="mt-2.5 max-w-2xl text-[0.85rem] leading-relaxed text-muted">{note}</p>}
       {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
+      </div>
     </div>
   );
 }
