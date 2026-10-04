@@ -589,3 +589,38 @@ html::-webkit-scrollbar-thumb:hover {
     radial-gradient(60% 45% at 0% 100%, rgb(114 196 60 / 0.10), transparent 70%),
     #F6F8FC;
 }
+
+/* ------------------------------------------------------- dashboard charts --
+   Categorical slots, fixed order, validated with the dataviz skill's
+   validate_palette.js against the portal's card surfaces:
+     dark  #3987e5 #d95926 #199e70 on #1D2848  all checks PASS
+     light #2a78d6 #eb6834 #1baf7a on #FFFFFF  PASS (aqua contrast 2.8:1,
+           so every bar carries a visible value label) */
+.portal-shell {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-grid: rgb(170 190 230 / 0.12);
+}
+[data-theme="light"] .portal-shell {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-grid: rgb(20 35 80 / 0.1);
+}
+/* Solid card colour, for chart marker rings and tooltips (a gradient cannot
+   be a stroke). */
+.portal-shell { --panel-solid: #1B2645; }
+[data-theme="light"] .portal-shell { --panel-solid: #FFFFFF; }
+/* Admin dashboard charts: line chart wide, pathway bars beside it, the case
+   pipeline across the full width underneath. */
+@media (min-width: 1024px) {
+  .dash-charts { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+}
+/* Distinct hue per dashboard queue card (decoration: each card is also
+   named in text). Fixed order from the validated chart slots + logo blue. */
+.dash-work > *:nth-child(1) { --card-hue: var(--viz-1); }
+.dash-work > *:nth-child(2) { --card-hue: var(--viz-3); }
+.dash-work > *:nth-child(3) { --card-hue: var(--viz-2); }
+.dash-work > *:nth-child(4) { --card-hue: #9085e9; }
+.dash-work > *:nth-child(5) { --card-hue: #c98500; }

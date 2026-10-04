@@ -1206,6 +1206,52 @@ export async function getQueryAnalytics(): Promise<{
   }, { byStatus: [], overTime: [] });
 }
 
+/**
+ * The admin dashboard's charts, in one round trip.
+ *
+ *   weeks   the last 12 calendar weeks (Monday start), oldest first, with new
+ *           client sign-ups and submitted application forms per week. Weeks
+ *           with nothing in them are present as zeros (generate_series), so the
+ *           line never skips a gap and silently implies continuity.
+ *   cases   open-and-closed case counts by status, every status present.
+ */
+export async function getDashboardCharts(): Promise<{
+  weeks: { week: string; signups: number; submitted: number }[];
+  cases: { status: string; count: number }[];
+}> {
+  return safeQuery(async () => {
+    const [r] = await db()`
+      SELECT
+        COALESCE((
+          SELECT json_agg(x ORDER BY x.week) FROM (
+            SELECT to_char(w, 'YYYY-MM-DD') AS week,
+              (SELECT count(*)::int FROM users u
+                WHERE u.role IN ('student','professional','business')
+                  AND u.created_at >= w AND u.created_at < w + interval '1 week') AS signups,
+              (SELECT count(*)::int FROM intake_forms f
+                WHERE f.submitted_at >= w AND f.submitted_at < w + interval '1 week') AS submitted
+            FROM generate_series(
+              date_trunc('week', now()) - interval '11 weeks',
+              date_trunc('week', now()),
+              interval '1 week'
+            ) AS w
+          ) x
+        ), '[]'::json) AS weeks,
+        COALESCE((
+          SELECT json_agg(x) FROM (
+            SELECT s::text AS status,
+              (SELECT count(*)::int FROM cases c WHERE c.status = s) AS count
+            FROM unnest(enum_range(NULL::case_status)) AS s
+          ) x
+        ), '[]'::json) AS cases
+    `;
+    return {
+      weeks: (r?.weeks ?? []) as { week: string; signups: number; submitted: number }[],
+      cases: (r?.cases ?? []) as { status: string; count: number }[],
+    };
+  }, { weeks: [], cases: [] });
+}
+
 export async function getAdminOverview(limitCases = 12, limitDocs = 10, limitUsers = 8) {
   return safeQuery(async () => {
     const [r] = await db()`

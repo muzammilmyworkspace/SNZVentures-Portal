@@ -330,6 +330,9 @@ export function WorkCard({
           : "border-line bg-[image:var(--panel-bg)] hover:border-line-strong"
       )}
     >
+      {/* Each card's own hue as a thin rule along the top (set per position
+          by .dash-work in boarding.css), so the row reads as distinct queues. */}
+      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-[var(--card-hue,transparent)] opacity-80" />
       {/* A soft accent glow in the corner of any card that holds work. */}
       {waiting && (
         <span
@@ -345,7 +348,7 @@ export function WorkCard({
             "grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-all duration-300",
             waiting
               ? "border-[var(--accent)] bg-[var(--accent)] text-[#070B1A] group-hover:scale-110"
-              : "border-line text-faint group-hover:border-line-strong group-hover:text-muted"
+              : "border-[color-mix(in_srgb,var(--card-hue,var(--line-strong))_55%,transparent)] text-[var(--card-hue,var(--fg-faint))] group-hover:bg-[color-mix(in_srgb,var(--card-hue,var(--fg))_14%,transparent)]"
           )}
         >
           <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">

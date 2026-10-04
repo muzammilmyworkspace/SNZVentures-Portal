@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { ActivityChart, BarList } from "@/components/portal/DashboardCharts";
 import { requireStaff } from "@/lib/auth/guard";
 import { isAdmin } from "@/lib/auth/guard";
 import {
   getAdminOverview,
+  getDashboardCharts,
   getCasesForAdvisor,
   getAssignedClients,
 } from "@/lib/db/repos/portal";
@@ -54,6 +56,16 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
  * repeated five destinations the sidebar already carries, on every load,
  * costing a card's worth of space to say nothing new.
  */
+const CASE_LABEL: Record<string, string> = {
+  new: "New",
+  assessment: "Assessment",
+  in_progress: "In progress",
+  documents_required: "Documents required",
+  under_review: "Under review",
+  awaiting_client: "Awaiting client",
+  completed: "Completed",
+};
+
 export default async function AdminPage() {
   const { session, role } = await requireStaff();
   const admin = isAdmin(role);
@@ -87,7 +99,11 @@ export default async function AdminPage() {
     round trip, ~200ms. The advisor view still uses its own scoped queries,
     which are two, not five.
   */
-  const overview = admin ? await getAdminOverview(12, 10, 8) : null;
+  // The charts query runs IN PARALLEL with the overview, never after it: see
+  // the timeout note above. Two statements, one wall-clock round trip.
+  const [overview, charts] = admin
+    ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts()])
+    : [null, null];
 
   const [advisorCases, myClients] = admin
     ? [[], []]
@@ -177,7 +193,7 @@ export default async function AdminPage() {
     ternary branch, where a JSX comment beside it counts as a second expression
     and will not parse.
   */
-  const workGrid = `grid gap-4 sm:grid-cols-2 ${admin ? "lg:grid-cols-3 xl:grid-cols-5" : ""}`;
+  const workGrid = `dash-work grid gap-4 sm:grid-cols-2 ${admin ? "lg:grid-cols-3 xl:grid-cols-5" : ""}`;
 
   const people = [
     { label: "Students", value: m.students ?? 0 },
@@ -260,6 +276,37 @@ export default async function AdminPage() {
             {standing.map((s) => (
               <StatCard key={s.label} label={s.label} value={s.value} href={s.href} hint={s.note} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ------------------------------------------------------- the charts */}
+      {admin && charts && (
+        <section className="dash-charts mb-5 grid items-stretch gap-5">
+          <Panel title="Activity">
+            <ActivityChart weeks={charts.weeks} />
+          </Panel>
+          <Panel title="Clients by pathway">
+            <BarList
+              title="Clients by pathway"
+              colorBy="category"
+              rows={[
+                { label: "Students", value: m.students ?? 0 },
+                { label: "Job seekers", value: m.professionals ?? 0 },
+                { label: "Businesses", value: m.businesses ?? 0 },
+              ]}
+            />
+          </Panel>
+          <div className="lg:col-span-2">
+            <Panel title="Case pipeline">
+              <BarList
+                title="Cases by status"
+                columns={3}
+                rows={charts.cases
+                  .filter((c) => c.status !== "closed")
+                  .map((c) => ({ label: CASE_LABEL[c.status] ?? c.status, value: c.count }))}
+              />
+            </Panel>
           </div>
         </section>
       )}
