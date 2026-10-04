@@ -6,6 +6,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState, WorkCard, StatusPill } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { buildMetadata } from "@/lib/seo";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
 export const metadata: Metadata = buildMetadata({
   title: "Enquiries",
@@ -38,7 +39,12 @@ const PATHWAY_LABEL: Record<string, string> = {
  * never reached an inbox is the one most likely to go unanswered, and the
  * operator needs to know the notification failed even though the record did not.
  */
-export default async function EnquiriesPage() {
+export default async function EnquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   await requireRole(ADMIN_ROLES, "/portal/admin/enquiries");
 
   if (!isDatabaseConfigured()) {
@@ -51,6 +57,7 @@ export default async function EnquiriesPage() {
   }
 
   const { rows, total, undelivered, unhandled } = await listEnquiries(100);
+  const pg = paginate(rows, pageFrom(sp.page), 20);
 
   return (
     <>
@@ -106,7 +113,7 @@ export default async function EnquiriesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((e) => (
+                {pg.rows.map((e) => (
                   <tr key={e.id} className="border-b border-line align-top last:border-0">
                     <td className="py-3 pr-4 text-[0.85rem] text-faint">
                       {new Date(e.createdAt).toLocaleDateString("en-GB", {
@@ -146,6 +153,7 @@ export default async function EnquiriesPage() {
             </table>
           </div>
         )}
+<Pager inset page={pg.page} pages={pg.pages} total={pg.total} size={20} basePath="/portal/admin/enquiries" params={sp} noun="enquiries" />
       </Panel>
     </>
   );

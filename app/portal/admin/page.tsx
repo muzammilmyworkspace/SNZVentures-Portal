@@ -24,6 +24,8 @@ import {
   DataRow,
 } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
+import { DateRangeBar, PeriodStat } from "@/components/portal/DateRangeBar";
+import { resolveRange } from "@/lib/portal/date-range";
 
 /**
  * STAFF OVERVIEW
@@ -68,8 +70,13 @@ const CASE_LABEL: Record<string, string> = {
   completed: "Completed",
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { session, role } = await requireStaff();
+  const range = resolveRange(await searchParams);
   const admin = isAdmin(role);
 
   if (!isDatabaseConfigured()) {
@@ -104,7 +111,7 @@ export default async function AdminPage() {
   // The charts query runs IN PARALLEL with the overview, never after it: see
   // the timeout note above. Two statements, one wall-clock round trip.
   const [overview, charts] = admin
-    ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts()])
+    ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts(range)])
     : [null, null];
 
   const [advisorCases, myClients, board] = admin
@@ -284,10 +291,42 @@ export default async function AdminPage() {
       )}
 
       {/* ------------------------------------------------------- the charts */}
+      {/* ------------------------------------------ the period, like ads reporting */}
+      {admin && charts && (
+        <section className="mb-5" aria-labelledby="period-heading">
+          <h2 id="period-heading" className="label mb-3.5 text-faint">Performance</h2>
+          <DateRangeBar range={range} basePath="/portal/admin" />
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 2xl:grid-cols-6">
+            {[
+              { label: "New clients", k: "clients", href: "/portal/admin/users", hue: "var(--viz-1)" },
+              { label: "Applications", k: "applications", href: "/portal/admin/requests", hue: "var(--viz-2)" },
+              { label: "Enquiries", k: "enquiries", href: "/portal/admin/enquiries", hue: "var(--viz-3)" },
+              { label: "Fee declarations", k: "fees", href: "/portal/admin/fees", hue: "#9085e9" },
+              { label: "Documents uploaded", k: "documents", href: "/portal/admin/documents", hue: "#c98500" },
+              { label: "Cases opened", k: "cases", href: "/portal/admin/cases", hue: "#4fb3c9" },
+            ].map((t) => (
+              <PeriodStat
+                key={t.k}
+                label={t.label}
+                cur={charts.kpis[t.k as keyof typeof charts.kpis].cur}
+                prev={charts.kpis[t.k as keyof typeof charts.kpis].prev}
+                href={t.href}
+                hue={t.hue}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {admin && charts && (
         <section className="dash-charts mb-5 grid items-stretch gap-5">
           <Panel title="Activity">
-            <ActivityChart weeks={charts.weeks} />
+            <ActivityChart
+              key={range.fromInput + range.toInput}
+              points={charts.series}
+              bucket={range.bucket}
+              rangeText={range.text}
+            />
           </Panel>
           <Panel title="Clients by pathway">
             <BarList

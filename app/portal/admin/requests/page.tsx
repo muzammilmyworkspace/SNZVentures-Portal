@@ -5,6 +5,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
 import { getIntakeQueue } from "@/lib/db/repos/operations";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 
 export const metadata: Metadata = {
@@ -57,7 +58,7 @@ function waitingFor(iso: string | null): string {
 export default async function AdminRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; pathway?: string }>;
+  searchParams: Promise<{ status?: string; pathway?: string; page?: string }>;
 }) {
   await requireAdmin();
   const params = await searchParams;
@@ -81,6 +82,7 @@ export default async function AdminRequestsPage({
       (status === "all" || r.status === status) &&
       (pathway === "all" || r.pathway === pathway)
   );
+  const pg = paginate(rows, pageFrom(params.page));
 
   const countFor = (key: string) =>
     key === "all" ? all.length : all.filter((r) => r.status === key).length;
@@ -171,7 +173,7 @@ export default async function AdminRequestsPage({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {pg.rows.map((r) => (
                   <tr
                     key={r.id}
                     className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
@@ -227,6 +229,7 @@ export default async function AdminRequestsPage({
             </table>
           </div>
         )}
+        <Pager page={pg.page} pages={pg.pages} total={pg.total} basePath="/portal/admin/requests" params={params} noun="requests" />
       </Panel>
     </>
   );

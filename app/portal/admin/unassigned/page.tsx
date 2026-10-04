@@ -11,6 +11,7 @@ import {
   Cell,
 } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,12 @@ export const dynamic = "force-dynamic";
  * records who did it, and is where an admin expects to find it — this screen's
  * job is to make sure the question gets asked, not to answer it a second way.
  */
-export default async function UnassignedPage() {
+export default async function UnassignedPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   await requireAdmin();
 
   if (!isDatabaseConfigured()) {
@@ -45,6 +51,7 @@ export default async function UnassignedPage() {
   }
 
   const clients = await listUnassignedClients();
+  const pg = paginate(clients, pageFrom(sp.page), 20);
 
   return (
     <>
@@ -66,7 +73,7 @@ export default async function UnassignedPage() {
             columns={["Name", "Email", "Type", "Signed up"]}
             caption="Clients with no consultant assigned"
           >
-            {clients.map((c) => (
+            {pg.rows.map((c) => (
               <Row key={c.id}>
                 <Cell>{c.name}</Cell>
                 <Cell muted>{c.email}</Cell>
@@ -82,6 +89,7 @@ export default async function UnassignedPage() {
             ))}
           </DataTable>
         )}
+<Pager inset page={pg.page} pages={pg.pages} total={pg.total} size={20} basePath="/portal/admin/unassigned" params={sp} noun="clients" />
       </Panel>
 
       <p className="mt-5 text-[0.82rem] leading-relaxed text-faint">

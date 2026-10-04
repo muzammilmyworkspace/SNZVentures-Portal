@@ -5,8 +5,14 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { CaseStatusControl } from "@/components/portal/CaseStatusControl";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
-export default async function AdminCasesPage() {
+export default async function AdminCasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const { session, role } = await requireStaff();
 
   if (!isDatabaseConfigured()) {
@@ -22,6 +28,7 @@ export default async function AdminCasesPage() {
   const cases = isAdmin(role)
     ? await getAllCases(200)
     : await getCasesForAdvisor(session.userId);
+  const pg = paginate(cases, pageFrom(sp.page));
 
   return (
     <>
@@ -54,7 +61,7 @@ export default async function AdminCasesPage() {
                 </tr>
               </thead>
               <tbody>
-                {cases.map((c) => (
+                {pg.rows.map((c) => (
                   <tr key={c.id} className="border-b border-line last:border-0">
                     {/* Generated for every case since 003 and, until now, shown
                         nowhere — which made it useless for naming a case in an
@@ -111,6 +118,7 @@ export default async function AdminCasesPage() {
             </table>
           </div>
         )}
+        <Pager page={pg.page} pages={pg.pages} total={pg.total} basePath="/portal/admin/cases" params={sp} noun="cases" />
       </Panel>
       <p className="mt-5 text-[0.8rem] text-faint">
         Clients cannot change case status. Only staff may advance a case, and every change is recorded in the{" "}

@@ -166,7 +166,7 @@ export function UserTable({
                         value={u.role}
                         disabled={pending}
                         onChange={(e) => act(u.id, { action: "set_role", role: e.target.value })}
-                        className="field py-1.5 text-[0.85rem]"
+                        className="chip-select"
                       >
                         {grantable.map((r) => (
                           <option key={r} value={r}>
@@ -203,7 +203,8 @@ export function UserTable({
                             action: e.target.value === "active" ? "activate" : "suspend",
                           })
                         }
-                        className="field min-w-[8rem] py-1.5 text-[0.85rem]"
+                        data-tone={u.status === "active" ? "good" : "bad"}
+                        className="chip-select"
                       >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -244,7 +245,7 @@ export function UserTable({
                             act(u.id, { action: "unassign_advisor", advisorId: u.advisorId });
                           }
                         }}
-                        className="field py-1.5 text-[0.85rem]"
+                        className="chip-select max-w-[12rem]"
                       >
                         <option value="">Unassigned</option>
                         {/*
@@ -317,21 +318,32 @@ export function UserTable({
                               }
                               window.location.assign(data.redirectTo ?? "/portal");
                             }}
-                            className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-[var(--danger-line)] bg-[var(--danger-soft)] px-3 py-1.5 text-center text-danger transition-opacity hover:opacity-80 disabled:opacity-50"
+                            aria-label={`Log in as ${u.name}`}
+                            data-tip="Log in as this user"
+                            data-tone="warn"
+                            className="icon-btn tip"
                           >
-                            Login
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6" />
+                              <path d="M10 5l3 3-3 3M13 8H6" />
+                            </svg>
                           </button>
                         ) : (
-                          <span className="min-w-[5.5rem]" />
+                          <span className="w-8" aria-hidden />
                         )}
 
                         <button
                           type="button"
                           disabled={pending}
                           onClick={() => act(u.id, { action: "reset_password" })}
-                          className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-center text-muted transition-colors hover:border-moss-400/60 hover:text-accent disabled:opacity-50"
+                          aria-label={`Make a password reset link for ${u.name}`}
+                          data-tip="Password reset link"
+                          className="icon-btn tip"
                         >
-                          Reset link
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <circle cx="5.5" cy="10.5" r="3" />
+                            <path d="M7.7 8.3L13.5 2.5M11.5 4.5l1.5 1.5M10 6l1.2 1.2" />
+                          </svg>
                         </button>
 
                         {actorRole === "super_admin" && (
@@ -355,9 +367,14 @@ Type DELETE to confirm.`
                               );
                               if (typed === "DELETE") act(u.id, { action: "delete" });
                             }}
-                            className="label min-w-[5.5rem] rounded-[var(--radius-sm)] border border-line px-3 py-1.5 text-center text-muted transition-colors hover:border-red-400/60 hover:text-danger disabled:opacity-50"
+                            aria-label={`Delete ${u.name} permanently`}
+                            data-tip="Delete user"
+                            data-tone="danger"
+                            className="icon-btn tip"
                           >
-                            Delete
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.1a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L12 4M6.8 6.8v4.4M9.2 6.8v4.4" />
+                            </svg>
                           </button>
                         )}
                       </div>

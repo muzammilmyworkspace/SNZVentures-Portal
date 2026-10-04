@@ -1215,28 +1215,82 @@ export async function getQueryAnalytics(): Promise<{
  *           line never skips a gap and silently implies continuity.
  *   cases   open-and-closed case counts by status, every status present.
  */
-export async function getDashboardCharts(): Promise<{
-  weeks: { week: string; signups: number; submitted: number }[];
+export type PeriodMetric = "clients" | "applications" | "enquiries" | "fees" | "documents" | "cases";
+
+/**
+ * The admin dashboard's reporting data for one period and the one before it.
+ *
+ * ONE statement, for the same reason as getAdminOverview: on the pooler,
+ * concurrent reads starve rather than queue. `step` is the chart bucket,
+ * counted from the period's own start (a "week" is seven days from `from`,
+ * not a calendar week), so the first and last buckets are never partial.
+ */
+export async function getDashboardCharts(range: {
+  from: Date;
+  to: Date;
+  prevFrom: Date;
+  prevTo: Date;
+  bucket: "day" | "week";
+}): Promise<{
+  series: { day: string; signups: number; submitted: number }[];
+  kpis: Record<PeriodMetric, { cur: number; prev: number }>;
   cases: { status: string; count: number }[];
 }> {
+  const empty = { cur: 0, prev: 0 };
+  const fallback = {
+    series: [],
+    kpis: { clients: empty, applications: empty, enquiries: empty, fees: empty, documents: empty, cases: empty },
+    cases: [],
+  };
+  const f = range.from.toISOString();
+  const t = range.to.toISOString();
+  const pf = range.prevFrom.toISOString();
+  const pt = range.prevTo.toISOString();
+  const step = range.bucket === "week" ? "7 days" : "1 day";
   return safeQuery(async () => {
     const [r] = await db()`
+      WITH p AS (
+        SELECT ${f}::timestamptz AS f, ${t}::timestamptz AS t,
+               ${pf}::timestamptz AS pf, ${pt}::timestamptz AS pt
+      )
       SELECT
         COALESCE((
-          SELECT json_agg(x ORDER BY x.week) FROM (
-            SELECT to_char(w, 'YYYY-MM-DD') AS week,
+          SELECT json_agg(x ORDER BY x.day) FROM (
+            SELECT to_char(b AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
               (SELECT count(*)::int FROM users u
                 WHERE u.role IN ('student','professional','business')
-                  AND u.created_at >= w AND u.created_at < w + interval '1 week') AS signups,
-              (SELECT count(*)::int FROM intake_forms f
-                WHERE f.submitted_at >= w AND f.submitted_at < w + interval '1 week') AS submitted
-            FROM generate_series(
-              date_trunc('week', now()) - interval '11 weeks',
-              date_trunc('week', now()),
-              interval '1 week'
-            ) AS w
+                  AND u.created_at >= b AND u.created_at < LEAST(b + ${step}::interval, p.t)) AS signups,
+              (SELECT count(*)::int FROM intake_forms i
+                WHERE i.submitted_at >= b AND i.submitted_at < LEAST(b + ${step}::interval, p.t)) AS submitted
+            FROM p, generate_series(p.f, p.t - interval '1 second', ${step}::interval) AS b
           ) x
-        ), '[]'::json) AS weeks,
+        ), '[]'::json) AS series,
+        json_build_object(
+          'clients', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE u.created_at >= p.f AND u.created_at < p.t),
+              'prev', count(*) FILTER (WHERE u.created_at >= p.pf AND u.created_at < p.pt))
+            FROM users u, p WHERE u.role IN ('student','professional','business') AND u.created_at >= p.pf),
+          'applications', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE i.submitted_at >= p.f AND i.submitted_at < p.t),
+              'prev', count(*) FILTER (WHERE i.submitted_at >= p.pf AND i.submitted_at < p.pt))
+            FROM intake_forms i, p WHERE i.submitted_at >= p.pf),
+          'enquiries', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE e.created_at >= p.f AND e.created_at < p.t),
+              'prev', count(*) FILTER (WHERE e.created_at >= p.pf AND e.created_at < p.pt))
+            FROM enquiries e, p WHERE e.created_at >= p.pf),
+          'fees', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE s.created_at >= p.f AND s.created_at < p.t),
+              'prev', count(*) FILTER (WHERE s.created_at >= p.pf AND s.created_at < p.pt))
+            FROM fee_submissions s, p WHERE s.created_at >= p.pf),
+          'documents', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE d.created_at >= p.f AND d.created_at < p.t),
+              'prev', count(*) FILTER (WHERE d.created_at >= p.pf AND d.created_at < p.pt))
+            FROM documents d, p WHERE d.storage_key IS NOT NULL AND d.created_at >= p.pf),
+          'cases', (SELECT json_build_object(
+              'cur', count(*) FILTER (WHERE c.created_at >= p.f AND c.created_at < p.t),
+              'prev', count(*) FILTER (WHERE c.created_at >= p.pf AND c.created_at < p.pt))
+            FROM cases c, p WHERE c.created_at >= p.pf)
+        ) AS kpis,
         COALESCE((
           SELECT json_agg(x) FROM (
             SELECT s::text AS status,
@@ -1246,10 +1300,11 @@ export async function getDashboardCharts(): Promise<{
         ), '[]'::json) AS cases
     `;
     return {
-      weeks: (r?.weeks ?? []) as { week: string; signups: number; submitted: number }[],
+      series: (r?.series ?? []) as { day: string; signups: number; submitted: number }[],
+      kpis: (r?.kpis ?? fallback.kpis) as Record<PeriodMetric, { cur: number; prev: number }>,
       cases: (r?.cases ?? []) as { status: string; count: number }[],
     };
-  }, { weeks: [], cases: [] });
+  }, fallback);
 }
 
 /**

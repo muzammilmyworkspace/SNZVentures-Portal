@@ -624,3 +624,92 @@ html::-webkit-scrollbar-thumb:hover {
 .dash-work > *:nth-child(3) { --card-hue: var(--viz-2); }
 .dash-work > *:nth-child(4) { --card-hue: #9085e9; }
 .dash-work > *:nth-child(5) { --card-hue: #c98500; }
+
+/* ------------------------------------------------------------ tooltips --
+   Any element with .tip and data-tip="…" shows that text above itself on
+   hover and keyboard focus. Pure CSS, so it works in server components.
+   The text is also the element's aria-label; this is the visual twin. */
+.tip { position: relative; }
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  white-space: nowrap;
+  padding: 0.3rem 0.55rem;
+  border-radius: 7px;
+  background: #0B1124;
+  color: #EEF1F8;
+  font: 600 0.75rem/1.2 var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 60;
+}
+.tip:hover::after,
+.tip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+[data-theme="light"] .tip::after { background: #101828; }
+
+/* ── Compact controls for dense tables ───────────────────────────────────────
+   .chip-select: a pill-sized select for a value that is also a control (role,
+   status). data-tone colours it by what it says, so the column reads as
+   state at a glance rather than as a row of form fields.
+   .icon-btn: a 32px round action. Always pair with aria-label and the .tip
+   tooltip so the name is there on hover, focus and to a screen reader. */
+.chip-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  max-width: 100%;
+  padding: 0 1.9rem 0 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background-color: color-mix(in srgb, var(--fg) 4%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238B97B0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  color: var(--fg);
+  font: 500 0.8rem/1 var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.chip-select:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.chip-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip-select:disabled { opacity: 0.55; cursor: default; }
+.chip-select option { background: var(--panel-solid, #1D2848); color: var(--fg); }
+.chip-select[data-tone="good"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.chip-select[data-tone="bad"] {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background-color: var(--danger-soft);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--fg-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.icon-btn svg { width: 15px; height: 15px; }
+.icon-btn:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn:disabled { opacity: 0.45; cursor: default; }
+.icon-btn[data-tone="danger"]:hover { color: var(--danger); border-color: var(--danger-line); background: var(--danger-soft); }
+.icon-btn[data-tone="warn"] { color: var(--danger); border-color: var(--danger-line); }
+.icon-btn[data-tone="warn"]:hover { background: var(--danger-soft); }

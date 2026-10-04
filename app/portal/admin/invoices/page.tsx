@@ -4,6 +4,7 @@ import { requireSuperAdmin } from "@/lib/auth/guard";
 import * as invoices from "@/lib/db/repos/invoices";
 import { formatMoney, type InvoiceStatus } from "@/lib/invoices/model";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
 export const metadata: Metadata = { title: "Invoices", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -25,16 +26,18 @@ const TONE: Record<InvoiceStatus, string> = {
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   await requireSuperAdmin();
-  const { status, q } = await searchParams;
+  const sp = await searchParams;
+  const { status, q } = sp;
 
   const filter = (["draft", "sent", "paid", "void"] as const).includes(status as InvoiceStatus)
     ? (status as InvoiceStatus)
     : "all";
 
   const { rows, totalsByCurrency } = await invoices.list({ status: filter, q });
+  const pg = paginate(rows, pageFrom(sp.page));
 
   return (
     <>
@@ -103,7 +106,7 @@ export default async function InvoicesPage({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((inv) => (
+                {pg.rows.map((inv) => (
                   <tr key={inv.id}>
                     <td className="border-b border-line px-2.5 py-3 font-semibold tabular-nums text-fg-strong">
                       {inv.number}
@@ -141,6 +144,7 @@ export default async function InvoicesPage({
             </table>
           </div>
         )}
+        <Pager inset page={pg.page} pages={pg.pages} total={pg.total} basePath="/portal/admin/invoices" params={sp} noun="invoices" />
       </Panel>
     </>
   );

@@ -4,7 +4,8 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { UserTable } from "@/components/portal/UserTable";
-import { UserFilters, Pagination, type UserQuery } from "@/components/portal/UserFilters";
+import { UserFilters, type UserQuery } from "@/components/portal/UserFilters";
+import { Pager } from "@/components/portal/Pager";
 
 /**
  * USERS — paginated, searched and filtered BY THE DATABASE.
@@ -124,12 +125,14 @@ export default async function AdminUsersPage({
               actorRole={session.role}
               actorId={session.userId}
             />
-            <Pagination
-              current={current}
+            <Pager
               page={result.page}
               pages={result.pages}
               total={result.total}
-              showing={result.rows.length}
+              size={PAGE_SIZE}
+              basePath="/portal/admin/users"
+              params={raw}
+              noun="users"
             />
           </>
         )}

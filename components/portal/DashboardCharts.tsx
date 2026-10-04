@@ -21,14 +21,24 @@ import { STAGES, STAGE_BY_KEY } from "@/lib/portal/advisor-stages";
  * Marks draw in on mount; under reduced motion they render complete.
  */
 
-type Week = { week: string; signups: number; submitted: number };
+type Point = { day: string; signups: number; submitted: number };
 
 const fmtWeek = (iso: string) =>
   new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 /* --------------------------------------------------------------- line chart */
 
-export function ActivityChart({ weeks }: { weeks: Week[] }) {
+export function ActivityChart({
+  points: weeks,
+  bucket = "day",
+  rangeText,
+}: {
+  points: Point[];
+  bucket?: "day" | "week";
+  rangeText: string;
+}) {
+  const per = bucket === "week" ? "per week" : "per day";
+  const labelEvery = Math.max(1, Math.ceil(weeks.length / 7));
   const reduce = useReduced();
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<SVGSVGElement>(null);
@@ -88,7 +98,7 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
             <span className="num text-fg-strong">{totals[s.key]}</span>
           </span>
         ))}
-        <span className="label ml-auto text-[0.72rem] text-faint">Last 12 weeks</span>
+        <span className="label ml-auto text-[0.72rem] text-faint">{rangeText}</span>
       </div>
 
       <div className="relative mt-3">
@@ -97,7 +107,7 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
           viewBox={`0 0 ${W} ${H}`}
           className="block h-auto w-full overflow-visible"
           role="img"
-          aria-label={`New clients and applications submitted per week over the last 12 weeks. Totals: ${totals.signups} new clients, ${totals.submitted} applications.`}
+          aria-label={`New clients and applications submitted ${per}, ${rangeText}. Totals: ${totals.signups} new clients, ${totals.submitted} applications.`}
           onPointerMove={onMove}
           onPointerLeave={() => setHover(null)}
         >
@@ -119,11 +129,11 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
               </text>
             </g>
           ))}
-          {/* x labels: every other week */}
+          {/* x labels: about seven across, counted back from the newest */}
           {weeks.map((w, i) =>
-            (weeks.length - 1 - i) % 2 === 0 ? (
-              <text key={w.week} x={x(i)} y={H - 8} textAnchor="middle" className="fill-[var(--fg-faint)] font-mono text-[10px]">
-                {fmtWeek(w.week)}
+            (weeks.length - 1 - i) % labelEvery === 0 ? (
+              <text key={w.day} x={x(i)} y={H - 8} textAnchor="middle" className="fill-[var(--fg-faint)] font-mono text-[10px]">
+                {fmtWeek(w.day)}
               </text>
             ) : null
           )}
@@ -155,14 +165,14 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
                   so when both lines coincide neither disappears */}
               {weeks.map((w, i) => (
                 <circle
-                  key={w.week}
+                  key={w.day}
                   cx={x(i)}
                   cy={y(w[s.key])}
                   r={k === 0 ? 3 : 4.5}
                   fill={k === 0 ? s.color : "none"}
                   stroke={k === 0 ? "none" : s.color}
                   strokeWidth="1.5"
-                  opacity={w[s.key] > 0 ? 1 : 0}
+                  opacity={w[s.key] > 0 && weeks.length <= 31 ? 1 : 0}
                 />
               ))}
               {/* direct end label, in text ink */}
@@ -197,7 +207,7 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
             className="pointer-events-none absolute top-0 z-10 min-w-[170px] -translate-x-1/2 rounded-[10px] border border-line-strong bg-[var(--panel-solid)] px-3 py-2 shadow-lg"
             style={{ left: `${(x(hover) / W) * 100}%` }}
           >
-            <p className="label text-[0.72rem] text-faint">Week of {fmtWeek(h.week)}</p>
+            <p className="label text-[0.72rem] text-faint">{bucket === "week" ? "Week of " : ""}{fmtWeek(h.day)}</p>
             {series.map((s) => (
               <p key={s.key} className="mt-1 flex items-center justify-between gap-4 text-[0.85rem] text-fg">
                 <span className="flex items-center gap-2">
@@ -212,18 +222,18 @@ export function ActivityChart({ weeks }: { weeks: Week[] }) {
       </div>
 
       <table className="sr-only">
-        <caption>New clients and applications submitted per week</caption>
+        <caption>New clients and applications submitted {per}</caption>
         <thead>
           <tr>
-            <th>Week of</th>
+            <th>{bucket === "week" ? "Week of" : "Day"}</th>
             <th>New clients</th>
             <th>Applications submitted</th>
           </tr>
         </thead>
         <tbody>
           {weeks.map((w) => (
-            <tr key={w.week}>
-              <td>{fmtWeek(w.week)}</td>
+            <tr key={w.day}>
+              <td>{fmtWeek(w.day)}</td>
               <td>{w.signups}</td>
               <td>{w.submitted}</td>
             </tr>

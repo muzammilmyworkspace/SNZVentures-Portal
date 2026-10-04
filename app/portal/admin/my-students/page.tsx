@@ -17,6 +17,7 @@ import {
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { InviteStudent } from "@/components/portal/InviteStudent";
 import { InviteList } from "@/components/portal/InviteList";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,12 @@ export const dynamic = "force-dynamic";
  * There is deliberately no consultant picker here. An admin who needs to look
  * at somebody else's book uses Advisors, which is built for exactly that.
  */
-export default async function MyStudentsPage() {
+export default async function MyStudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const { session, role } = await requireStaff();
   const admin = isAdmin(role);
 
@@ -51,6 +57,7 @@ export default async function MyStudentsPage() {
     getCasesForAdvisor(session.userId),
     listInvites(session.userId),
   ]);
+  const pg = paginate(clients, pageFrom(sp.page));
 
   const openCases = cases.filter((c) => !["completed", "closed"].includes(c.status)).length;
   const needsAttention = cases.filter((c) =>
@@ -125,7 +132,7 @@ export default async function MyStudentsPage() {
               columns={["Name", "Email", "Type", "Cases", "Status"]}
               caption="Students assigned to you"
             >
-              {clients.map((c) => (
+              {pg.rows.map((c) => (
                 <Row key={c.id}>
                   {/*
                     The name opens the file. It always did on Users and never
@@ -165,6 +172,7 @@ export default async function MyStudentsPage() {
               ))}
             </DataTable>
           )}
+          <Pager inset page={pg.page} pages={pg.pages} total={pg.total} basePath="/portal/admin/my-students" params={sp} noun="students" />
         </Panel>
 
         <Panel title="Enrolment links">

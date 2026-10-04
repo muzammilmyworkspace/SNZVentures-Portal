@@ -3,8 +3,14 @@ import { listAudit } from "@/lib/db/repos/audit";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
-export default async function AuditPage() {
+export default async function AuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   await requireAdmin();
 
   if (!isDatabaseConfigured()) {
@@ -17,6 +23,7 @@ export default async function AuditPage() {
   }
 
   const rows = await listAudit(150);
+  const pg = paginate(rows, pageFrom(sp.page), 30);
 
   return (
     <>
@@ -48,7 +55,7 @@ export default async function AuditPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {pg.rows.map((r) => (
                   <tr key={r.id} className="border-b border-line last:border-0">
                     <td className="px-5 py-3 text-[0.8rem] text-faint">
                       {new Date(r.createdAt).toLocaleString("en-GB", {
@@ -71,6 +78,7 @@ export default async function AuditPage() {
             </table>
           </div>
         )}
+<Pager page={pg.page} pages={pg.pages} total={pg.total} size={30} basePath="/portal/admin/audit" params={sp} noun="events" />
       </Panel>
     </>
   );

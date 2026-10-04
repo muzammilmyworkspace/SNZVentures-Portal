@@ -6,6 +6,7 @@ import { listFeeSubmissions } from "@/lib/db/repos/fees";
 import { formatAmount } from "@/lib/portal/payment-consent";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
 import { FeeReview } from "@/components/portal/FeeReview";
+import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 
 export const metadata: Metadata = { title: "Fee verification" };
 
@@ -20,7 +21,12 @@ export const metadata: Metadata = { title: "Fee verification" };
  * the viewer and mints a short-lived URL. Staff see it because they are staff,
  * not because the page happens to hold a key.
  */
-export default async function AdminFeesPage() {
+export default async function AdminFeesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   await requireAdmin();
 
   if (!isDatabaseConfigured()) {
@@ -35,6 +41,9 @@ export default async function AdminFeesPage() {
   const { rows, pending } = await listFeeSubmissions(null, 100);
   const waiting = rows.filter((r) => r.status === "submitted");
   const done = rows.filter((r) => r.status !== "submitted");
+  // Review cards are tall, so ten a page; the decided list is compact.
+  const wPage = paginate(waiting, pageFrom(sp.page), 10);
+  const dPage = paginate(done, pageFrom(sp.dpage), 20);
 
   return (
     <>
@@ -55,7 +64,7 @@ export default async function AdminFeesPage() {
           />
         ) : (
           <ul className="flex flex-col gap-4">
-            {waiting.map((f) => (
+            {wPage.rows.map((f) => (
               <li key={f.id}>
                 <FeeReview
                   id={f.id}
@@ -82,12 +91,15 @@ export default async function AdminFeesPage() {
             ))}
           </ul>
         )}
+        {waiting.length > 0 && (
+          <Pager inset page={wPage.page} pages={wPage.pages} total={wPage.total} size={10} basePath="/portal/admin/fees" params={sp} noun="waiting" />
+        )}
       </Panel>
 
       {done.length > 0 && (
         <Panel title="Already decided" className="mt-6">
           <ul className="divide-y divide-[var(--line)]">
-            {done.map((f) => (
+            {dPage.rows.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
                 <span className="min-w-0 flex-1 truncate text-[0.9rem] text-fg">
                   {f.studentName}
@@ -107,6 +119,7 @@ export default async function AdminFeesPage() {
               </li>
             ))}
           </ul>
+          <Pager inset pageKey="dpage" page={dPage.page} pages={dPage.pages} total={dPage.total} basePath="/portal/admin/fees" params={sp} noun="decided" />
         </Panel>
       )}
     </>
