@@ -7,6 +7,8 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { CaseStatusControl } from "@/components/portal/CaseStatusControl";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { Avatar } from "@/components/portal/Avatar";
+import { ApplicationReview } from "@/components/portal/ApplicationReview";
+import { DocumentsDrawer } from "@/components/portal/DocumentsDrawer";
 
 export default async function AdminCasesPage({
   searchParams,
@@ -14,6 +16,17 @@ export default async function AdminCasesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
+  const reviewId = typeof sp.review === "string" ? sp.review : null;
+  const docsId = typeof sp.docs === "string" ? sp.docs : null;
+  /** This page's URL with one window open (or none), keeping the page number. */
+  const casesHref = (open: { review?: string; docs?: string }) => {
+    const q = new URLSearchParams();
+    if (typeof sp.page === "string") q.set("page", sp.page);
+    if (open.review) q.set("review", open.review);
+    if (open.docs) q.set("docs", open.docs);
+    const qs = q.toString();
+    return qs ? `/portal/admin/cases?${qs}` : "/portal/admin/cases";
+  };
   const { session, role } = await requireStaff();
 
   if (!isDatabaseConfigured()) {
@@ -47,6 +60,21 @@ export default async function AdminCasesPage({
             : "Every case of yours, including clients with more than one."
         }
       />
+      {/*
+        Opened only for something already in THIS list. An advisor's list is
+        scoped in SQL, so checking against it keeps them to their own students
+        however the URL is edited.
+      */}
+      {reviewId && cases.some((c) => c.intakeId === reviewId) && (
+        <ApplicationReview intakeId={reviewId} closeHref={casesHref({})} />
+      )}
+      {docsId && cases.some((c) => c.clientId === docsId) && (
+        <DocumentsDrawer
+          userId={docsId}
+          previewId={typeof sp.preview === "string" ? sp.preview : null}
+          baseHref={{ open: casesHref({ docs: docsId }), close: casesHref({}) }}
+        />
+      )}
       <Panel padded={cases.length === 0}>
         {cases.length === 0 ? (
           <EmptyState icon="file" title="No cases" body="Cases appear here once opened for a client." />
@@ -56,7 +84,7 @@ export default async function AdminCasesPage({
               <caption className="sr-only">Cases</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Reference", "Client", "Case", "Pathway", "Status", "Consultant", "Updated"].map((h) => (
+                  {["Reference", "Client", "Case", "Pathway", "Status", "Consultant", "Updated", ""].map((h) => (
                     <th key={h} scope="col" className="label px-5 py-3 text-faint">{h}</th>
                   ))}
                 </tr>
@@ -117,6 +145,47 @@ export default async function AdminCasesPage({
                     </td>
                     <td className="px-5 py-3 text-[0.8rem] text-faint">
                       {new Date(c.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <span className="inline-flex items-center gap-2">
+                        <Link
+                          href={casesHref({ docs: c.clientId })}
+                          scroll={false}
+                          aria-label={`${c.clientName}'s documents`}
+                          data-tip="Documents"
+                          className="tip icon-btn"
+                        >
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
+                            <path d="M2 4.5a1 1 0 0 1 1-1h3l1.5 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
+                          </svg>
+                        </Link>
+                        {c.intakeId ? (
+                          <Link
+                            href={casesHref({ review: c.intakeId })}
+                            scroll={false}
+                            aria-label={`Open ${c.clientName}'s application`}
+                            data-tip="View application"
+                            className="tip tip-end icon-btn"
+                          >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+                              <circle cx="8" cy="8" r="2" />
+                            </svg>
+                          </Link>
+                        ) : (
+                          <span
+                            tabIndex={0}
+                            aria-label="No application form on this case"
+                            data-tip="No application on this case"
+                            className="tip tip-end icon-btn cursor-not-allowed opacity-40"
+                          >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+                              <circle cx="8" cy="8" r="2" />
+                            </svg>
+                          </span>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 ))}

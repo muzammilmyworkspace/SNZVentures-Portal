@@ -56,6 +56,7 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
         </div>
       }
       foot={
+        canProceed || canReturn || canApply ? (
         <ReviewActions
           intakeId={intake.id}
           studentName={user.name}
@@ -64,6 +65,7 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
           canReturn={canReturn}
           canApply={canApply}
         />
+        ) : undefined
       }
     >
       <div className="space-y-7">

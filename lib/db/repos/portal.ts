@@ -37,6 +37,8 @@ export type CaseRow = {
   consultantName: string | null;
   /** Null when the client has no photo; otherwise its version. */
   clientAvatarV?: number | null;
+  /** The application this case was opened from, when there is one. */
+  intakeId?: string | null;
   pathway: "study" | "career" | "business";
   title: string;
   country: string | null;
@@ -123,7 +125,11 @@ export async function getCasesForClient(clientId: string): Promise<CaseRow[]> {
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
              cons.name AS consultant_name,
-             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v,
+             (SELECT i.id FROM intake_forms i
+               WHERE i.case_id = c.id
+                  OR (i.user_id = c.client_id AND i.pathway = c.pathway::text)
+               ORDER BY (i.case_id = c.id) DESC NULLS LAST LIMIT 1) AS intake_id
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -149,7 +155,11 @@ export async function getCasesForAdvisor(advisorId: string): Promise<CaseRow[]> 
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
              cons.name AS consultant_name,
-             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v,
+             (SELECT i.id FROM intake_forms i
+               WHERE i.case_id = c.id
+                  OR (i.user_id = c.client_id AND i.pathway = c.pathway::text)
+               ORDER BY (i.case_id = c.id) DESC NULLS LAST LIMIT 1) AS intake_id
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -182,7 +192,11 @@ export async function getAllCases(limit = 100): Promise<CaseRow[]> {
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
              cons.name AS consultant_name,
-             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v,
+             (SELECT i.id FROM intake_forms i
+               WHERE i.case_id = c.id
+                  OR (i.user_id = c.client_id AND i.pathway = c.pathway::text)
+               ORDER BY (i.case_id = c.id) DESC NULLS LAST LIMIT 1) AS intake_id
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -215,6 +229,7 @@ function mapCase(r: Record<string, unknown>): CaseRow {
     advisorName: r.advisor_name ? String(r.advisor_name) : null,
     consultantName: r.consultant_name ? String(r.consultant_name) : null,
     clientAvatarV: r.client_avatar_v == null ? null : Number(r.client_avatar_v),
+    intakeId: r.intake_id ? String(r.intake_id) : null,
     pathway: r.pathway as CaseRow["pathway"],
     title: String(r.title),
     country: r.country ? String(r.country) : null,

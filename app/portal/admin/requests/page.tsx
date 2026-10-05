@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; pathway?: string; page?: string; review?: string }>;
+  searchParams: Promise<{ status?: string; pathway?: string; page?: string; review?: string; docs?: string; preview?: string }>;
 }) {
   await requireAdmin();
   const params = await searchParams;

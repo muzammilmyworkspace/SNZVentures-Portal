@@ -7,6 +7,7 @@ import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { ApplicationReview } from "@/components/portal/ApplicationReview";
 import { REVIEW_LABEL } from "@/lib/portal/review-status";
 import { BroughtByTag } from "@/components/portal/FeeBits";
+import { DocumentsDrawer } from "@/components/portal/DocumentsDrawer";
 
 /**
  * ONE LIST, THREE STAGES OF THE STUDENT PIPELINE.
@@ -98,7 +99,7 @@ export async function ApplicationQueue({
   params,
 }: {
   stage: QueueStage;
-  params: { status?: string; pathway?: string; page?: string; review?: string };
+  params: { status?: string; pathway?: string; page?: string; review?: string; docs?: string; preview?: string };
 }) {
   const cfg = STAGES[stage];
   const all = (await getIntakeQueue(500)).filter((r) => cfg.statuses.includes(r.status));
@@ -109,7 +110,7 @@ export async function ApplicationQueue({
   const rows = all.filter((r) => tabStatuses.includes(r.status) && (pathway === "all" || r.pathway === pathway));
   const pg = paginate(rows, pageFrom(params.page));
 
-  const href = (next: { status?: string; pathway?: string; page?: string | null; review?: string | null }) => {
+  const href = (next: { status?: string; pathway?: string; page?: string | null; review?: string | null; docs?: string | null }) => {
     const q = new URLSearchParams();
     const s = next.status ?? status;
     const p = next.pathway ?? pathway;
@@ -118,6 +119,7 @@ export async function ApplicationQueue({
     const page = next.page === undefined ? params.page : next.page;
     if (page) q.set("page", page);
     if (next.review) q.set("review", next.review);
+    if (next.docs) q.set("docs", next.docs);
     const qs = q.toString();
     return qs ? `${cfg.path}?${qs}` : cfg.path;
   };
@@ -129,6 +131,13 @@ export async function ApplicationQueue({
     <>
       <PortalHeading eyebrow={`Student pipeline · ${cfg.step}`} title={cfg.title} lead={cfg.lead} />
       {params.review && <ApplicationReview intakeId={params.review} closeHref={href({})} />}
+      {params.docs && (
+        <DocumentsDrawer
+          userId={params.docs}
+          previewId={params.preview ?? null}
+          baseHref={{ open: href({ docs: params.docs }), close: href({}) }}
+        />
+      )}
 
       <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3">
         {cfg.tabs && (
@@ -241,6 +250,18 @@ export async function ApplicationQueue({
                       <StatusPill status={TONE[r.status] ?? r.status} label={REVIEW_LABEL[r.status] ?? r.status} />
                     </td>
                     <td className="px-5 py-3 text-right">
+                      <span className="inline-flex items-center gap-2">
+                      <Link
+                        href={href({ docs: r.userId })}
+                        scroll={false}
+                        aria-label={`${r.userName}'s documents`}
+                        data-tip="Documents"
+                        className="tip icon-btn"
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
+                          <path d="M2 4.5a1 1 0 0 1 1-1h3l1.5 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
+                        </svg>
+                      </Link>
                       <Link
                         href={href({ review: r.id })}
                         scroll={false}
@@ -253,6 +274,7 @@ export async function ApplicationQueue({
                           <circle cx="8" cy="8" r="2" />
                         </svg>
                       </Link>
+                      </span>
                     </td>
                   </tr>
                 ))}
