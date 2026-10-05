@@ -19,6 +19,7 @@ import { InviteStudent } from "@/components/portal/InviteStudent";
 import { InviteList } from "@/components/portal/InviteList";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { Avatar } from "@/components/portal/Avatar";
+import { codeContext } from "@/lib/db/repos/invites";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function MyStudentsPage({
     listInvites(session.userId),
   ]);
   const pg = paginate(clients, pageFrom(sp.page));
+  const { ownCode } = await codeContext(session.userId);
 
   const openCases = cases.filter((c) => !["completed", "closed"].includes(c.status)).length;
   const needsAttention = cases.filter((c) =>
@@ -113,6 +115,17 @@ export default async function MyStudentsPage({
       </div>
 
       <div className="mt-5 grid items-start gap-5">
+        {ownCode && (
+          <Panel title="Your consultant code">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <span className="font-mono text-[1.5rem] font-semibold tracking-wider text-accent">{ownCode}</span>
+              <span className="max-w-xl text-[0.88rem] leading-relaxed text-muted">
+                Students who enter this code when they sign up, or later in their Settings, become your
+                students automatically. Share it on WhatsApp, a flyer or by phone; a link below works too.
+              </span>
+            </div>
+          </Panel>
+        )}
         <Panel title="Enrol a student">
           <p className="mb-4 text-[0.88rem] leading-relaxed text-muted">
             Create a link and send it to one student. When they use it, their account is created

@@ -267,6 +267,15 @@ export function ConsultantList({
               <span className="min-w-0">
               {c.name}
               <span className="mt-0.5 block text-[0.78rem] text-faint">{c.email}</span>
+              {c.consultantCode && (
+                <span
+                  className="tip mt-1.5 inline-block rounded-[6px] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 font-mono text-[0.75rem] font-semibold tracking-wide text-accent"
+                  data-tip="Students enter this code at sign-up"
+                  tabIndex={0}
+                >
+                  {c.consultantCode}
+                </span>
+              )}
               {/* Only worth saying when it is not the expected one. */}
               {c.role !== "advisor" && (
                 <span className="mt-1 inline-block text-[0.72rem] text-faint">

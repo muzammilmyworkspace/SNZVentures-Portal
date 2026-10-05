@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  const { name, password, pathway, invite, phone, city, country, avatar } = (body ?? {}) as Record<
+  const { name, password, pathway, invite, phone, city, country, avatar, consultantCode } = (body ?? {}) as Record<
     string,
     unknown
   >;
@@ -92,6 +92,23 @@ export async function POST(request: Request) {
   }
   const pwError = validatePassword(password);
   if (pwError) return NextResponse.json({ ok: false, error: pwError }, { status: 400 });
+
+  /*
+    A CONSULTANT CODE, checked BEFORE the account exists. A mistyped code is
+    the one thing here the person can fix in a second, and finding out after
+    the account is made would leave them unassigned with no way to know why.
+    Ignored on an invite link, which already names the consultant.
+  */
+  const code =
+    typeof consultantCode === "string" && consultantCode.trim() && !(typeof invite === "string" && invite)
+      ? consultantCode.trim().toUpperCase()
+      : null;
+  if (code && !(await invitesRepo.consultantForCode(code))) {
+    return NextResponse.json(
+      { ok: false, error: "We don't recognise that consultant code. Check it with your consultant, or leave it empty." },
+      { status: 400 }
+    );
+  }
 
   if (typeof pathway !== "string" || !(pathway in PATHWAY_TO_ROLE)) {
     return NextResponse.json(
@@ -207,6 +224,23 @@ export async function POST(request: Request) {
       // Recorded, not shown. The student can do nothing about it; the admin can.
       // eslint-disable-next-line no-console
       console.error("[register] invite claim failed:", claim.reason, "for", user.id);
+    }
+  }
+
+  // Enrolled by code (checked above). Cannot fail the registration.
+  if (code && !enrolledWith) {
+    const enrol = await invitesRepo.enrolByCode(user.id, code);
+    if (enrol.ok) {
+      enrolledWith = enrol.consultantName;
+      await audit({
+        action: "invite.claimed",
+        actorId: user.id,
+        actorEmail: user.email,
+        entity: "user",
+        entityId: user.id,
+        meta: { consultantId: enrol.consultantId, via: "code" },
+        ip,
+      });
     }
   }
 

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useState } from "react";
 import { Avatar } from "./Avatar";
+import { BroughtByTag, DateTag, SlipButton } from "./FeeBits";
 
 /**
  * One student's payment declaration, and the two buttons that decide it.
@@ -36,6 +37,8 @@ export function FeeReview(props: {
   phone: string | null;
   submittedAt: string;
   receiptDocumentId: string | null;
+  /** Their consultant, or null for a student who came directly. */
+  consultantName?: string | null;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -112,9 +115,12 @@ export function FeeReview(props: {
             <p className="truncate text-[0.82rem] text-faint">{props.email}</p>
           </div>
         </div>
-        <p className="text-[0.78rem] text-faint">
-          {new Date(props.submittedAt).toLocaleString("en-GB")}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <BroughtByTag name={props.consultantName} />
+          <DateTag iso={props.submittedAt} label="Sent" />
+          <span className="pill pill-warn">Unverified</span>
+          <SlipButton documentId={props.receiptDocumentId} end />
+        </div>
       </div>
 
       <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">

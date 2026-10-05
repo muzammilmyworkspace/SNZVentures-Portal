@@ -215,17 +215,18 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           people's intakes. The guards on the pages are what actually fix that;
           these entries stop offering a link that now refuses.
         */
-        {
-          href: "/portal/admin/requests",
-          label: "Requests",
-          icon: "requests",
-          roles: ["admin", "super_admin"],
-        },
-        // Sits directly above Documents: verifying a fee is the decision that
-        // opens a student's file, so it belongs beside the queue it feeds.
+        // FIRST of the two: the fee is checked before an application can even
+        // be filled in, so the queue that comes first in a student's path
+        // comes first here.
         {
           href: "/portal/admin/fees",
           label: "Fee verification",
+          icon: "requests",
+          roles: ["admin", "super_admin"],
+        },
+        {
+          href: "/portal/admin/requests",
+          label: "Requests",
           icon: "requests",
           roles: ["admin", "super_admin"],
         },

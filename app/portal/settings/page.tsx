@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/auth/guard";
-import { ROLE_LABEL } from "@/lib/auth/types";
+import { ROLE_LABEL, CLIENT_ROLES, type Role } from "@/lib/auth/types";
+import { codeContext } from "@/lib/db/repos/invites";
+import { ConsultantCodeForm } from "@/components/portal/ConsultantCodeForm";
 import { PortalHeading, Panel, BackendRequired } from "@/components/portal/Pieces";
 import { ChangePassword } from "@/components/portal/ChangePassword";
 import { ChangeEmail } from "@/components/portal/ChangeEmail";
@@ -8,6 +10,8 @@ import { getAvatar } from "@/lib/db/repos/users";
 
 export default async function SettingsPage() {
   const { session } = await requireUser();
+  const codes = await codeContext(session.userId);
+  const isClient = (CLIENT_ROLES as readonly Role[]).includes(session.role);
 
   return (
     <>
@@ -20,6 +24,27 @@ export default async function SettingsPage() {
         <Panel title="Profile photo">
           <ProfilePhoto name={session.name} current={await getAvatar(session.userId)} />
         </Panel>
+
+        {/* Staff: the code to give students. Clients: who brought them, or add a code. */}
+        {codes.ownCode ? (
+          <Panel title="Your consultant code">
+            <p className="font-mono text-[1.6rem] font-semibold tracking-wider text-accent">{codes.ownCode}</p>
+            <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
+              Give this to your students. When they enter it at sign-up (or later in their Settings), they
+              become your student and show your name in every list.
+            </p>
+          </Panel>
+        ) : isClient ? (
+          <Panel title="Your consultant">
+            {codes.consultantName ? (
+              <p className="text-[0.95rem] text-fg">
+                <strong className="font-semibold">{codes.consultantName}</strong> is your consultant.
+              </p>
+            ) : (
+              <ConsultantCodeForm />
+            )}
+          </Panel>
+        ) : null}
 
         <Panel title="Security">
           {/*

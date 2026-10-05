@@ -935,12 +935,13 @@ export type AdvisorLoad = {
   needsAttention: number;
   lastLoginAt: string | null;
   avatarV?: number | null;
+  consultantCode?: string | null;
 };
 
 export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at,
+      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.consultant_code,
              CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v,
              count(DISTINCT sa.client_id)::int AS client_count,
              count(DISTINCT c.id) FILTER (
@@ -959,7 +960,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       LEFT JOIN staff_assignments sa ON sa.advisor_id = u.id
       LEFT JOIN cases c ON c.advisor_id = u.id
       WHERE u.role IN ('advisor','admin','super_admin')
-      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at, u.consultant_code
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -973,6 +974,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       needsAttention: Number(r.needs_attention ?? 0),
       lastLoginAt: iso(r.last_login_at),
       avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
+      consultantCode: r.consultant_code ? String(r.consultant_code) : null,
     }));
   }, []);
 }

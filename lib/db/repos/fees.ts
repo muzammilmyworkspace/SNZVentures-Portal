@@ -19,6 +19,8 @@ export type FeeSubmission = {
   userId: string;
   studentName: string;
   avatarV: number | null;
+  /** Their consultant, or null when they came to the portal directly. */
+  consultantName?: string | null;
   studentEmail: string;
   university: string;
   programme: string | null;
@@ -49,6 +51,7 @@ const map = (r: Record<string, unknown>): FeeSubmission => ({
   userId: String(r.user_id),
   studentName: r.student_name ? String(r.student_name) : "",
   avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
+  consultantName: r.consultant_name ? String(r.consultant_name) : null,
   studentEmail: r.student_email ? String(r.student_email) : "",
   university: String(r.university),
   programme: r.programme ? String(r.programme) : null,
@@ -210,8 +213,15 @@ export async function listFeeSubmissions(
       SELECT
         COALESCE((SELECT json_agg(x) FROM (
           SELECT f.*, u.name AS student_name, u.email AS student_email,
-                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
+                 cons.name AS consultant_name
           FROM fee_submissions f JOIN users u ON u.id = f.user_id
+          -- Who brought them. LIMIT 1: several advisors on one client would
+          -- otherwise repeat the row; the first is the one who enrolled them.
+          LEFT JOIN LATERAL (
+            SELECT a.name FROM staff_assignments sa JOIN users a ON a.id = sa.advisor_id
+            WHERE sa.client_id = u.id ORDER BY sa.created_at ASC LIMIT 1
+          ) cons ON TRUE
           WHERE (${status}::text IS NULL OR f.status = ${status}::fee_status)
           ORDER BY f.created_at DESC
           LIMIT ${limit}

@@ -361,6 +361,7 @@ export function RegisterForm({
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [consultantCode, setConsultantCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -406,6 +407,7 @@ export function RegisterForm({
         country,
         avatar,
         invite,
+        consultantCode: consultantCode.trim() || undefined,
       });
       if (!res.ok || !data.ok) {
         setError(data.error ?? "We couldn't create that account.");
@@ -542,6 +544,18 @@ export function RegisterForm({
             />
           </div>
 
+          {/* Not on an invite link: the link already says who the consultant is. */}
+          {!invite && (
+            <Field
+              id="consultant-code"
+              label="Consultant code (optional)"
+              value={consultantCode}
+              onChange={(v) => setConsultantCode(v.toUpperCase())}
+              placeholder="SNZ-ABC123"
+              hint="If an SnZ consultant gave you a code, enter it so they can follow your application. Leave it empty if not."
+            />
+          )}
+
           {error && <ErrorNote>{error}</ErrorNote>}
 
           <Action
@@ -555,6 +569,8 @@ export function RegisterForm({
               if (!phone.trim()) return setError("Enter your phone number.");
               if (!city.trim()) return setError("Enter your city.");
               if (!country.trim()) return setError("Enter your country.");
+              if (consultantCode.trim() && !/^SNZ-[A-Z]{3}\d{3}$/i.test(consultantCode.trim()))
+                return setError("A consultant code looks like SNZ-ABC123. Check it, or leave it empty.");
               setStep(3);
             }}
           >

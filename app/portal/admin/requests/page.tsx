@@ -10,6 +10,7 @@ import { Avatar } from "@/components/portal/Avatar";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { ApplicationReview } from "@/components/portal/ApplicationReview";
 import { REVIEW_LABEL } from "@/lib/portal/review-status";
+import { BroughtByTag } from "@/components/portal/FeeBits";
 
 export const metadata: Metadata = {
   title: "Requests",
@@ -224,13 +225,7 @@ export default async function AdminRequestsPage({
                       differently.
                     */}
                     <td className="px-5 py-3">
-                      {r.consultantName ? (
-                        <span className="label inline-block rounded-[var(--radius-sm)] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 text-accent">
-                          {r.consultantName}
-                        </span>
-                      ) : (
-                        <span className="label text-faint">Direct</span>
-                      )}
+                      <BroughtByTag name={r.consultantName} />
                     </td>
                     <td className="px-5 py-3">
                       <span className="label text-faint">{PATHWAY_LABEL[r.pathway] ?? r.pathway}</span>

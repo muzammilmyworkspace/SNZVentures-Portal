@@ -361,3 +361,76 @@ export async function inviteForClient(clientId: string): Promise<InviteRow | nul
     return rows[0] ? mapInvite(rows[0]) : null;
   }, null);
 }
+
+/* ------------------------------------------------------- consultant codes */
+
+export type EnrolByCode =
+  | { ok: true; consultantId: string; consultantName: string }
+  | { ok: false; reason: "invalid" | "already" };
+
+/** The active staff member a code belongs to (case-insensitive), or null. */
+export async function consultantForCode(
+  code: string
+): Promise<{ id: string; name: string } | null> {
+  const c = code.trim().toUpperCase();
+  if (!/^SNZ-[A-Z]{3}\d{3}$/.test(c)) return null;
+  return safeQuery(async () => {
+    const [row] = await db()`
+      SELECT id, name FROM users
+      WHERE upper(consultant_code) = ${c}
+        AND role IN ('advisor', 'admin', 'super_admin') AND status = 'active'
+      LIMIT 1
+    `;
+    return row ? { id: String(row.id), name: String(row.name) } : null;
+  }, null);
+}
+
+/**
+ * Enrol a client with the consultant whose code they typed.
+ *
+ * Only for somebody who has NO consultant yet: a code must not be a way for a
+ * student to move themselves off one consultant and onto another, which is a
+ * decision for an admin.
+ */
+export async function enrolByCode(
+  clientId: string,
+  code: string
+): Promise<EnrolByCode> {
+  const consultant = await consultantForCode(code);
+  if (!consultant) return { ok: false, reason: "invalid" };
+  return safeQuery<EnrolByCode>(
+    async () => {
+      const rows = await db()`
+        INSERT INTO staff_assignments (client_id, advisor_id, assigned_by)
+        SELECT ${clientId}, ${consultant.id}, ${consultant.id}
+        WHERE NOT EXISTS (SELECT 1 FROM staff_assignments WHERE client_id = ${clientId})
+        RETURNING id
+      `;
+      return rows.length
+        ? { ok: true, consultantId: consultant.id, consultantName: consultant.name }
+        : { ok: false, reason: "already" };
+    },
+    { ok: false, reason: "invalid" } as EnrolByCode
+  );
+}
+
+/** For Settings: this person's own code (staff) and their consultant (clients). */
+export async function codeContext(
+  userId: string
+): Promise<{ ownCode: string | null; consultantName: string | null }> {
+  return safeQuery(
+    async () => {
+      const [row] = await db()`
+        SELECT u.consultant_code,
+          (SELECT a.name FROM staff_assignments sa JOIN users a ON a.id = sa.advisor_id
+            WHERE sa.client_id = u.id ORDER BY sa.created_at ASC LIMIT 1) AS consultant_name
+        FROM users u WHERE u.id = ${userId}
+      `;
+      return {
+        ownCode: row?.consultant_code ? String(row.consultant_code) : null,
+        consultantName: row?.consultant_name ? String(row.consultant_name) : null,
+      };
+    },
+    { ownCode: null, consultantName: null }
+  );
+}
