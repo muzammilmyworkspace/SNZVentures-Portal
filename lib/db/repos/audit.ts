@@ -112,6 +112,8 @@ export type AuditAction =
   | "message.sent"
   | "intake.submitted"
   | "intake.status_changed"
+  | "intake.accepted"
+  | "intake.returned"
   | "note.added"
   | "note.deleted"
   // Student consent (005). The entry records THAT an undertaking was accepted

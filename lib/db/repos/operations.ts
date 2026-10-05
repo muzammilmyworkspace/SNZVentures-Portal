@@ -405,7 +405,7 @@ export async function saveIntakeDraft(input: {
         SET data       = intake_forms.data || EXCLUDED.data,
             step       = GREATEST(intake_forms.step, EXCLUDED.step),
             updated_at = now()
-        WHERE intake_forms.status = 'draft'
+        WHERE intake_forms.status IN ('draft', 'returned')
       RETURNING *
     `;
     return row ? mapIntake(row) : null;
@@ -449,10 +449,24 @@ export async function submitIntake(input: {
              updated_at   = now()
        WHERE user_id = ${input.userId}
          AND pathway = ${input.pathway}
-         AND status  = 'draft'
+         AND status IN ('draft', 'returned')
       RETURNING *
     `;
     if (!row) return null;
+
+    /*
+      A RESUBMISSION after staff sent the form back already has its case.
+      Opening a second one would split the file in two; move the existing case
+      back to review instead.
+    */
+    if (row.case_id) {
+      await db()`
+        UPDATE cases SET status = 'under_review', next_action = 'Review the corrected application',
+               updated_at = now()
+        WHERE id = ${row.case_id}
+      `;
+      return mapIntake(row);
+    }
 
     const [linked] = await db()`
       WITH opened AS (
@@ -493,6 +507,57 @@ export async function setIntakeStatus(
     `;
     return rows.length > 0;
   }, false);
+}
+
+/**
+ * THE REVIEW DECISION on a submitted application.
+ *
+ *   proceed → accepted ("Ready to apply")
+ *   return  → returned (the student edits and submits again)
+ *
+ * Conditional on the status it is moving FROM, so two staff deciding in two
+ * tabs cannot both act: the second update matches nothing and returns null.
+ * The linked case follows, so the case pipeline says the same thing.
+ */
+export async function reviewIntake(
+  id: string,
+  action: "proceed" | "return"
+): Promise<(IntakeForm & { caseId: string | null; fromStatus: string }) | null> {
+  return safeQuery(async () => {
+    const from = action === "proceed" ? ["submitted", "under_review"] : ["submitted", "under_review", "accepted"];
+    const to = action === "proceed" ? "accepted" : "returned";
+    const [row] = await db()`
+      WITH before AS (SELECT id, status::text AS status FROM intake_forms WHERE id = ${id})
+      UPDATE intake_forms f SET status = ${to}::intake_status, updated_at = now()
+      FROM before
+      WHERE f.id = before.id AND f.status::text = ANY(${from})
+      RETURNING f.*, before.status AS from_status
+    `;
+    if (!row) return null;
+    if (row.case_id) {
+      await db()`
+        UPDATE cases
+           SET status = ${action === "proceed" ? "in_progress" : "awaiting_client"}::case_status,
+               next_action = ${action === "proceed" ? "Ready to apply: start the university applications" : "Waiting for the student to correct their application"},
+               updated_at = now()
+        WHERE id = ${row.case_id}
+      `;
+    }
+    return { ...mapIntake(row), caseId: row.case_id ? String(row.case_id) : null, fromStatus: String(row.from_status) };
+  }, null);
+}
+
+/** What staff last asked this student to change, for the banner on their form. */
+export async function lastReturnNote(intakeId: string): Promise<{ note: string; at: string } | null> {
+  return safeQuery(async () => {
+    const [row] = await db()`
+      SELECT note, created_at FROM status_history
+      WHERE entity = 'application' AND entity_id = ${intakeId}
+        AND to_status = 'returned' AND internal = FALSE AND note IS NOT NULL
+      ORDER BY created_at DESC LIMIT 1
+    `;
+    return row ? { note: String(row.note), at: new Date(String(row.created_at)).toISOString() } : null;
+  }, null);
 }
 
 export async function getIntakeById(id: string): Promise<IntakeForm | null> {

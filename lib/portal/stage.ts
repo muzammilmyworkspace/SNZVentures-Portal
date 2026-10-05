@@ -104,7 +104,8 @@ export async function studentStage(userId: string): Promise<StageInfo> {
     if (feeLive === "submitted") return { stage: "fee_review", rejectionNote: null };
 
     // Fee verified from here on.
-    const submitted = intake !== null && intake !== "draft";
+    // Sent back for changes counts as not yet submitted: the form is theirs again.
+    const submitted = intake !== null && intake !== "draft" && intake !== "returned";
     if (!submitted) return { stage: "application", rejectionNote: null };
     if (!consented) return { stage: "consent_due", rejectionNote: null };
     return { stage: "complete", rejectionNote: null };

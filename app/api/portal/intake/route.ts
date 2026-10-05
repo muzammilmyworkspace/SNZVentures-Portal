@@ -147,7 +147,8 @@ export async function POST(request: Request) {
   >;
 
   const existing = await ops.getIntake(session.userId, pathway);
-  if (existing && existing.status !== "draft") {
+  // A form sent back by staff ("returned") is open again for corrections.
+  if (existing && existing.status !== "draft" && existing.status !== "returned") {
     return NextResponse.json(
       { ok: false, error: "This form has already been submitted." },
       { status: 409 }

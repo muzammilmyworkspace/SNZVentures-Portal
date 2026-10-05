@@ -365,6 +365,7 @@ export function IntakeForm({
   initialStep,
   checklistTicks = {},
   status,
+  returnNote = null,
 }: {
   definition: IntakeDefinition;
   initialAnswers: Answers;
@@ -375,6 +376,8 @@ export function IntakeForm({
    */
   checklistTicks?: Record<string, boolean>;
   status: Status;
+  /** What staff asked to change, when they sent the form back. */
+  returnNote?: { note: string; at: string } | null;
 }) {
   const router = useRouter();
   const steps = definition.steps;
@@ -405,7 +408,8 @@ export function IntakeForm({
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(status !== "draft");
+  // A form sent back for changes is open again; everything else is locked.
+  const [submitted, setSubmitted] = useState(status !== "draft" && status !== "returned");
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const step = steps[index];
@@ -549,14 +553,16 @@ export function IntakeForm({
   if (submitted) {
     return (
       <div className="rounded-[var(--radius-lg)] border border-moss-400/30 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] p-6 sm:p-8">
-        <p className="label text-accent">Received</p>
+        <p className="label text-accent">{status === "accepted" ? "Ready to apply" : "Under review"}</p>
         <h2 className="mt-3 text-[1.35rem] font-bold tracking-[-0.02em] text-fg-strong">
-          Your {definition.title.toLowerCase()} is with us.
+          {status === "accepted"
+            ? `Your ${definition.title.toLowerCase()} has been approved.`
+            : `Your ${definition.title.toLowerCase()} is with us.`}
         </h2>
         <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">
-          An advisor reads it and comes back to you with the next step. You can
-          keep uploading documents in the meantime — that is usually what moves
-          things fastest.
+          {status === "accepted"
+            ? "Our team has reviewed everything and we are starting your university applications. You can follow each step under Track progress."
+            : "An advisor reads it and comes back to you with the next step. You can keep uploading documents in the meantime — that is usually what moves things fastest."}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
@@ -581,6 +587,19 @@ export function IntakeForm({
 
   return (
     <div>
+      {status === "returned" && returnNote && (
+        <div role="note" className="mb-7 rounded-[var(--radius-md)] border border-amber-300/45 bg-amber-300/[0.07] p-5">
+          <p className="label text-warn">Changes requested</p>
+          <p className="mt-2 text-[0.95rem] font-semibold text-fg-strong">
+            Our team has asked you to change a few things before we go ahead:
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-[0.95rem] leading-relaxed text-fg">{returnNote.note}</p>
+          <p className="mt-3 text-[0.82rem] text-muted">
+            Make these changes below (and upload any documents again under Documents), then submit the form
+            again from the last step. Everything else you entered is still here.
+          </p>
+        </div>
+      )}
       {/* Progress */}
       <div className="mb-7">
         <div className="flex items-baseline justify-between gap-4">

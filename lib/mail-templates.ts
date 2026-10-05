@@ -215,3 +215,32 @@ export function applicationSubmittedEmail(opts: {
     cta: { label: "Sign the final consent", url: `${opts.portalUrl}/portal/application` },
   });
 }
+
+/** Staff sent the application back with what to change. */
+export function applicationReturnedEmail(opts: { name: string; portalUrl: string; note: string }) {
+  return milestone({
+    heading: "Your application needs a few changes",
+    greetingName: opts.name,
+    paragraphs: [
+      "Our team has read your application. Before we can go ahead, please change the following:",
+      opts.note,
+      "Open your application in the portal, make these changes, and submit it again. Everything else you entered is still there.",
+    ],
+    cta: { label: "Fix and resubmit", url: `${opts.portalUrl}/portal/application` },
+    footnote: "If anything is unclear, reply to this email or message us in the portal.",
+  });
+}
+
+/** Staff approved the application: it moves on to the university applications. */
+export function applicationReadyEmail(opts: { name: string; portalUrl: string; note?: string | null }) {
+  return milestone({
+    heading: "Your application is ready to apply",
+    greetingName: opts.name,
+    paragraphs: [
+      "Good news: our team has reviewed your application and everything is in order.",
+      ...(opts.note ? [opts.note] : []),
+      "We will now start your university applications. You can follow every step in your portal.",
+    ],
+    cta: { label: "Open your portal", url: `${opts.portalUrl}/portal/journey` },
+  });
+}

@@ -5,7 +5,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { IntakeForm } from "@/components/portal/IntakeForm";
-import { getIntake } from "@/lib/db/repos/operations";
+import { lastReturnNote, getIntake } from "@/lib/db/repos/operations";
 import { ticksFor } from "@/lib/db/repos/checklist";
 import { PATHWAY_FOR_ROLE, intakeFor } from "@/lib/portal/intake";
 
@@ -72,6 +72,8 @@ export default async function ApplicationPage() {
     to keep working after this locks — see migration 011.
   */
   const checklistTicks = session.role === "student" ? await ticksFor(session.userId) : {};
+  // Sent back for changes: show what staff asked for, and reopen at the start.
+  const returnNote = form?.status === "returned" ? await lastReturnNote(form.id) : null;
 
   return (
     <>
@@ -84,9 +86,10 @@ export default async function ApplicationPage() {
         <IntakeForm
           definition={definition}
           initialAnswers={form?.data ?? {}}
-          initialStep={form?.step ?? 0}
+          initialStep={form?.status === "returned" ? 0 : form?.step ?? 0}
           checklistTicks={checklistTicks}
           status={form?.status ?? "draft"}
+          returnNote={returnNote}
         />
       </Panel>
     </>

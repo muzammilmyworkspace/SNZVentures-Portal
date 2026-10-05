@@ -1346,7 +1346,7 @@ export async function getAdvisorBoard(advisorId: string): Promise<
           WHEN f.live IS NULL AND f.rejected > 0 THEN 'fee_rejected'
           WHEN f.live IS NULL THEN 'fee_due'
           WHEN f.live = 'submitted' THEN 'fee_review'
-          WHEN i.status IS NULL OR i.status = 'draft' THEN 'application'
+          WHEN i.status IS NULL OR i.status IN ('draft', 'returned') THEN 'application'
           WHEN k.n = 0 THEN 'consent_due'
           ELSE 'complete'
         END AS stage

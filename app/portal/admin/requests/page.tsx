@@ -8,6 +8,8 @@ import { getIntakeQueue } from "@/lib/db/repos/operations";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { Avatar } from "@/components/portal/Avatar";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
+import { ApplicationReview } from "@/components/portal/ApplicationReview";
+import { REVIEW_LABEL } from "@/lib/portal/review-status";
 
 export const metadata: Metadata = {
   title: "Requests",
@@ -25,13 +27,29 @@ export const metadata: Metadata = {
  * pasted to a colleague, which a `useState` filter cannot.
  */
 
+/*
+  THE THREE STAGES OF A SUBMITTED APPLICATION.
+
+    Under review       just submitted (or resubmitted), waiting on us
+    Changes requested  sent back to the student with comments
+    Ready to apply     reviewed and approved; university applications next
+
+  `submitted` and the older `under_review` are the same stage to everyone.
+*/
 const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "submitted", label: "New" },
-  { key: "under_review", label: "Under review" },
-  { key: "returned", label: "Waiting for user" },
-  { key: "accepted", label: "Completed" },
+  { key: "all", label: "All", match: () => true },
+  { key: "review", label: "Under review", match: (s: string) => s === "submitted" || s === "under_review" },
+  { key: "returned", label: "Changes requested", match: (s: string) => s === "returned" },
+  { key: "accepted", label: "Ready to apply", match: (s: string) => s === "accepted" },
 ] as const;
+
+/** StatusPill colour for each stage. */
+const TONE: Record<string, string> = {
+  submitted: "under_review",
+  under_review: "under_review",
+  returned: "needs_update",
+  accepted: "approved",
+};
 
 const PATHWAY_LABEL: Record<string, string> = {
   study: "Student",
@@ -39,13 +57,7 @@ const PATHWAY_LABEL: Record<string, string> = {
   business: "Business",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  submitted: "New",
-  under_review: "Under review",
-  returned: "Waiting for user",
-  accepted: "Completed",
-  draft: "Draft",
-};
+const STATUS_LABEL = REVIEW_LABEL;
 
 /** How long a request has been waiting, in plain words. */
 function waitingFor(iso: string | null): string {
@@ -59,7 +71,7 @@ function waitingFor(iso: string | null): string {
 export default async function AdminRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; pathway?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; pathway?: string; page?: string; review?: string }>;
 }) {
   await requireAdmin();
   const params = await searchParams;
@@ -78,15 +90,14 @@ export default async function AdminRequestsPage({
   const status = params.status ?? "all";
   const pathway = params.pathway ?? "all";
 
-  const rows = all.filter(
-    (r) =>
-      (status === "all" || r.status === status) &&
-      (pathway === "all" || r.pathway === pathway)
-  );
+  const matcher = STATUS_FILTERS.find((f) => f.key === status)?.match ?? (() => true);
+  const rows = all.filter((r) => matcher(r.status) && (pathway === "all" || r.pathway === pathway));
   const pg = paginate(rows, pageFrom(params.page));
 
-  const countFor = (key: string) =>
-    key === "all" ? all.length : all.filter((r) => r.status === key).length;
+  const countFor = (key: string) => {
+    const m = STATUS_FILTERS.find((f) => f.key === key)?.match ?? (() => true);
+    return all.filter((r) => m(r.status)).length;
+  };
 
   const href = (next: { status?: string; pathway?: string }) => {
     const q = new URLSearchParams();
@@ -98,13 +109,25 @@ export default async function AdminRequestsPage({
     return qs ? `/portal/admin/requests?${qs}` : "/portal/admin/requests";
   };
 
+  /** The list as it is, with the review window opened (or closed) over it. */
+  const withReview = (id: string | null) => {
+    const q = new URLSearchParams();
+    if (status !== "all") q.set("status", status);
+    if (pathway !== "all") q.set("pathway", pathway);
+    if (params.page) q.set("page", params.page);
+    if (id) q.set("review", id);
+    const qs = q.toString();
+    return qs ? `/portal/admin/requests?${qs}` : "/portal/admin/requests";
+  };
+
   return (
     <>
       <PortalHeading
         eyebrow="Operations"
         title="Requests"
-        lead="Every submitted intake, oldest first. The one at the top has been waiting longest."
+        lead="Every submitted application, oldest first. Open one with the eye to review it, then move it on to Ready to apply or send it back with comments."
       />
+      {params.review && <ApplicationReview intakeId={params.review} closeHref={withReview(null)} />}
 
       {/* Filters */}
       <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -162,13 +185,13 @@ export default async function AdminRequestsPage({
           />
         ) : (
           <div className="rail overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left">
+            <table className="w-full min-w-[920px] text-left">
               <caption className="sr-only">Submitted requests</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Client", "Brought by", "Type", "Account", "Submitted", "Waiting", "Status"].map((h) => (
-                    <th key={h} scope="col" className="label px-5 py-3 text-faint">
-                      {h}
+                  {["Client", "Brought by", "Type", "Account", "Submitted", "Waiting", "Status", ""].map((h, i) => (
+                    <th key={h || i} scope="col" className="label px-5 py-3 text-faint">
+                      {h || <span className="sr-only">Review</span>}
                     </th>
                   ))}
                 </tr>
@@ -224,10 +247,25 @@ export default async function AdminRequestsPage({
                         : "—"}
                     </td>
                     <td className="px-5 py-3 text-[0.85rem] text-muted">
-                      {waitingFor(r.submittedAt)}
+                      {/* Only while it waits on us; once decided, the clock is the student's. */}
+                      {r.status === "submitted" || r.status === "under_review" ? waitingFor(r.submittedAt) : "—"}
                     </td>
                     <td className="px-5 py-3">
-                      <StatusPill status={r.status} label={STATUS_LABEL[r.status] ?? r.status} />
+                      <StatusPill status={TONE[r.status] ?? r.status} label={STATUS_LABEL[r.status] ?? r.status} />
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <Link
+                        href={withReview(r.id)}
+                        scroll={false}
+                        aria-label={`Review ${r.userName}'s application`}
+                        data-tip="Review application"
+                        className="tip tip-end icon-btn"
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+                          <circle cx="8" cy="8" r="2" />
+                        </svg>
+                      </Link>
                     </td>
                   </tr>
                 ))}
