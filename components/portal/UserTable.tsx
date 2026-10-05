@@ -7,6 +7,8 @@ import { useState, useTransition } from "react";
 import { ROLE_LABEL, type Role, CLIENT_ROLES } from "@/lib/auth/types";
 import { StatusPill } from "./Pieces";
 import { Avatar } from "./Avatar";
+import { MessageBar } from "./MessageBar";
+import { memberId } from "@/lib/portal/member-id";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -22,6 +24,8 @@ type Row = {
   advisorName: string | null;
   /** Null when they have no photo; otherwise its version. */
   avatarV?: number | null;
+  /** The person's number, shown as STU-0012 / CON-0003 / EMP-0001. */
+  memberNo?: number | null;
 };
 
 /**
@@ -39,6 +43,9 @@ export function UserTable({
   actorId,
   offset = 0,
   historyBase,
+  total = 0,
+  filter,
+  viewLabel = "this view",
 }: {
   users: Row[];
   advisors: { id: string; name: string }[];
@@ -48,8 +55,14 @@ export function UserTable({
   offset?: number;
   /** This page's URL ending in "?" or "&", to which `history=<id>` is added. */
   historyBase?: string;
+  /** Everyone matching the current filter, across all pages. */
+  total?: number;
+  /** The current filter, so "message everyone" reaches all pages of it. */
+  filter?: { role?: string; status?: string; q?: string };
+  viewLabel?: string;
 }) {
   const router = useRouter();
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   /*
     The generated reset link, held per user so two rows cannot show each
     other's. It is shown ONCE and never stored: it is a live credential for
@@ -101,6 +114,13 @@ export function UserTable({
 
   return (
     <>
+      <MessageBar
+        picked={[...picked]}
+        total={total}
+        filter={filter}
+        viewLabel={viewLabel}
+        onSent={() => setPicked(new Set())}
+      />
       {error && (
         <p role="alert" className="border-b border-line bg-red-500/10 px-5 py-3 text-[0.85rem] text-danger">
           {error}
@@ -111,7 +131,16 @@ export function UserTable({
           <caption className="sr-only">Portal users</caption>
           <thead>
             <tr className="border-b border-line">
-              {["#", "User", "Role", "Status", "Consultant", "Actions"].map((h) => (
+              <th scope="col" className="w-10 px-5 py-3">
+                <input
+                  type="checkbox"
+                  aria-label="Select everyone on this page"
+                  checked={users.length > 0 && users.every((u) => picked.has(u.id))}
+                  onChange={(e) => setPicked(e.target.checked ? new Set(users.map((u) => u.id)) : new Set())}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+              </th>
+              {["#", "User", "ID", "Role", "Status", "Actions"].map((h) => (
                 <th key={h} scope="col" className="label px-5 py-3 text-faint">
                   {h}
                 </th>
@@ -132,6 +161,20 @@ export function UserTable({
                     busyId === u.id && "opacity-50"
                   )}
                 >
+                  <td className="px-5 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${u.name}`}
+                      checked={picked.has(u.id)}
+                      onChange={(e) => {
+                        const next = new Set(picked);
+                        if (e.target.checked) next.add(u.id);
+                        else next.delete(u.id);
+                        setPicked(next);
+                      }}
+                      className="h-4 w-4 accent-[var(--accent)]"
+                    />
+                  </td>
                   <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{offset + idx + 1}</td>
                   <td className="px-5 py-3">
                     {/*
@@ -170,6 +213,10 @@ export function UserTable({
                         <span className="block text-[0.8rem] text-faint">{u.email}</span>
                       </span>
                     </span>
+                  </td>
+
+                  <td className="whitespace-nowrap px-5 py-3 font-mono text-[0.8rem] font-semibold text-muted">
+                    {memberId(u.role, u.memberNo ?? null)}
                   </td>
 
                   <td className="px-5 py-3">
@@ -227,60 +274,6 @@ export function UserTable({
                     )}
                   </td>
 
-                  {/*
-                    WHO THEY BELONG TO — not just a way to change it.
-
-                    This was an "Assign…" select that never showed the current
-                    assignment, so a page of students could not answer the
-                    question the column exists for. It is now the value of the
-                    select, which also means picking a different consultant is
-                    visibly a MOVE rather than an addition.
-
-                    Only clients have one. A consultant does not belong to a
-                    consultant, and offering the control on their row invited
-                    an assignment the rest of the product does not understand.
-                  */}
-                  <td className="px-5 py-3">
-                    {!(CLIENT_ROLES as readonly Role[]).includes(u.role) ? (
-                      <span className="text-[0.8rem] text-faint">—</span>
-                    ) : locked || !advisors.length ? (
-                      <span className="text-[0.85rem] text-fg">
-                        {u.advisorName ?? <span className="text-faint">Unassigned</span>}
-                      </span>
-                    ) : (
-                      <select
-                        aria-label={`Consultant for ${u.name}`}
-                        value={u.advisorId ?? ""}
-                        disabled={pending}
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          if (next) {
-                            act(u.id, { action: "assign_advisor", advisorId: next });
-                          } else if (u.advisorId) {
-                            act(u.id, { action: "unassign_advisor", advisorId: u.advisorId });
-                          }
-                        }}
-                        className="chip-select max-w-[12rem]"
-                      >
-                        <option value="">Unassigned</option>
-                        {/*
-                          A consultant who has since been deactivated no longer
-                          appears in `advisors`, and without this the select
-                          would silently fall back to "Unassigned" and say the
-                          student has nobody. Their name stays until somebody
-                          chooses a replacement.
-                        */}
-                        {u.advisorId && !advisors.some((a) => a.id === u.advisorId) && (
-                          <option value={u.advisorId}>{u.advisorName ?? "Current"}</option>
-                        )}
-                        {advisors.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
 
                   {/*
                     ONE ROW, ONE WIDTH EACH.
@@ -326,7 +319,7 @@ export function UserTable({
                           has a purpose in that direction and is privilege
                           escalation in the other.
                         */}
-                        {CLIENT_ROLES.includes(u.role) && u.status === "active" ? (
+                        {(CLIENT_ROLES.includes(u.role) || (u.role === "advisor" && actorRole === "super_admin")) && u.status === "active" ? (
                           <button
                             type="button"
                             disabled={pending}

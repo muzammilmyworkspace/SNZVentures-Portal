@@ -4,8 +4,8 @@ import { PortalHeading } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { UsersView } from "@/components/portal/UsersView";
 
-/** Everyone on the portal: students, consultants and employees. See UsersView. */
-export default async function AdminUsersPage({
+/** The firm's own staff (admins and super admins). The Users list, fixed to them. */
+export default async function EmployeesPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -15,7 +15,7 @@ export default async function AdminUsersPage({
   if (!isDatabaseConfigured()) {
     return (
       <>
-        <PortalHeading eyebrow="Manage" title="Users" />
+        <PortalHeading eyebrow="Manage" title="Employees" />
         <NotConfigured what="User management" />
       </>
     );
@@ -25,10 +25,11 @@ export default async function AdminUsersPage({
       raw={raw}
       actorRole={session.role}
       actorId={session.userId}
-      basePath="/portal/admin/users"
+      basePath="/portal/admin/employees"
+      fixedGroup="employees"
       eyebrow="Manage"
-      title="Users"
-      lead="Everyone who uses the portal. Filter by group, tick people to send them a message, open the clock for anyone's history. Every change is written to the audit log."
+      title="Employees"
+      lead="The SnZ Ventures team with admin access. Message them all at once, or open anyone's history."
     />
   );
 }

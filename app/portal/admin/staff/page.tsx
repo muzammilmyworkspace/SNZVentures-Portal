@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth/guard";
+import { MessageBar } from "@/components/portal/MessageBar";
 import { getAdvisorsWithLoad, getClientsByAdvisor, getStaffProfiles } from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { mailConfigured } from "@/lib/mail";
@@ -108,6 +109,14 @@ export default async function ConsultantsPage() {
               }
             />
           ) : (
+            <>
+            {/* Message every consultant at once; each gets it in their own chat. */}
+            <MessageBar
+              picked={[]}
+              total={consultants.filter((c) => c.role === "advisor").length}
+              filter={{ role: "consultants" }}
+              viewLabel="Consultants"
+            />
             <ConsultantList
               consultants={consultants}
               clients={clients}
@@ -117,6 +126,7 @@ export default async function ConsultantsPage() {
               canEdit={isSuperAdmin}
               viewerId={session.userId}
             />
+            </>
           )}
         </Panel>
       </div>

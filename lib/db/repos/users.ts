@@ -208,9 +208,18 @@ export async function setStatus(userId: string, status: DbUser["status"]) {
 
 /* --------------------------------------------------------------- listing */
 
+/** The people groups the Users page filters by. */
+export type UserGroup = "students" | "consultants" | "employees";
+export const GROUP_ROLES: Record<UserGroup, Role[]> = {
+  students: ["student", "professional", "business"],
+  consultants: ["advisor"],
+  employees: ["admin", "super_admin"],
+};
+
 export type UserFilter = {
   q?: string;
-  role?: Role | "all";
+  /** A single role, or a group of them (students, consultants, employees). */
+  role?: Role | UserGroup | "all";
   status?: DbUser["status"] | "all";
   limit?: number;
   offset?: number;
@@ -253,7 +262,7 @@ export type UserSort = "recent" | "oldest" | "name" | "last_active";
 export async function getUsersPageData(
   filter: UserFilter & { sort?: UserSort } = {}
 ): Promise<{
-  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null })[];
+  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null })[];
   total: number;
   page: number;
   pages: number;
@@ -264,12 +273,17 @@ export async function getUsersPageData(
   const limit = Math.min(Math.max(filter.limit ?? 25, 1), 100);
   const offset = Math.max(filter.offset ?? 0, 0);
   const q = filter.q?.trim() || null;
-  const role = filter.role && filter.role !== "all" ? filter.role : null;
+  const roles: string[] =
+    !filter.role || filter.role === "all"
+      ? []
+      : filter.role in GROUP_ROLES
+        ? GROUP_ROLES[filter.role as UserGroup]
+        : [filter.role];
   const status = filter.status && filter.status !== "all" ? filter.status : null;
   const sort: UserSort = filter.sort ?? "recent";
 
   const empty = {
-    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null })[],
+    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null })[],
     total: 0,
     page: 1,
     pages: 1,
@@ -284,7 +298,7 @@ export async function getUsersPageData(
         COALESCE((
           SELECT json_agg(x) FROM (
             SELECT u.id, u.email, u.name, u.role, u.status, u.email_verified,
-                   u.last_login_at, u.created_at,
+                   u.last_login_at, u.created_at, u.member_no,
                    CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
                    (
                      SELECT count(*)::int FROM (
@@ -317,7 +331,7 @@ export async function getUsersPageData(
             WHERE (${q}::text IS NULL
                    OR u.name ILIKE ${"%" + (q ?? "") + "%"}
                    OR u.email ILIKE ${"%" + (q ?? "") + "%"})
-              AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+              AND (cardinality(${roles}::text[]) = 0 OR u.role::text = ANY(${roles}::text[]))
               AND (${status}::user_status IS NULL OR u.status = ${status}::user_status)
             ORDER BY
               CASE WHEN ${sort} = 'name'        THEN u.name          END ASC,
@@ -336,7 +350,7 @@ export async function getUsersPageData(
           WHERE (${q}::text IS NULL
                  OR u.name ILIKE ${"%" + (q ?? "") + "%"}
                  OR u.email ILIKE ${"%" + (q ?? "") + "%"})
-            AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+            AND (cardinality(${roles}::text[]) = 0 OR u.role::text = ANY(${roles}::text[]))
             AND (${status}::user_status IS NULL OR u.status = ${status}::user_status)
         ) AS total,
 
@@ -363,6 +377,7 @@ export async function getUsersPageData(
         advisorId: u.advisor_id ? String(u.advisor_id) : null,
         advisorName: u.advisor_name ? String(u.advisor_name) : null,
         avatarV: u.avatar_v == null ? null : Number(u.avatar_v),
+        memberNo: u.member_no == null ? null : Number(u.member_no),
       })),
       total,
       page: Math.floor(offset / limit) + 1,
@@ -590,4 +605,30 @@ export async function revokeSessions(userId: string): Promise<number | null> {
     `;
     return rows[0] ? Number(rows[0].session_epoch) : null;
   }, null);
+}
+
+
+/**
+ * Everyone matching a Users-page filter, for "message everyone in this view".
+ * Same conditions as getUsersPageData, no paging, ids only, capped.
+ */
+export async function userIdsForFilter(filter: UserFilter, cap = 2000): Promise<string[]> {
+  const q = filter.q?.trim() || null;
+  const roles: string[] =
+    !filter.role || filter.role === "all"
+      ? []
+      : filter.role in GROUP_ROLES
+        ? GROUP_ROLES[filter.role as UserGroup]
+        : [filter.role];
+  const status = filter.status && filter.status !== "all" ? filter.status : null;
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT u.id FROM users u
+      WHERE (${q}::text IS NULL OR u.name ILIKE ${"%" + (q ?? "") + "%"} OR u.email ILIKE ${"%" + (q ?? "") + "%"})
+        AND (cardinality(${roles}::text[]) = 0 OR u.role::text = ANY(${roles}::text[]))
+        AND (${status}::user_status IS NULL OR u.status = ${status}::user_status)
+      LIMIT ${cap}
+    `;
+    return rows.map((r) => String(r.id));
+  }, []);
 }

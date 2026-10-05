@@ -95,6 +95,8 @@ export type ConversationRow = {
   updatedAt: string;
   unread: number;
   clientName?: string;
+  /** Whose conversation it is; for staff, their own means "from the firm". */
+  clientId?: string;
 };
 
 export type MessageRow = {
@@ -529,7 +531,7 @@ export async function getConversationsForStaff(
   return safeQuery(async () => {
     const rows = isAdmin
       ? await db()`
-          SELECT c.id, c.subject, c.updated_at, u.name AS client_name,
+          SELECT c.id, c.subject, c.updated_at, u.name AS client_name, c.client_id,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
                     AND m.author_id = c.client_id) AS unread
@@ -537,12 +539,14 @@ export async function getConversationsForStaff(
           ORDER BY c.updated_at DESC LIMIT 100
         `
       : await db()`
-          SELECT c.id, c.subject, c.updated_at, u.name AS client_name,
+          SELECT c.id, c.subject, c.updated_at, u.name AS client_name, c.client_id,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
                     AND m.author_id = c.client_id) AS unread
           FROM conversations c JOIN users u ON u.id = c.client_id
-          WHERE EXISTS (SELECT 1 FROM staff_assignments sa
+          -- Their students' threads, and their own (a message from the firm).
+          WHERE c.client_id = ${staffId}
+             OR EXISTS (SELECT 1 FROM staff_assignments sa
                         WHERE sa.advisor_id = ${staffId} AND sa.client_id = c.client_id)
           ORDER BY c.updated_at DESC LIMIT 100
         `;
@@ -552,6 +556,7 @@ export async function getConversationsForStaff(
       updatedAt: iso(r.updated_at)!,
       unread: Number(r.unread ?? 0),
       clientName: r.client_name ? String(r.client_name) : undefined,
+      clientId: r.client_id ? String(r.client_id) : undefined,
     }));
   }, []);
 }
@@ -1566,4 +1571,56 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
     consultants: 0, openCases: 0, pendingDocuments: 0, applications: 0,
     appointments: 0, unreadMessages: 0,
   });
+}
+
+/* -------------------------------------------------------------- broadcast */
+
+export const BROADCAST_SUBJECT = "Message from SnZ Ventures";
+
+/**
+ * ONE MESSAGE TO MANY PEOPLE, into each person's own chat.
+ *
+ * Every recipient gets the message in a conversation of their own titled
+ * "Message from SnZ Ventures" (made the first time, reused after), so a reply
+ * is private to them and lands with the team like any other message. Staff
+ * recipients see it because their own conversations now show in Messages.
+ *
+ * Four statements whatever the number of people: make the missing
+ * conversations, add the message to each, stamp them, notify everyone.
+ */
+export async function broadcastMessage(senderId: string, userIds: string[], body: string): Promise<number> {
+  const ids = [...new Set(userIds)].filter((id) => id !== senderId);
+  if (!ids.length) return 0;
+  return safeQuery(async () => {
+    return db().begin(async (tx) => {
+      await tx`
+        INSERT INTO conversations (client_id, subject)
+        SELECT t.uid, ${BROADCAST_SUBJECT}
+          FROM unnest(${ids}::uuid[]) AS t(uid)
+         WHERE NOT EXISTS (
+           SELECT 1 FROM conversations c WHERE c.client_id = t.uid AND c.subject = ${BROADCAST_SUBJECT}
+         )
+      `;
+      const convs = await tx`
+        SELECT DISTINCT ON (client_id) id, client_id FROM conversations
+         WHERE client_id = ANY(${ids}::uuid[]) AND subject = ${BROADCAST_SUBJECT}
+         ORDER BY client_id, created_at
+      `;
+      const convIds = convs.map((c) => String(c.id));
+      await tx`
+        INSERT INTO messages (conversation_id, author_id, body)
+        SELECT cid, ${senderId}, ${body} FROM unnest(${convIds}::uuid[]) AS t(cid)
+      `;
+      await tx`
+        UPDATE conversations SET updated_at = now(), last_sender_id = ${senderId}
+         WHERE id = ANY(${convIds}::uuid[])
+      `;
+      await tx`
+        INSERT INTO notifications (user_id, title, body, href, kind)
+        SELECT client_id, ${BROADCAST_SUBJECT}, ${body.slice(0, 200)}, '/portal/messages/' || id::text, 'message'
+          FROM conversations WHERE id = ANY(${convIds}::uuid[])
+      `;
+      return convIds.length;
+    });
+  }, 0);
 }

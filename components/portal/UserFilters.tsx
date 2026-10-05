@@ -26,7 +26,7 @@ export type UserQuery = {
 };
 
 /** Build a URL that keeps the current filters and changes only what is given. */
-export function usersHref(current: UserQuery, next: Partial<UserQuery>): string {
+export function usersHref(current: UserQuery, next: Partial<UserQuery>, base = "/portal/admin/users"): string {
   const merged = { ...current, ...next };
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(merged)) {
@@ -34,16 +34,23 @@ export function usersHref(current: UserQuery, next: Partial<UserQuery>): string 
     params.set(k, String(v));
   }
   const qs = params.toString();
-  return qs ? `/portal/admin/users?${qs}` : "/portal/admin/users";
+  return qs ? `${base}?${qs}` : base;
 }
 
 export function UserFilters({
   current,
   counts,
+  basePath = "/portal/admin/users",
+  groupTabs = true,
 }: {
   current: UserQuery;
   counts?: Partial<Record<string, number>>;
+  /** The page these filters belong to (Users, or Employees). */
+  basePath?: string;
+  /** All / Students / Consultants / Employees. Off on a page fixed to one group. */
+  groupTabs?: boolean;
 }) {
+  const href = (next: Partial<UserQuery>) => usersHref(current, next, basePath);
   const role = current.role ?? "all";
   const status = current.status ?? "all";
 
@@ -54,7 +61,7 @@ export function UserFilters({
         done by Postgres over the whole table rather than by JavaScript over
         whatever happened to be downloaded.
       */}
-      <form action="/portal/admin/users" method="get" className="flex flex-wrap gap-2">
+      <form action={basePath} method="get" className="flex flex-wrap gap-2">
         <label htmlFor="user-search" className="sr-only">
           Search users by name or email
         </label>
@@ -67,7 +74,7 @@ export function UserFilters({
           className="field max-w-sm flex-1"
         />
         {/* Filters ride along so searching does not silently clear them. */}
-        {role !== "all" && <input type="hidden" name="role" value={role} />}
+        {groupTabs && role !== "all" && <input type="hidden" name="role" value={role} />}
         {status !== "all" && <input type="hidden" name="status" value={status} />}
         {current.sort && <input type="hidden" name="sort" value={current.sort} />}
         <button
@@ -78,7 +85,7 @@ export function UserFilters({
         </button>
         {current.q && (
           <Link
-            href={usersHref(current, { q: "", page: "1" })}
+            href={href({ q: "", page: "1" })}
             className="label inline-flex min-h-11 items-center px-3 text-faint transition-colors hover:text-fg"
           >
             Clear
@@ -86,17 +93,18 @@ export function UserFilters({
         )}
       </form>
 
-      <Tabs
-        label="Filter by role"
-        active={role}
-        items={[
-          { key: "all", label: "All", href: usersHref(current, { role: "all", page: "1" }), count: counts?.all },
-          { key: "student", label: "Students", href: usersHref(current, { role: "student", page: "1" }), count: counts?.student },
-          { key: "professional", label: "Job Seekers", href: usersHref(current, { role: "professional", page: "1" }), count: counts?.professional },
-          { key: "business", label: "Businesses", href: usersHref(current, { role: "business", page: "1" }), count: counts?.business },
-          { key: "admin", label: "Admins", href: usersHref(current, { role: "admin", page: "1" }) },
-        ]}
-      />
+      {groupTabs && (
+        <Tabs
+          label="Filter by group"
+          active={role}
+          items={[
+            { key: "all", label: "All", href: href({ role: "all", page: "1" }), count: counts?.all },
+            { key: "students", label: "Students", href: href({ role: "students", page: "1" }), count: counts?.students },
+            { key: "consultants", label: "Consultants", href: href({ role: "consultants", page: "1" }), count: counts?.consultants },
+            { key: "employees", label: "Employees", href: href({ role: "employees", page: "1" }), count: counts?.employees },
+          ]}
+        />
+      )}
 
       <nav aria-label="Filter by status" className="flex flex-wrap gap-2">
         {[
@@ -107,7 +115,7 @@ export function UserFilters({
         ].map((s) => (
           <Link
             key={s.key}
-            href={usersHref(current, { status: s.key, page: "1" })}
+            href={href({ status: s.key, page: "1" })}
             aria-current={status === s.key ? "true" : undefined}
             className={cn(
               "inline-flex min-h-10 items-center rounded-full px-4 text-[0.85rem] transition-colors",

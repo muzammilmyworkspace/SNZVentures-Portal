@@ -21,7 +21,8 @@ import * as repo from "@/lib/db/repos/portal";
 import * as ops from "@/lib/db/repos/operations";
 import { intakeFor, PATHWAY_FOR_ROLE } from "@/lib/portal/intake";
 import { answerOf } from "@/lib/portal/intake-answers";
-import { ROLE_LABEL, type Role } from "@/lib/auth/types";
+import { ROLE_LABEL, CLIENT_ROLES, type Role } from "@/lib/auth/types";
+import { AssignConsultant } from "@/components/portal/AssignConsultant";
 
 export const metadata: Metadata = {
   title: "Client",
@@ -101,6 +102,10 @@ export default async function AdminUserPage({
   const profile = await profilesRepo.getProfile(id, user.role);
   // How this client arrived, for the day two consultants both claim them.
   const enrolment = await invitesRepo.inviteForClient(id);
+  const admin = isAdmin(role);
+  const choices = (CLIENT_ROLES as readonly string[]).includes(user.role) && admin
+    ? await invitesRepo.consultantChoices(id)
+    : null;
   const { documents, cases, intake, history, notes, consents } = file;
 
   const definition = pathway ? intakeFor(pathway) : null;
@@ -162,6 +167,12 @@ export default async function AdminUserPage({
             This is the panel to read before settling a dispute — it is the
             record the enrolment link exists to produce.
           */}
+          {/* Who they belong to, and the control to change it (admins). */}
+          {admin && choices && (
+            <Panel title="Consultant">
+              <AssignConsultant userId={id} currentId={choices.currentId} advisors={choices.advisors} />
+            </Panel>
+          )}
           {enrolment && (
             <Panel title="How they enrolled">
               <dl className="space-y-3 text-[0.9rem]">

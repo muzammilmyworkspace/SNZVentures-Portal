@@ -271,29 +271,26 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
       ],
     },
+    /*
+      A consultant's own students. Consultants only: an admin manages
+      everybody from Manage below.
+    */
     {
       group: "People",
+      items: [{ href: "/portal/admin/my-students", label: "Your students", icon: "users", roles: ["advisor"] }],
+    },
+    /*
+      EVERYONE WHO USES THE PORTAL, for admins. Users is the whole list with
+      All / Students / Consultants / Employees; Consultants adds each one's
+      workload; Employees is the firm's own staff. From any of them you can
+      message people one by one or all at once.
+    */
+    {
+      group: "Manage",
       items: [
-        /*
-          First, and the only People entry a consultant can reach. Their own
-          book is where their day starts; everything below it is firm-wide and
-          admin-only, which is why the group reads oddly short for them — that
-          is the intended shape, not a gap.
-        */
-        { href: "/portal/admin/my-students", label: "Your students", icon: "users" },
         { href: "/portal/admin/users", label: "Users", icon: "users", roles: ["admin", "super_admin"] },
-        {
-          href: "/portal/admin/unassigned",
-          label: "Unassigned",
-          icon: "profile",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/staff",
-          label: "Consultants",
-          icon: "profile",
-          roles: ["admin", "super_admin"],
-        },
+        { href: "/portal/admin/staff", label: "Consultants", icon: "profile", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/employees", label: "Employees", icon: "profile", roles: ["admin", "super_admin"] },
       ],
     },
     {

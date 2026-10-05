@@ -64,7 +64,7 @@ export default async function MessagesPage() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[0.95rem] font-medium text-fg">
-                        {c.clientName ?? c.subject}
+                        {c.clientId === session.userId ? "SnZ Ventures" : c.clientName ?? c.subject}
                       </span>
                       <span className="mt-0.5 block truncate text-[0.8rem] text-faint">
                         {c.subject}

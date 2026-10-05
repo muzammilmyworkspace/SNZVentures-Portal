@@ -434,3 +434,27 @@ export async function codeContext(
     { ownCode: null, consultantName: null }
   );
 }
+
+/** For the client file: who this client's consultant is, and who could be. */
+export async function consultantChoices(
+  clientId: string
+): Promise<{ currentId: string | null; advisors: { id: string; name: string; code: string | null }[] }> {
+  return safeQuery(
+    async () => {
+      const [r] = await db()`
+        SELECT
+          (SELECT sa.advisor_id FROM staff_assignments sa WHERE sa.client_id = ${clientId}
+            ORDER BY sa.created_at ASC LIMIT 1) AS current_id,
+          COALESCE((SELECT json_agg(x ORDER BY x.name) FROM (
+            SELECT id, name, consultant_code AS code FROM users
+             WHERE role IN ('advisor', 'admin', 'super_admin') AND status = 'active'
+          ) x), '[]'::json) AS advisors
+      `;
+      return {
+        currentId: r?.current_id ? String(r.current_id) : null,
+        advisors: (r?.advisors ?? []) as { id: string; name: string; code: string | null }[],
+      };
+    },
+    { currentId: null, advisors: [] }
+  );
+}
