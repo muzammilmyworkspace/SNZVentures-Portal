@@ -12,7 +12,36 @@ export type Enquiry = {
   delivered: boolean;
   handledAt: string | null;
   createdAt: string;
+  /** Where they came from (023). Null on enquiries from before it was recorded. */
+  source: string | null;
+  page: string | null;
+  landing: string | null;
+  referrer: string | null;
+  utm: Record<string, string> | null;
+  /** When they also pressed "Send on WhatsApp" after the form. */
+  whatsappAt: string | null;
 };
+
+export type WhatsAppClick = {
+  id: string;
+  placement: string | null;
+  page: string | null;
+  source: string | null;
+  campaign: string | null;
+  fromForm: boolean;
+  createdAt: string;
+};
+
+export type WhatsAppSummary = {
+  last7: number;
+  last30: number;
+  fromForm30: number;
+  byPlacement: { key: string; n: number }[];
+  bySource: { key: string; n: number }[];
+  recent: WhatsAppClick[];
+};
+
+const EMPTY_WA: WhatsAppSummary = { last7: 0, last30: 0, fromForm30: 0, byPlacement: [], bySource: [], recent: [] };
 
 const map = (r: Record<string, unknown>): Enquiry => ({
   id: String(r.id),
@@ -26,6 +55,12 @@ const map = (r: Record<string, unknown>): Enquiry => ({
   delivered: Boolean(r.delivered),
   handledAt: r.handled_at ? new Date(r.handled_at as string).toISOString() : null,
   createdAt: new Date(r.created_at as string).toISOString(),
+  source: r.source ? String(r.source) : null,
+  page: r.page ? String(r.page) : null,
+  landing: r.landing ? String(r.landing) : null,
+  referrer: r.referrer ? String(r.referrer) : null,
+  utm: (r.utm as Record<string, string> | null) ?? null,
+  whatsappAt: r.whatsapp_at ? new Date(r.whatsapp_at as string).toISOString() : null,
 });
 
 /**
@@ -86,9 +121,10 @@ export async function listEnquiries(limit = 50): Promise<{
   total: number;
   undelivered: number;
   unhandled: number;
+  whatsapp: WhatsAppSummary;
 }> {
   if (!isDatabaseConfigured()) {
-    return { rows: [], total: 0, undelivered: 0, unhandled: 0 };
+    return { rows: [], total: 0, undelivered: 0, unhandled: 0, whatsapp: EMPTY_WA };
   }
   return safeQuery(
     async () => {
@@ -104,16 +140,33 @@ export async function listEnquiries(limit = 50): Promise<{
           ) x), '[]'::json) AS rows,
           (SELECT count(*)::int FROM enquiries) AS total,
           (SELECT count(*)::int FROM enquiries WHERE delivered = FALSE) AS undelivered,
-          (SELECT count(*)::int FROM enquiries WHERE handled_at IS NULL) AS unhandled
+          (SELECT count(*)::int FROM enquiries WHERE handled_at IS NULL) AS unhandled,
+          json_build_object(
+            'last7', (SELECT count(*)::int FROM whatsapp_clicks WHERE created_at >= now() - interval '7 days'),
+            'last30', (SELECT count(*)::int FROM whatsapp_clicks WHERE created_at >= now() - interval '30 days'),
+            'fromForm30', (SELECT count(*)::int FROM whatsapp_clicks
+                            WHERE created_at >= now() - interval '30 days' AND enquiry_id IS NOT NULL),
+            'byPlacement', COALESCE((SELECT json_agg(x ORDER BY x.n DESC) FROM (
+                SELECT COALESCE(placement, 'page') AS key, count(*)::int AS n FROM whatsapp_clicks
+                WHERE created_at >= now() - interval '30 days' GROUP BY 1) x), '[]'::json),
+            'bySource', COALESCE((SELECT json_agg(x ORDER BY x.n DESC) FROM (
+                SELECT COALESCE(source, 'direct') AS key, count(*)::int AS n FROM whatsapp_clicks
+                WHERE created_at >= now() - interval '30 days' GROUP BY 1) x), '[]'::json),
+            'recent', COALESCE((SELECT json_agg(x) FROM (
+                SELECT id::text, placement, page, source, utm->>'utm_campaign' AS campaign,
+                       enquiry_id IS NOT NULL AS "fromForm", created_at AS "createdAt"
+                FROM whatsapp_clicks ORDER BY created_at DESC LIMIT 200) x), '[]'::json)
+          ) AS whatsapp
       `;
       return {
         rows: ((r?.rows ?? []) as Record<string, unknown>[]).map(map),
         total: Number(r?.total ?? 0),
         undelivered: Number(r?.undelivered ?? 0),
         unhandled: Number(r?.unhandled ?? 0),
+        whatsapp: (r?.whatsapp ?? EMPTY_WA) as WhatsAppSummary,
       };
     },
-    { rows: [], total: 0, undelivered: 0, unhandled: 0 }
+    { rows: [], total: 0, undelivered: 0, unhandled: 0, whatsapp: EMPTY_WA }
   );
 }
 
