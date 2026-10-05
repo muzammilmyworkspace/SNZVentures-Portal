@@ -5,6 +5,8 @@ import * as invoices from "@/lib/db/repos/invoices";
 import { formatMoney, type InvoiceStatus } from "@/lib/invoices/model";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { DateTag } from "@/components/portal/FeeBits";
+import { Avatar } from "@/components/portal/Avatar";
 
 export const metadata: Metadata = { title: "Invoices", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -89,54 +91,69 @@ export default async function InvoicesPage({
             Nothing here yet. Press <span className="font-semibold text-fg">Create new invoice</span> above.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[0.86rem]">
+          <div className="rail overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left">
+              <caption className="sr-only">Invoices</caption>
               <thead>
-                <tr>
-                  {["#", "Number", "Date", "Billed to", "Amount", "Status", ""].map((h, i) => (
-                    <th
-                      key={h || i}
-                      className={`label border-b border-line px-2.5 pb-2.5 text-faint ${
-                        h === "Amount" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {h}
+                <tr className="border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)]">
+                  {["#", "Invoice", "Date", "Billed to", "Amount", "Status", "Created by", ""].map((h, i) => (
+                    <th key={h || i} scope="col" className={`label px-4 py-3 text-faint ${h === "Amount" ? "text-right" : ""}`}>
+                      {h || <span className="sr-only">Open</span>}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {pg.rows.map((inv, idx) => (
-                  <tr key={inv.id}>
-                    <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
-                    <td className="border-b border-line px-2.5 py-3 font-semibold tabular-nums text-fg-strong">
-                      {inv.number}
-                    </td>
-                    <td className="border-b border-line px-2.5 py-3 tabular-nums text-muted">
-                      {inv.issuedOn}
-                    </td>
-                    <td className="border-b border-line px-2.5 py-3">
-                      <span className="font-semibold text-fg">{inv.billToName}</span>
-                      {inv.billToEmail && (
-                        <span className="block text-[0.78rem] text-faint">{inv.billToEmail}</span>
+                  <tr key={inv.id} className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
+                    <td className="px-4 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
+                    <td className="px-4 py-3 font-mono text-[0.88rem] font-semibold text-fg-strong">{inv.number}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <DateTag iso={inv.issuedOn} />
+                      {inv.dueOn && inv.status !== "paid" && inv.status !== "void" && (
+                        <span className="mt-1 block text-[0.72rem] text-faint">
+                          Due {new Date(inv.dueOn).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </span>
                       )}
                     </td>
-                    <td className="border-b border-line px-2.5 py-3 text-right font-semibold tabular-nums text-fg-strong">
+                    <td className="px-4 py-3">
+                      <span className="block font-semibold text-fg">{inv.billToName}</span>
+                      {inv.billToEmail && <span className="block text-[0.78rem] text-faint">{inv.billToEmail}</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-fg-strong">
                       {formatMoney(inv.totalCents, inv.currency)}
                     </td>
-                    <td className="border-b border-line px-2.5 py-3">
-                      <span
-                        className={`inline-block rounded-full border px-2.5 py-0.5 text-[0.68rem] font-bold capitalize ${TONE[inv.status]}`}
-                      >
+                    <td className="px-4 py-3">
+                      <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[0.68rem] font-bold capitalize ${TONE[inv.status]}`}>
                         {inv.status}
                       </span>
                     </td>
-                    <td className="border-b border-line px-2.5 py-3 text-right whitespace-nowrap">
+                    <td className="px-4 py-3">
+                      {inv.createdByName ? (
+                        <span className="flex items-center gap-2 whitespace-nowrap">
+                          <Avatar id={inv.createdById ?? inv.id} name={inv.createdByName} size="sm" />
+                          <span>
+                            <span className="block text-[0.85rem] text-fg">{inv.createdByName}</span>
+                            <span data-group="employee" className="group-id text-[0.7rem] font-semibold">
+                              {inv.createdByRole === "super_admin" ? "Super admin" : "Employee"}
+                            </span>
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
                       <Link
                         href={`/portal/admin/invoices/${inv.id}`}
-                        className="label inline-flex min-h-9 items-center rounded-[var(--radius-sm)] border border-line px-3 text-muted transition-colors hover:text-fg"
+                        aria-label={`Open invoice ${inv.number}`}
+                        data-tip="View invoice"
+                        className="tip tip-end icon-btn"
                       >
-                        Open
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+                          <circle cx="8" cy="8" r="2" />
+                        </svg>
                       </Link>
                     </td>
                   </tr>

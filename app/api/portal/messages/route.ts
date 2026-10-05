@@ -84,7 +84,9 @@ export async function POST(request: Request) {
     // Starting a thread. Staff cannot open one from here: a conversation is
     // owned by a client, and inferring which client a staff member meant from
     // an unauthenticated body is exactly how threads end up on the wrong file.
-    if (isStaff(session.role)) {
+    // A consultant MAY open one: their own thread with the firm (it is
+    // owned by them, from the session, so nothing is inferred).
+    if (isStaff(session.role) && session.role !== "advisor") {
       return NextResponse.json(
         { ok: false, error: "Open the client's case to start a conversation." },
         { status: 400 }

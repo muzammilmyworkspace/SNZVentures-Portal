@@ -97,6 +97,13 @@ export type ConversationRow = {
   clientName?: string;
   /** Whose conversation it is; for staff, their own means "from the firm". */
   clientId?: string;
+  clientRole?: string;
+  clientEmail?: string;
+  clientAvatarV?: number | null;
+  /** The newest message, for the preview line. */
+  lastBody?: string | null;
+  /** True when the client wrote last, i.e. it is waiting on the team. */
+  lastFromClient?: boolean;
 };
 
 export type MessageRow = {
@@ -532,6 +539,10 @@ export async function getConversationsForStaff(
     const rows = isAdmin
       ? await db()`
           SELECT c.id, c.subject, c.updated_at, u.name AS client_name, c.client_id,
+                 u.role::text AS client_role, u.email AS client_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS client_avatar_v,
+                 (SELECT m.body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,
+                 (SELECT m.author_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_author,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
                     AND m.author_id = c.client_id) AS unread
@@ -540,6 +551,10 @@ export async function getConversationsForStaff(
         `
       : await db()`
           SELECT c.id, c.subject, c.updated_at, u.name AS client_name, c.client_id,
+                 u.role::text AS client_role, u.email AS client_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS client_avatar_v,
+                 (SELECT m.body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,
+                 (SELECT m.author_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_author,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
                     AND m.author_id = c.client_id) AS unread
@@ -557,6 +572,11 @@ export async function getConversationsForStaff(
       unread: Number(r.unread ?? 0),
       clientName: r.client_name ? String(r.client_name) : undefined,
       clientId: r.client_id ? String(r.client_id) : undefined,
+      clientRole: r.client_role ? String(r.client_role) : undefined,
+      clientEmail: r.client_email ? String(r.client_email) : undefined,
+      clientAvatarV: r.client_avatar_v == null ? null : Number(r.client_avatar_v),
+      lastBody: r.last_body ? String(r.last_body) : null,
+      lastFromClient: r.last_author != null && String(r.last_author) === String(r.client_id),
     }));
   }, []);
 }
@@ -1598,8 +1618,13 @@ export const BROADCAST_SUBJECT = "Message from SnZ Ventures";
  * conversations, add the message to each, stamp them, notify everyone.
  */
 export async function broadcastMessage(senderId: string, userIds: string[], body: string): Promise<number> {
+  return (await broadcastMessageTo(senderId, userIds, body)).length;
+}
+
+/** As broadcastMessage, returning the conversations written to. */
+export async function broadcastMessageTo(senderId: string, userIds: string[], body: string): Promise<string[]> {
   const ids = [...new Set(userIds)].filter((id) => id !== senderId);
-  if (!ids.length) return 0;
+  if (!ids.length) return [];
   return safeQuery(async () => {
     return db().begin(async (tx) => {
       await tx`
@@ -1629,7 +1654,31 @@ export async function broadcastMessage(senderId: string, userIds: string[], body
         SELECT client_id, ${BROADCAST_SUBJECT}, ${body.slice(0, 200)}, '/portal/messages/' || id::text, 'message'
           FROM conversations WHERE id = ANY(${convIds}::uuid[])
       `;
-      return convIds.length;
+      return convIds;
     });
-  }, 0);
+  }, [] as string[]);
+}
+
+/** Who a thread is with and what it is about, for the thread's heading. */
+export async function conversationHeader(
+  conversationId: string
+): Promise<{ subject: string; ownerId: string; name: string; email: string; role: string; avatarV: number | null } | null> {
+  return safeQuery(async () => {
+    const [r] = await db()`
+      SELECT c.subject, u.id, u.name, u.email, u.role::text AS role,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v
+        FROM conversations c JOIN users u ON u.id = c.client_id
+       WHERE c.id = ${conversationId}
+    `;
+    return r
+      ? {
+          subject: String(r.subject),
+          ownerId: String(r.id),
+          name: String(r.name),
+          email: String(r.email),
+          role: String(r.role),
+          avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
+        }
+      : null;
+  }, null);
 }

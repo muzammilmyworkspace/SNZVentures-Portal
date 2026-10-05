@@ -287,3 +287,42 @@ export function documentReuploadEmail(opts: { name: string; portalUrl: string; d
     footnote: "If anything is unclear, reply to this email or message us in the portal.",
   });
 }
+
+/** A consultation has been given a time (or moved to a new one). */
+export function consultationScheduledEmail(opts: {
+  name: string;
+  portalUrl: string;
+  topic: string;
+  when: string;
+  minutes: number;
+  how: string;
+  link: string | null;
+  note: string | null;
+  moved: boolean;
+}) {
+  return milestone({
+    heading: opts.moved ? "Your consultation has a new time" : "Your consultation is booked",
+    greetingName: opts.name,
+    paragraphs: [
+      `${opts.topic}: ${opts.when}, for ${opts.minutes} minutes.`,
+      `How: ${opts.how}${opts.link ? ` — ${opts.link}` : ""}.`,
+      ...(opts.note ? [opts.note] : []),
+      "If the time does not suit you, reply to this email or message us in the portal and we will find another.",
+    ],
+    cta: { label: "See it in your portal", url: `${opts.portalUrl}/portal/appointments` },
+  });
+}
+
+/** A consultation has been cancelled by the team. */
+export function consultationCancelledEmail(opts: { name: string; portalUrl: string; topic: string; note: string | null }) {
+  return milestone({
+    heading: "Your consultation has been cancelled",
+    greetingName: opts.name,
+    paragraphs: [
+      `We have cancelled your consultation (${opts.topic}).`,
+      ...(opts.note ? [opts.note] : []),
+      "You can ask for a new one from Consultations in your portal at any time.",
+    ],
+    cta: { label: "Open Consultations", url: `${opts.portalUrl}/portal/appointments` },
+  });
+}

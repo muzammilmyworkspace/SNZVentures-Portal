@@ -34,6 +34,9 @@ export type InvoiceRow = {
   totalCents: number;
   notes: string | null;
   createdByName: string | null;
+  /** super_admin or admin: shown as Super admin / Employee. */
+  createdByRole?: string | null;
+  createdById?: string | null;
   createdAt: string;
 };
 
@@ -64,13 +67,15 @@ const map = (r: Record<string, unknown>): InvoiceRow => ({
   totalCents: Number(r.total_cents ?? 0),
   notes: r.notes ? String(r.notes) : null,
   createdByName: r.created_by_name ? String(r.created_by_name) : null,
+  createdByRole: r.created_by_role ? String(r.created_by_role) : null,
+  createdById: r.created_by_id ? String(r.created_by_id) : null,
   createdAt: iso(r.created_at)!,
 });
 
 const COLUMNS = `i.id, i.number, i.status, i.issued_on, i.due_on, i.bill_to_name,
   i.bill_to_email, i.bill_to_address, i.client_id, i.currency, i.vat_bp, i.lines,
   i.subtotal_cents, i.vat_cents, i.total_cents, i.notes, i.created_at,
-  u.name AS created_by_name`;
+  u.name AS created_by_name, u.role::text AS created_by_role, u.id AS created_by_id`;
 
 export async function list(
   filter: { status?: InvoiceStatus | "all"; q?: string; limit?: number } = {}
@@ -174,7 +179,7 @@ export async function create(
           ${number}, 'draft', ${input.issuedOn}, ${input.dueOn},
           ${input.billToName}, ${input.billToEmail}, ${input.billToAddress},
           ${input.clientId ?? null}, ${input.currency}, ${input.vatBp},
-          ${JSON.stringify(lines)}::jsonb,
+          ${db().json(lines as never)},
           ${input.subtotalCents}, ${input.vatCents}, ${input.totalCents},
           ${input.notes}, ${createdBy}
         )

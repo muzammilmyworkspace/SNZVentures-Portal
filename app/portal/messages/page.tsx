@@ -6,6 +6,9 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { ChatPanel } from "@/components/portal/ChatPanel";
 import * as repo from "@/lib/db/repos/portal";
+import { NewMessageButton, MessageFirmButton } from "@/components/portal/NewMessage";
+import { Avatar } from "@/components/portal/Avatar";
+import { groupOf } from "@/lib/portal/member-id";
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -38,12 +41,24 @@ export default async function MessagesPage() {
 
   if (staff) {
     const conversations = await repo.getConversationsForStaff(session.userId, isAdmin(session.role));
+    const waiting = conversations.filter((c) => c.unread > 0).length;
     return (
       <>
         <PortalHeading
-          eyebrow="Desk"
+          eyebrow="Contact"
           title="Messages"
-          lead="Client conversations, most recently active first."
+          lead={
+            waiting
+              ? `${waiting} ${waiting === 1 ? "conversation is" : "conversations are"} waiting for a reply. Most recently active first.`
+              : "Conversations with students, consultants and the team, most recently active first."
+          }
+          action={
+            isAdmin(session.role) ? (
+              <NewMessageButton />
+            ) : session.role === "advisor" ? (
+              <MessageFirmButton name={session.name} />
+            ) : undefined
+          }
         />
         <Panel padded={false}>
           {conversations.length === 0 ? (
@@ -51,44 +66,61 @@ export default async function MessagesPage() {
               <EmptyState
                 icon="message"
                 title="No conversations yet"
-                body="When a client writes to the desk, the thread appears here."
+                body="When someone writes, or you start a conversation, it appears here."
               />
             </div>
           ) : (
-            <ul className="divide-y divide-line">
-              {conversations.map((c) => (
-                <li key={c.id}>
-                  <a
-                    href={`/portal/messages/${c.id}`}
-                    className="flex min-h-16 items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[0.95rem] font-medium text-fg">
-                        {c.clientId === session.userId ? "SnZ Ventures" : c.clientName ?? c.subject}
-                      </span>
-                      <span className="mt-0.5 block truncate text-[0.8rem] text-faint">
-                        {c.subject}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      {c.unread > 0 && (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-moss-400 px-1.5 text-[0.7rem] font-semibold text-navy-950">
-                          {c.unread}
+            <ul className="divide-y divide-[var(--line)]">
+              {conversations.map((c) => {
+                const own = c.clientId === session.userId;
+                const name = own ? "SnZ Ventures" : c.clientName ?? c.subject;
+                const fresh = c.unread > 0;
+                return (
+                  <li key={c.id}>
+                    <a
+                      href={`/portal/messages/${c.id}`}
+                      className={`group relative flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)] ${
+                        fresh ? "bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]" : ""
+                      }`}
+                    >
+                      {fresh && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-[var(--accent)]" />}
+                      {own ? (
+                        <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[0.75rem] font-bold text-[#070B1A]">
+                          SnZ
                         </span>
+                      ) : (
+                        <Avatar id={c.clientId ?? c.id} name={name} photo={c.clientAvatarV != null} v={c.clientAvatarV} size="md" className="h-11 w-11" />
                       )}
-                      <time
-                        dateTime={c.updatedAt}
-                        className="text-[0.75rem] text-faint"
-                      >
-                        {new Date(c.updatedAt).toLocaleDateString(undefined, {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </time>
-                    </span>
-                  </a>
-                </li>
-              ))}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className={`truncate text-[0.98rem] ${fresh ? "font-semibold text-fg-strong" : "font-medium text-fg"}`}>{name}</span>
+                          {!own && c.clientRole && (
+                            <span data-group={groupOf(c.clientRole)} className="group-tag">
+                              {groupOf(c.clientRole) === "consultant" ? "Consultant" : groupOf(c.clientRole) === "employee" ? "Employee" : "Student"}
+                            </span>
+                          )}
+                          <span className="truncate text-[0.78rem] text-faint">· {c.subject}</span>
+                        </span>
+                        <span className={`mt-1 block truncate text-[0.86rem] ${fresh ? "text-fg" : "text-muted"}`}>
+                          {c.lastBody ? `${c.lastFromClient ? "" : "You: "}${c.lastBody}` : "No messages yet"}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 flex-col items-end gap-1.5">
+                        <time dateTime={c.updatedAt} className="text-[0.75rem] text-faint">
+                          {new Date(c.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </time>
+                        {fresh ? (
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.7rem] font-bold text-[#070B1A]">
+                            {c.unread}
+                          </span>
+                        ) : c.lastFromClient ? (
+                          <span className="text-[0.7rem] font-semibold text-warn">Waiting on you</span>
+                        ) : null}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Panel>
