@@ -6,6 +6,7 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { UserTable } from "@/components/portal/UserTable";
 import { UserFilters, type UserQuery } from "@/components/portal/UserFilters";
 import { Pager } from "@/components/portal/Pager";
+import { HistoryDrawer } from "@/components/portal/HistoryDrawer";
 
 /**
  * USERS — paginated, searched and filtered BY THE DATABASE.
@@ -81,13 +82,20 @@ export default async function AdminUsersPage({
 
   const { advisors, roleCounts } = result;
 
+  // The page as it is (filters, sort, page), for opening and closing history.
+  const keep = new URLSearchParams();
+  for (const [k, v] of Object.entries(raw)) if (typeof v === "string" && k !== "history") keep.set(k, v);
+  const historyBase = `/portal/admin/users?${keep.toString() ? `${keep.toString()}&` : ""}`;
+  const historyId = typeof raw.history === "string" && /^[0-9a-f-]{36}$/i.test(raw.history) ? raw.history : null;
+
   return (
     <>
       <PortalHeading
         eyebrow="Operations"
         title="Users"
-        lead="Search, suspend, assign an advisor or change a role. Every change is written to the audit log."
+        lead="Search, suspend, assign an advisor or change a role. Every change is written to the audit log; open the clock on a row for that person's history."
       />
+      {historyId && <HistoryDrawer userId={historyId} closeHref={historyBase.replace(/[?&]$/, "")} />}
 
       <UserFilters
         current={current}
@@ -124,6 +132,8 @@ export default async function AdminUsersPage({
               advisors={advisors.map((a) => ({ id: a.id, name: a.name }))}
               actorRole={session.role}
               actorId={session.userId}
+              offset={(result.page - 1) * PAGE_SIZE}
+              historyBase={historyBase}
             />
             <Pager
               page={result.page}

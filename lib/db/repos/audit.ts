@@ -115,6 +115,7 @@ export type AuditAction =
   | "intake.accepted"
   | "intake.returned"
   | "intake.applied"
+  | "intake.edited"
   | "note.added"
   | "note.deleted"
   // Student consent (005). The entry records THAT an undertaking was accepted

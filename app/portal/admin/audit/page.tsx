@@ -47,7 +47,7 @@ export default async function AuditPage({
               <caption className="sr-only">Audit log entries</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["When", "Actor", "Action", "Entity", "Detail"].map((h) => (
+                  {["#", "When", "Actor", "Action", "Entity", "Detail"].map((h) => (
                     <th key={h} scope="col" className="label px-5 py-3 text-faint">
                       {h}
                     </th>
@@ -55,8 +55,9 @@ export default async function AuditPage({
                 </tr>
               </thead>
               <tbody>
-                {pg.rows.map((r) => (
+                {pg.rows.map((r, idx) => (
                   <tr key={r.id} className="border-b border-line last:border-0">
+                    <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                     <td className="px-5 py-3 text-[0.8rem] text-faint">
                       {new Date(r.createdAt).toLocaleString("en-GB", {
                         day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",

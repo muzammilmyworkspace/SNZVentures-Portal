@@ -168,7 +168,7 @@ export default async function AdminFeesPage({
                 <caption className="sr-only">{tab.label} fee declarations</caption>
                 <thead>
                   <tr className="border-b border-line">
-                    {["Student", "Brought by", "Amount", "Sent", "Decided", "Status", ""].map((h, i) => (
+                    {["#", "Student", "Brought by", "Amount", "Sent", "Decided", "Status", ""].map((h, i) => (
                       <th key={h || i} scope="col" className="label px-5 py-3 text-faint">
                         {h || <span className="sr-only">Bank slip</span>}
                       </th>
@@ -176,8 +176,9 @@ export default async function AdminFeesPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {pg.rows.map((f) => (
+                  {pg.rows.map((f, idx) => (
                     <tr key={f.id} className="border-b border-line align-top last:border-0">
+                      <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                       <td className="px-5 py-3">
                         <Person
                           id={f.userId}

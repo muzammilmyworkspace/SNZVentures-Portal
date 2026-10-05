@@ -84,14 +84,15 @@ export default async function AdminCasesPage({
               <caption className="sr-only">Cases</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Reference", "Client", "Case", "Pathway", "Status", "Consultant", "Updated", ""].map((h) => (
+                  {["#", "Reference", "Client", "Case", "Pathway", "Status", "Consultant", "Updated", ""].map((h) => (
                     <th key={h} scope="col" className="label px-5 py-3 text-faint">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {pg.rows.map((c) => (
+                {pg.rows.map((c, idx) => (
                   <tr key={c.id} className="border-b border-line last:border-0">
+                    <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                     {/* Generated for every case since 003 and, until now, shown
                         nowhere — which made it useless for naming a case in an
                         email instead of reading out a UUID. */}

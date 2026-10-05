@@ -102,12 +102,38 @@ export async function PUT(request: Request) {
     ? Math.min(Math.max(Number(resumeAt), 0), steps.length - 1)
     : index;
 
+  /*
+    WHAT CHANGED, when the form had been sent back for corrections. Read
+    before the save so the old answers are still there to compare with. Only
+    field NAMES are recorded, never the values: the answers include passport
+    and financial details that have no business in a log.
+  */
+  const before = await ops.getIntake(session.userId, pathway);
+  const changed =
+    before?.status === "returned"
+      ? steps[index].fields
+          .filter((f) => f.key in clean && JSON.stringify(clean[f.key] ?? null) !== JSON.stringify(before.data[f.key] ?? null))
+          .map((f) => f.label)
+      : [];
+
   const form = await ops.saveIntakeDraft({
     userId: session.userId,
     pathway,
     step: resume,
     data: clean,
   });
+
+  if (form && changed.length) {
+    await audit({
+      action: "intake.edited",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "intake",
+      entityId: form.id,
+      meta: { step: steps[index].title, fields: changed.slice(0, 40) },
+      ip: clientIp(request),
+    });
+  }
 
   if (!form) {
     return NextResponse.json(
@@ -277,8 +303,12 @@ export async function POST(request: Request) {
     entity: "application",
     entityId: form.id,
     subjectId: session.userId,
+    fromStatus: existing?.status ?? null,
     toStatus: "submitted",
-    note: `${definition.title} submitted.`,
+    note:
+      existing?.status === "returned"
+        ? `${definition.title} sent again with the requested changes.`
+        : `${definition.title} submitted.`,
     actorId: session.userId,
   });
 

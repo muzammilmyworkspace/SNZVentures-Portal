@@ -156,7 +156,7 @@ export default async function EnquiriesPage({
               <caption className="sr-only">Contact form enquiries</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Received", "Name", "Contact", "Came from", "Looking for", "Email sent", ""].map((h, i) => (
+                  {["#", "Received", "Name", "Contact", "Came from", "Looking for", "Email sent", ""].map((h, i) => (
                     <th key={h || i} scope="col" className="label pb-3 pr-4 text-faint">
                       {h || <span className="sr-only">Message</span>}
                     </th>
@@ -164,8 +164,9 @@ export default async function EnquiriesPage({
                 </tr>
               </thead>
               <tbody>
-                {pg.rows.map((e) => (
+                {pg.rows.map((e, idx) => (
                   <tr key={e.id} className="border-b border-line align-top last:border-0">
+                    <td className="py-3 pr-4 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                     <td className="py-3 pr-4 text-[0.85rem] text-faint">
                       {new Date(e.createdAt).toLocaleDateString("en-GB", {
                         day: "numeric",
@@ -302,7 +303,7 @@ export default async function EnquiriesPage({
                 <caption className="sr-only">Recent WhatsApp button presses</caption>
                 <thead>
                   <tr className="border-b border-line">
-                    {["When", "Button", "Page", "Came from", "Campaign"].map((h) => (
+                    {["#", "When", "Button", "Page", "Came from", "Campaign"].map((h) => (
                       <th key={h} scope="col" className="label px-5 py-3 text-faint">
                         {h}
                       </th>
@@ -310,8 +311,9 @@ export default async function EnquiriesPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {wg.rows.map((c) => (
+                  {wg.rows.map((c, idx) => (
                     <tr key={c.id} className="border-b border-line last:border-0">
+                      <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(wg.page - 1) * wg.size + idx + 1}</td>
                       <td className="px-5 py-3 text-[0.85rem] text-faint">
                         {new Date(c.createdAt).toLocaleString("en-GB", {
                           day: "numeric",

@@ -26,7 +26,7 @@ export default async function SettingsPage() {
         </Panel>
 
         {/* Staff: the code to give students. Clients: who brought them, or add a code. */}
-        {codes.ownCode ? (
+        {codes.ownCode && session.role === "advisor" ? (
           <Panel title="Your consultant code">
             <p className="font-mono text-[1.6rem] font-semibold tracking-wider text-accent">{codes.ownCode}</p>
             <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">

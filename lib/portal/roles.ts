@@ -269,12 +269,6 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           The page itself still works for an admin by URL.
         */
         { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
-        {
-          href: "/portal/admin/analytics",
-          label: "Analytics",
-          icon: "activity",
-          roles: ["admin", "super_admin"],
-        },
       ],
     },
     {

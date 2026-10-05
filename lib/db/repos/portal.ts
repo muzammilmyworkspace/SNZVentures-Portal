@@ -1153,7 +1153,9 @@ export async function getAssignedClients(advisorId: string) {
              count(c.id) FILTER (
                WHERE c.status NOT IN ('completed','closed')
              )::int AS open_cases,
-             min(c.reference) AS first_reference
+             min(c.reference) AS first_reference,
+             (SELECT f.status::text FROM intake_forms f WHERE f.user_id = u.id
+               ORDER BY f.updated_at DESC LIMIT 1) AS application_status
       FROM users u
       /*
         ONLY THE CASES THIS ADVISOR CAN SEE, which is the same condition
@@ -1189,6 +1191,7 @@ export async function getAssignedClients(advisorId: string) {
       caseCount: Number(r.case_count ?? 0),
       openCases: Number(r.open_cases ?? 0),
       firstReference: r.first_reference ? String(r.first_reference) : null,
+      applicationStatus: r.application_status ? String(r.application_status) : null,
       avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
     }));
   }, []);

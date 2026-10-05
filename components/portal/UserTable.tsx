@@ -37,11 +37,17 @@ export function UserTable({
   advisors,
   actorRole,
   actorId,
+  offset = 0,
+  historyBase,
 }: {
   users: Row[];
   advisors: { id: string; name: string }[];
   actorRole: Role;
   actorId: string;
+  /** Rows before this page, so the serial number continues across pages. */
+  offset?: number;
+  /** This page's URL ending in "?" or "&", to which `history=<id>` is added. */
+  historyBase?: string;
 }) {
   const router = useRouter();
   /*
@@ -105,7 +111,7 @@ export function UserTable({
           <caption className="sr-only">Portal users</caption>
           <thead>
             <tr className="border-b border-line">
-              {["User", "Role", "Status", "Consultant", "Actions"].map((h) => (
+              {["#", "User", "Role", "Status", "Consultant", "Actions"].map((h) => (
                 <th key={h} scope="col" className="label px-5 py-3 text-faint">
                   {h}
                 </th>
@@ -113,7 +119,7 @@ export function UserTable({
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
+            {users.map((u, idx) => {
               const self = u.id === actorId;
               const locked =
                 self || (u.role === "super_admin" && actorRole !== "super_admin");
@@ -126,6 +132,7 @@ export function UserTable({
                     busyId === u.id && "opacity-50"
                   )}
                 >
+                  <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{offset + idx + 1}</td>
                   <td className="px-5 py-3">
                     {/*
                       The client file existed but nothing linked to it, so the
@@ -291,6 +298,20 @@ export function UserTable({
                       <span className="text-[0.8rem] text-faint">Restricted</span>
                     ) : (
                       <div className="flex flex-wrap items-center gap-2">
+                        {historyBase && (
+                          <Link
+                            href={`${historyBase}history=${u.id}`}
+                            scroll={false}
+                            aria-label={`${u.name}'s history`}
+                            data-tip="History"
+                            className="icon-btn tip"
+                          >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <circle cx="8" cy="8" r="6" />
+                              <path d="M8 4.5V8l2.5 1.5" />
+                            </svg>
+                          </Link>
+                        )}
                         {/*
                           LOGIN — red, and only for client accounts.
 

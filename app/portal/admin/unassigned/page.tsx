@@ -71,11 +71,12 @@ export default async function UnassignedPage({
           />
         ) : (
           <DataTable
-            columns={["Name", "Email", "Type", "Signed up"]}
+            columns={["#", "Name", "Email", "Type", "Signed up"]}
             caption="Clients with no consultant assigned"
           >
-            {pg.rows.map((c) => (
+            {pg.rows.map((c, idx) => (
               <Row key={c.id}>
+                <Cell muted><span className="num">{(pg.page - 1) * pg.size + idx + 1}</span></Cell>
                 <Cell>
                   <span className="flex items-center gap-3">
                     <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} />

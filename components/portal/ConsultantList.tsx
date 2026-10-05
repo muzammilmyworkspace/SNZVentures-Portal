@@ -248,6 +248,7 @@ export function ConsultantList({
 
       <DataTable
         columns={[
+          "#",
           "Consultant",
           "Students",
           "Open",
@@ -259,8 +260,9 @@ export function ConsultantList({
         caption="Consultants and what each one is carrying"
         minWidth={980}
       >
-        {consultants.map((c) => (
+        {consultants.map((c, idx) => (
           <Row key={c.id}>
+            <Cell muted><span className="num">{idx + 1}</span></Cell>
             <Cell>
               <span className="flex items-start gap-3">
               <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} size="md" />

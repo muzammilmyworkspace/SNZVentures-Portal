@@ -93,7 +93,7 @@ export default async function InvoicesPage({
             <table className="w-full border-collapse text-[0.86rem]">
               <thead>
                 <tr>
-                  {["Number", "Date", "Billed to", "Amount", "Status", ""].map((h, i) => (
+                  {["#", "Number", "Date", "Billed to", "Amount", "Status", ""].map((h, i) => (
                     <th
                       key={h || i}
                       className={`label border-b border-line px-2.5 pb-2.5 text-faint ${
@@ -106,8 +106,9 @@ export default async function InvoicesPage({
                 </tr>
               </thead>
               <tbody>
-                {pg.rows.map((inv) => (
+                {pg.rows.map((inv, idx) => (
                   <tr key={inv.id}>
+                    <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                     <td className="border-b border-line px-2.5 py-3 font-semibold tabular-nums text-fg-strong">
                       {inv.number}
                     </td>

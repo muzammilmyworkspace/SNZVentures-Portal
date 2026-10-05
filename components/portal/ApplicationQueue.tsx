@@ -198,7 +198,7 @@ export async function ApplicationQueue({
               <caption className="sr-only">{cfg.title}</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Client", "Brought by", "Type", "Submitted", showWaiting ? "Waiting" : "Updated", "Status", ""].map(
+                  {["#", "Client", "Brought by", "Type", "Submitted", showWaiting ? "Waiting" : "Updated", "Status", ""].map(
                     (h, i) => (
                       <th key={h || i} scope="col" className="label px-5 py-3 text-faint">
                         {h || <span className="sr-only">Open</span>}
@@ -208,11 +208,12 @@ export async function ApplicationQueue({
                 </tr>
               </thead>
               <tbody>
-                {pg.rows.map((r) => (
+                {pg.rows.map((r, idx) => (
                   <tr
                     key={r.id}
                     className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
                   >
+                    <td className="px-5 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
                     <td className="px-5 py-3">
                       <span className="flex items-center gap-3">
                         <Avatar id={r.userId} name={r.userName} photo={r.avatarV != null} v={r.avatarV} size="md" />

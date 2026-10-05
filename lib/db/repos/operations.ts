@@ -673,3 +673,91 @@ export async function getIntakeQueue(limit = 100) {
     }));
   }, []);
 }
+
+/* ------------------------------------------------------ student history */
+
+export type HistoryEvent = {
+  at: string;
+  source: "audit" | "status" | "account";
+  action: string;
+  entity: string | null;
+  meta: Record<string, unknown> | null;
+  note: string | null;
+  fromStatus: string | null;
+  toStatus: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  actorRole: string | null;
+  documentName: string | null;
+  ip: string | null;
+};
+
+/**
+ * EVERYTHING THAT HAPPENED TO ONE STUDENT, NEWEST FIRST — the log behind the
+ * history window, like a commit log for their file: who did what, when.
+ *
+ * Built from what is already recorded rather than a new table:
+ *   • audit_logs   anything the student did, and anything staff did to their
+ *                  account, application, documents, fee or cases
+ *   • status_history  every stage change, with the comment that went with it
+ *   • the account's own creation date
+ *
+ * The intake.* audit rows are left out because status_history records the
+ * same moves with their comments; sign-ins, downloads and machine reads are
+ * left out as noise. One statement, as everywhere on this pool.
+ */
+export async function studentHistory(userId: string, limit = 400): Promise<HistoryEvent[]> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      WITH ids AS (
+        SELECT id::text AS id FROM intake_forms WHERE user_id = ${userId}
+        UNION SELECT id::text FROM documents WHERE owner_id = ${userId}
+        UNION SELECT id::text FROM fee_submissions WHERE user_id = ${userId}
+        UNION SELECT id::text FROM cases WHERE client_id = ${userId}
+      )
+      SELECT * FROM (
+        SELECT 'audit' AS source, a.created_at AS at, a.action, a.entity, a.meta,
+               NULL::text AS note, NULL::text AS from_status, NULL::text AS to_status,
+               a.actor_id, COALESCE(u.name, a.actor_email) AS actor_name, u.role::text AS actor_role,
+               d.name AS document_name, a.ip
+          FROM audit_logs a
+          LEFT JOIN users u ON u.id = a.actor_id
+          LEFT JOIN documents d ON a.entity = 'document' AND d.id::text = a.entity_id
+         WHERE (a.actor_id = ${userId} OR a.entity_id = ${userId}::text OR a.entity_id IN (SELECT id FROM ids))
+           AND a.action NOT IN (
+             'intake.submitted', 'intake.status_changed', 'intake.accepted', 'intake.returned', 'intake.applied',
+             'auth.login', 'auth.login_failed', 'auth.logout', 'auth.register',
+             'document.downloaded', 'document.bulk_downloaded', 'mcp.read', 'drive.exported'
+           )
+        UNION ALL
+        SELECT 'status', h.created_at, 'status.' || h.entity, h.entity, NULL,
+               h.note, h.from_status, h.to_status,
+               h.actor_id, u.name, u.role::text, NULL, NULL
+          FROM status_history h
+          LEFT JOIN users u ON u.id = h.actor_id
+         WHERE h.subject_id = ${userId}
+        UNION ALL
+        SELECT 'account', u.created_at, 'account.created', 'user', NULL,
+               NULL, NULL, NULL, u.id, u.name, u.role::text, NULL, NULL
+          FROM users u WHERE u.id = ${userId}
+      ) t
+      ORDER BY at DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((r) => ({
+      at: new Date(String(r.at)).toISOString(),
+      source: r.source as HistoryEvent["source"],
+      action: String(r.action),
+      entity: r.entity ? String(r.entity) : null,
+      meta: (r.meta as Record<string, unknown> | null) ?? null,
+      note: r.note ? String(r.note) : null,
+      fromStatus: r.from_status ? String(r.from_status) : null,
+      toStatus: r.to_status ? String(r.to_status) : null,
+      actorId: r.actor_id ? String(r.actor_id) : null,
+      actorName: r.actor_name ? String(r.actor_name) : null,
+      actorRole: r.actor_role ? String(r.actor_role) : null,
+      documentName: r.document_name ? String(r.document_name) : null,
+      ip: r.ip ? String(r.ip) : null,
+    }));
+  }, []);
+}
