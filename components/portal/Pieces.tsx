@@ -765,7 +765,7 @@ export function DataRow({
   value,
   meta,
 }: {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   meta?: ReactNode;
 }) {

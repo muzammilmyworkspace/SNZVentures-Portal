@@ -24,6 +24,7 @@ import {
   DataRow,
 } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
+import { Person } from "@/components/portal/Avatar";
 import { DateRangeBar, PeriodStat } from "@/components/portal/DateRangeBar";
 import { resolveRange } from "@/lib/portal/date-range";
 
@@ -475,7 +476,11 @@ export default async function AdminPage({
             />
           ) : (
             myClients.map((c) => (
-              <DataRow key={c.id} label={c.name} value={ROLE_LABEL[c.role as Role]} />
+              <DataRow
+                key={c.id}
+                label={<Person id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} />}
+                value={ROLE_LABEL[c.role as Role]}
+              />
             ))
           )}
         </Panel>

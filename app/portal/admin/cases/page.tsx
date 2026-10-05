@@ -6,6 +6,7 @@ import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/porta
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { CaseStatusControl } from "@/components/portal/CaseStatusControl";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { Avatar } from "@/components/portal/Avatar";
 
 export default async function AdminCasesPage({
   searchParams,
@@ -70,10 +71,15 @@ export default async function AdminCasesPage({
                       <span className="num text-[0.8rem] text-faint">{c.reference ?? "—"}</span>
                     </td>
                     <td className="px-5 py-3 text-[0.9rem] text-fg">
-                      {c.clientName}
-                      {c.country && (
-                        <span className="mt-0.5 block text-[0.78rem] text-faint">{c.country}</span>
-                      )}
+                      <span className="flex items-center gap-3">
+                        <Avatar id={c.clientId} name={c.clientName} photo={c.clientAvatarV != null} v={c.clientAvatarV} />
+                        <span>
+                          {c.clientName}
+                          {c.country && (
+                            <span className="mt-0.5 block text-[0.78rem] text-faint">{c.country}</span>
+                          )}
+                        </span>
+                      </span>
                     </td>
                     <td className="px-5 py-3 text-[0.85rem] text-muted">
                       {c.title}

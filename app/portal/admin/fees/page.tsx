@@ -7,6 +7,7 @@ import { formatAmount } from "@/lib/portal/payment-consent";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
 import { FeeReview } from "@/components/portal/FeeReview";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { Avatar } from "@/components/portal/Avatar";
 
 export const metadata: Metadata = { title: "Fee verification" };
 
@@ -69,6 +70,8 @@ export default async function AdminFeesPage({
                 <FeeReview
                   id={f.id}
                   student={f.studentName}
+                  userId={f.userId}
+                  avatarV={f.avatarV}
                   email={f.studentEmail}
                   amount={formatAmount(f.amount, f.currency)}
                   university={f.university}
@@ -101,8 +104,9 @@ export default async function AdminFeesPage({
           <ul className="divide-y divide-[var(--line)]">
             {dPage.rows.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
-                <span className="min-w-0 flex-1 truncate text-[0.9rem] text-fg">
-                  {f.studentName}
+                <span className="flex min-w-0 flex-1 items-center gap-3 text-[0.9rem] text-fg">
+                  <Avatar id={f.userId} name={f.studentName} photo={f.avatarV != null} v={f.avatarV} />
+                  <span className="truncate">{f.studentName}</span>
                 </span>
                 <span className="text-[0.85rem] text-muted">
                   {formatAmount(f.amount, f.currency)}

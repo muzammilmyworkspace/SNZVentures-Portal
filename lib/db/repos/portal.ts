@@ -35,6 +35,8 @@ export type CaseRow = {
    * the column falls back to it.
    */
   consultantName: string | null;
+  /** Null when the client has no photo; otherwise its version. */
+  clientAvatarV?: number | null;
   pathway: "study" | "career" | "business";
   title: string;
   country: string | null;
@@ -120,7 +122,8 @@ export async function getCasesForClient(clientId: string): Promise<CaseRow[]> {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
-             cons.name AS consultant_name
+             cons.name AS consultant_name,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -145,7 +148,8 @@ export async function getCasesForAdvisor(advisorId: string): Promise<CaseRow[]> 
   return safeQuery(async () => {
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
-             cons.name AS consultant_name
+             cons.name AS consultant_name,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -177,7 +181,8 @@ export async function getAllCases(limit = 100): Promise<CaseRow[]> {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT c.*, u.name AS client_name, a.name AS advisor_name,
-             cons.name AS consultant_name
+             cons.name AS consultant_name,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS client_avatar_v
       FROM cases c
       JOIN users u ON u.id = c.client_id
       LEFT JOIN users a ON a.id = c.advisor_id
@@ -209,6 +214,7 @@ function mapCase(r: Record<string, unknown>): CaseRow {
     advisorId: r.advisor_id ? String(r.advisor_id) : null,
     advisorName: r.advisor_name ? String(r.advisor_name) : null,
     consultantName: r.consultant_name ? String(r.consultant_name) : null,
+    clientAvatarV: r.client_avatar_v == null ? null : Number(r.client_avatar_v),
     pathway: r.pathway as CaseRow["pathway"],
     title: String(r.title),
     country: r.country ? String(r.country) : null,
@@ -738,7 +744,7 @@ export async function notify(input: {
 export async function getSidebarBadges(
   userId: string,
   role: Role
-): Promise<{ messages: number; notifications: number; documents: number; tasks: number }> {
+): Promise<{ messages: number; notifications: number; documents: number; tasks: number; avatarV: number | null }> {
   const staffWide = role === "admin" || role === "super_admin";
 
   return safeQuery(async () => {
@@ -775,15 +781,22 @@ export async function getSidebarBadges(
         (
           SELECT count(*)::int FROM tasks t
           WHERE t.assignee_id = ${userId} AND t.status <> 'done'
-        ) AS tasks
+        ) AS tasks,
+        -- The viewer's own photo version, here so the shell needs no second query.
+        (
+          SELECT CASE WHEN u.avatar_url IS NULL THEN NULL
+                      ELSE floor(extract(epoch FROM u.updated_at))::int END
+          FROM users u WHERE u.id = ${userId}
+        ) AS avatar_v
     `;
     return {
       messages: Number(r?.messages ?? 0),
       notifications: Number(r?.notifications ?? 0),
       documents: Number(r?.documents ?? 0),
       tasks: Number(r?.tasks ?? 0),
+      avatarV: r?.avatar_v == null ? null : Number(r.avatar_v),
     };
-  }, { messages: 0, notifications: 0, documents: 0, tasks: 0 });
+  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, avatarV: null });
 }
 
 /** Unread count for the sidebar badge. */
@@ -921,12 +934,14 @@ export type AdvisorLoad = {
   /** Cases stalled on the student rather than on us. */
   needsAttention: number;
   lastLoginAt: string | null;
+  avatarV?: number | null;
 };
 
 export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v,
              count(DISTINCT sa.client_id)::int AS client_count,
              count(DISTINCT c.id) FILTER (
                WHERE c.status NOT IN ('completed','closed')
@@ -944,7 +959,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       LEFT JOIN staff_assignments sa ON sa.advisor_id = u.id
       LEFT JOIN cases c ON c.advisor_id = u.id
       WHERE u.role IN ('advisor','admin','super_admin')
-      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -957,6 +972,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       openCases: Number(r.open_cases ?? 0),
       needsAttention: Number(r.needs_attention ?? 0),
       lastLoginAt: iso(r.last_login_at),
+      avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
     }));
   }, []);
 }
@@ -1077,6 +1093,7 @@ export async function getAssignedClients(advisorId: string) {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT u.id, u.name, u.email, u.role, u.status, u.created_at,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
              count(c.id)::int AS case_count,
              count(c.id) FILTER (
                WHERE c.status NOT IN ('completed','closed')
@@ -1104,7 +1121,7 @@ export async function getAssignedClients(advisorId: string) {
               SELECT 1 FROM cases mine
               WHERE mine.advisor_id = ${advisorId} AND mine.client_id = u.id
             )
-      GROUP BY u.id, u.name, u.email, u.role, u.status, u.created_at
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.created_at, u.avatar_url, u.updated_at
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -1117,6 +1134,7 @@ export async function getAssignedClients(advisorId: string) {
       caseCount: Number(r.case_count ?? 0),
       openCases: Number(r.open_cases ?? 0),
       firstReference: r.first_reference ? String(r.first_reference) : null,
+      avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
     }));
   }, []);
 }
@@ -1317,11 +1335,12 @@ export async function getDashboardCharts(range: {
  * each. Keep the two in step: if a rule changes there, change it here.
  */
 export async function getAdvisorBoard(advisorId: string): Promise<
-  { id: string; name: string; role: string; stage: string; created_at: string }[]
+  { id: string; name: string; role: string; stage: string; created_at: string; avatar_v: number | null }[]
 > {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT u.id, u.name, u.role::text AS role, u.created_at,
+        CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v,
         CASE
           WHEN u.role <> 'student' THEN 'other'
           WHEN f.live IS NULL AND f.rejected > 0 THEN 'fee_rejected'
@@ -1357,7 +1376,7 @@ export async function getAdvisorBoard(advisorId: string): Promise<
             )
       ORDER BY u.name
     `;
-    return rows as unknown as { id: string; name: string; role: string; stage: string; created_at: string }[];
+    return rows as unknown as { id: string; name: string; role: string; stage: string; created_at: string; avatar_v: number | null }[];
   }, []);
 }
 

@@ -507,7 +507,8 @@ export async function getIntakeQueue(limit = 100) {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT f.*, u.name AS user_name, u.email AS user_email, u.role AS user_role,
-             adv.name AS consultant_name
+             adv.name AS consultant_name,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM intake_forms f
       JOIN users u ON u.id = f.user_id
       /*
@@ -541,6 +542,7 @@ export async function getIntakeQueue(limit = 100) {
       userEmail: r.user_email as string,
       userRole: r.user_role as string,
       consultantName: r.consultant_name ? String(r.consultant_name) : null,
+      avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
     }));
   }, []);
 }

@@ -18,6 +18,7 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { InviteStudent } from "@/components/portal/InviteStudent";
 import { InviteList } from "@/components/portal/InviteList";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { Avatar } from "@/components/portal/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -140,12 +141,15 @@ export default async function MyStudentsPage({
                     with no way into a student's record.
                   */}
                   <Cell>
-                    <Link
-                      href={`/portal/admin/users/${c.id}`}
-                      className="text-fg underline-offset-4 hover:text-accent hover:underline"
-                    >
-                      {c.name}
-                    </Link>
+                    <span className="flex items-center gap-3">
+                      <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} />
+                      <Link
+                        href={`/portal/admin/users/${c.id}`}
+                        className="text-fg underline-offset-4 hover:text-accent hover:underline"
+                      >
+                        {c.name}
+                      </Link>
+                    </span>
                   </Cell>
                   <Cell muted>{c.email}</Cell>
                   <Cell muted>{ROLE_LABEL[c.role as Role]}</Cell>

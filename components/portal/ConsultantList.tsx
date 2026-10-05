@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, Row, Cell, StatusPill } from "@/components/portal/Pieces";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
+import { Avatar } from "@/components/portal/Avatar";
 import type { AdvisorLoad, AdvisorClient, StaffProfile } from "@/lib/db/repos/portal";
 
 /**
@@ -261,6 +262,9 @@ export function ConsultantList({
         {consultants.map((c) => (
           <Row key={c.id}>
             <Cell>
+              <span className="flex items-start gap-3">
+              <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} size="md" />
+              <span className="min-w-0">
               {c.name}
               <span className="mt-0.5 block text-[0.78rem] text-faint">{c.email}</span>
               {/* Only worth saying when it is not the expected one. */}
@@ -269,6 +273,8 @@ export function ConsultantList({
                   {ROLE_LABEL[c.role as Role]}
                 </span>
               )}
+              </span>
+              </span>
             </Cell>
             <Cell>
               <span className="num">{c.clientCount}</span>
@@ -331,10 +337,14 @@ export function ConsultantList({
                     type="button"
                     disabled={busyId === c.id}
                     onClick={() => viewAs(c.id)}
-                    title={`Sign in as ${c.name}`}
-                    className="label rounded-[var(--radius-sm)] border border-[var(--danger-line)] bg-[var(--danger-soft)] px-3 py-1.5 text-danger transition-opacity hover:opacity-80 disabled:opacity-50"
+                    aria-label={`View the portal as ${c.name}`}
+                    data-tip="View as this consultant"
+                    className="tip flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] text-danger transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
                   >
-                    {busyId === c.id ? "…" : "View as"}
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-4 w-4">
+                      <path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6" />
+                      <path d="M10 5l3 3-3 3M13 8H6" />
+                    </svg>
                   </button>
                 )}
                 <button
@@ -344,7 +354,8 @@ export function ConsultantList({
                     setOpenId(c.id);
                   }}
                   aria-label={`Details for ${c.name}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-accent transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+                  data-tip="Details"
+                  className="tip flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-accent transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
                 >
                   <EyeIcon />
                 </button>
@@ -360,7 +371,8 @@ export function ConsultantList({
                       setConfirmId(c.id);
                     }}
                     aria-label={`Delete ${c.name}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] text-danger transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
+                    data-tip="Delete consultant"
+                    className="tip flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] text-danger transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
                   >
                     <TrashIcon />
                   </button>

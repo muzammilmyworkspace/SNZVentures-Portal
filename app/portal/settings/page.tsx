@@ -3,6 +3,8 @@ import { ROLE_LABEL } from "@/lib/auth/types";
 import { PortalHeading, Panel, BackendRequired } from "@/components/portal/Pieces";
 import { ChangePassword } from "@/components/portal/ChangePassword";
 import { ChangeEmail } from "@/components/portal/ChangeEmail";
+import { ProfilePhoto } from "@/components/portal/ProfilePhoto";
+import { getAvatar } from "@/lib/db/repos/users";
 
 export default async function SettingsPage() {
   const { session } = await requireUser();
@@ -15,6 +17,10 @@ export default async function SettingsPage() {
       />
 
       <div className="grid items-start gap-5 lg:grid-cols-2">
+        <Panel title="Profile photo">
+          <ProfilePhoto name={session.name} current={await getAvatar(session.userId)} />
+        </Panel>
+
         <Panel title="Security">
           {/*
             Changing a password no longer means shell access to the database.

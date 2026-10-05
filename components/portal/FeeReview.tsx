@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { useState } from "react";
+import { Avatar } from "./Avatar";
 
 /**
  * One student's payment declaration, and the two buttons that decide it.
@@ -16,6 +17,8 @@ import { useState } from "react";
 export function FeeReview(props: {
   id: string;
   student: string;
+  userId?: string;
+  avatarV?: number | null;
   email: string;
   amount: string;
   university: string;
@@ -102,9 +105,12 @@ export function FeeReview(props: {
   return (
     <div className="rounded-[var(--radius-md)] border border-line bg-raised p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[1rem] font-semibold text-fg">{props.student}</p>
-          <p className="truncate text-[0.82rem] text-faint">{props.email}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar id={props.userId ?? props.id} name={props.student} photo={props.avatarV != null} v={props.avatarV} size="md" />
+          <div className="min-w-0">
+            <p className="text-[1rem] font-semibold text-fg">{props.student}</p>
+            <p className="truncate text-[0.82rem] text-faint">{props.email}</p>
+          </div>
         </div>
         <p className="text-[0.78rem] text-faint">
           {new Date(props.submittedAt).toLocaleString("en-GB")}

@@ -6,6 +6,7 @@ import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
 import { getIntakeQueue } from "@/lib/db/repos/operations";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { Avatar } from "@/components/portal/Avatar";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 
 export const metadata: Metadata = {
@@ -179,13 +180,18 @@ export default async function AdminRequestsPage({
                     className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
                   >
                     <td className="px-5 py-3">
-                      <Link
-                        href={`/portal/admin/users/${r.userId}`}
-                        className="text-[0.9rem] font-medium text-fg underline-offset-4 hover:text-accent hover:underline"
-                      >
-                        {r.userName}
-                      </Link>
-                      <span className="mt-0.5 block text-[0.8rem] text-faint">{r.userEmail}</span>
+                      <span className="flex items-center gap-3">
+                        <Avatar id={r.userId} name={r.userName} photo={r.avatarV != null} v={r.avatarV} size="md" />
+                        <span className="min-w-0">
+                          <Link
+                            href={`/portal/admin/users/${r.userId}`}
+                            className="text-[0.9rem] font-medium text-fg underline-offset-4 hover:text-accent hover:underline"
+                          >
+                            {r.userName}
+                          </Link>
+                          <span className="mt-0.5 block text-[0.8rem] text-faint">{r.userEmail}</span>
+                        </span>
+                      </span>
                     </td>
                     {/*
                       WHOSE STUDENT THIS IS, beside the name rather than one

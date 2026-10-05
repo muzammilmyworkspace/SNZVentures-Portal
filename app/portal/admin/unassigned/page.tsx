@@ -12,6 +12,7 @@ import {
 } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { Avatar } from "@/components/portal/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,12 @@ export default async function UnassignedPage({
           >
             {pg.rows.map((c) => (
               <Row key={c.id}>
-                <Cell>{c.name}</Cell>
+                <Cell>
+                  <span className="flex items-center gap-3">
+                    <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} />
+                    {c.name}
+                  </span>
+                </Cell>
                 <Cell muted>{c.email}</Cell>
                 <Cell muted>{ROLE_LABEL[c.role as Role]}</Cell>
                 <Cell muted>

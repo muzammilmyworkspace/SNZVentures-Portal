@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useReduced } from "./useReduced";
 import { cn } from "@/lib/utils";
 import { STAGES, STAGE_BY_KEY } from "@/lib/portal/advisor-stages";
+import { Avatar } from "./Avatar";
 
 /**
  * THE ADMIN DASHBOARD CHARTS.
@@ -327,7 +328,7 @@ export function BarList({
 export function StudentRoster({
   clients,
 }: {
-  clients: { id: string; name: string; role: string; stage: string }[];
+  clients: { id: string; name: string; role: string; stage: string; avatar_v?: number | null }[];
 }) {
   const reduce = useReduced();
   const students = clients.filter((c) => c.role === "student");
@@ -346,9 +347,7 @@ export function StudentRoster({
               className="group -mx-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-[10px] px-2 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]"
             >
               <span className="flex min-w-0 items-center gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--viz-1)_22%,transparent)] font-[family-name:var(--font-display)] text-[0.8rem] font-semibold text-fg-strong">
-                  {c.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                </span>
+                <Avatar id={c.id} name={c.name} photo={c.avatar_v != null} v={c.avatar_v} size="md" />
                 <span className="truncate font-semibold text-fg">{c.name}</span>
               </span>
               <span className="col-span-2 flex gap-1 sm:col-span-1" aria-hidden>

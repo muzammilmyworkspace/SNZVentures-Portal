@@ -304,6 +304,7 @@ export type UnassignedClient = {
   email: string;
   role: string;
   createdAt: string;
+  avatarV: number | null;
 };
 
 /**
@@ -317,7 +318,8 @@ export async function listUnassignedClients(limit = 200): Promise<UnassignedClie
   if (!isDatabaseConfigured()) return [];
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email, u.role, u.created_at
+      SELECT u.id, u.name, u.email, u.role, u.created_at,
+             CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
         FROM users u
        WHERE u.role::text = ANY(${ENROLLABLE as unknown as string[]})
          AND u.status <> 'suspended'
@@ -333,6 +335,7 @@ export async function listUnassignedClients(limit = 200): Promise<UnassignedClie
       email: String(r.email),
       role: String(r.role),
       createdAt: new Date(String(r.created_at)).toISOString(),
+      avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
     }));
   }, []);
 }

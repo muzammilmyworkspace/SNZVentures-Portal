@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ROLE_LABEL, type Role, CLIENT_ROLES } from "@/lib/auth/types";
 import { StatusPill } from "./Pieces";
+import { Avatar } from "./Avatar";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -19,6 +20,8 @@ type Row = {
   /** Who they already belong to. Null for staff, and for nobody's client. */
   advisorId: string | null;
   advisorName: string | null;
+  /** Null when they have no photo; otherwise its version. */
+  avatarV?: number | null;
 };
 
 /**
@@ -147,14 +150,19 @@ export function UserTable({
                       A client file is opened deliberately, one at a time.
                       Prefetching them buys nothing and costs the pool.
                     */}
-                    <Link
-                      prefetch={false}
-                      href={`/portal/admin/users/${u.id}`}
-                      className="block text-[0.9rem] text-fg underline-offset-4 hover:text-accent hover:underline"
-                    >
-                      {u.name}
-                    </Link>
-                    <span className="block text-[0.8rem] text-faint">{u.email}</span>
+                    <span className="flex items-center gap-3">
+                      <Avatar id={u.id} name={u.name} photo={u.avatarV != null} v={u.avatarV} size="md" />
+                      <span className="min-w-0">
+                        <Link
+                          prefetch={false}
+                          href={`/portal/admin/users/${u.id}`}
+                          className="block text-[0.9rem] text-fg underline-offset-4 hover:text-accent hover:underline"
+                        >
+                          {u.name}
+                        </Link>
+                        <span className="block text-[0.8rem] text-faint">{u.email}</span>
+                      </span>
+                    </span>
                   </td>
 
                   <td className="px-5 py-3">

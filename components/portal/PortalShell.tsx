@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { PortalBackdrop } from "./PortalBackdrop";
 import { useReduced } from "./useReduced";
+import { Avatar } from "./Avatar";
 
 /**
  * PORTAL CHROME
@@ -61,6 +62,8 @@ export type Badges = Partial<Record<BadgeKey, number>>;
 export function PortalShell({
   children,
   name,
+  userId,
+  avatarV = null,
   role,
   badges = {},
   lockedPaths = [],
@@ -69,6 +72,9 @@ export function PortalShell({
 }: {
   children: React.ReactNode;
   name: string;
+  userId: string;
+  /** The viewer's photo version, or null for initials. */
+  avatarV?: number | null;
   role: Role;
   /** Live counts, computed on the server. Absent or zero renders nothing. */
   badges?: Badges;
@@ -162,14 +168,6 @@ export function PortalShell({
     */
     window.location.replace("/login");
   }
-
-  const initials =
-    name
-      .split(" ")
-      .map((p) => p[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "—";
 
   const reduce = useReduced();
 
@@ -276,9 +274,7 @@ export function PortalShell({
 
           <div className="mt-4 border-t border-line pt-4">
             <div className="flex items-center gap-3 px-2 py-1.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moss-400 to-moss-600 text-[0.75rem] font-bold text-navy-950">
-                {initials}
-              </span>
+              <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[0.85rem] font-semibold text-fg">{name}</span>
                 <span className="label block text-[0.72rem] text-faint">{ROLE_LABEL[role]}</span>
@@ -369,10 +365,10 @@ export function PortalShell({
                 onClick={() => setAccountOpen((o) => !o)}
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-[0.7rem] font-semibold text-muted transition-colors hover:border-moss-400/60 hover:text-fg"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-shadow hover:shadow-[0_0_0_2px_var(--accent)]"
               >
                 <span className="sr-only">Account</span>
-                <span aria-hidden>{initials}</span>
+                <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" className="h-9 w-9" />
               </button>
 
               {accountOpen && (

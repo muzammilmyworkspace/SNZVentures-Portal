@@ -18,6 +18,7 @@ export type FeeSubmission = {
   id: string;
   userId: string;
   studentName: string;
+  avatarV: number | null;
   studentEmail: string;
   university: string;
   programme: string | null;
@@ -47,6 +48,7 @@ const map = (r: Record<string, unknown>): FeeSubmission => ({
   id: String(r.id),
   userId: String(r.user_id),
   studentName: r.student_name ? String(r.student_name) : "",
+  avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
   studentEmail: r.student_email ? String(r.student_email) : "",
   university: String(r.university),
   programme: r.programme ? String(r.programme) : null,
@@ -160,7 +162,8 @@ export async function withdrawFeeSubmission(userId: string): Promise<string | nu
 export async function liveFeeFor(userId: string): Promise<FeeSubmission | null> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT f.*, u.name AS student_name, u.email AS student_email
+      SELECT f.*, u.name AS student_name, u.email AS student_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.user_id = ${userId} AND f.status IN ('submitted','verified')
       LIMIT 1
@@ -181,7 +184,8 @@ export async function liveFeeFor(userId: string): Promise<FeeSubmission | null> 
 export async function feeHistoryFor(userId: string): Promise<FeeSubmission[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT f.*, u.name AS student_name, u.email AS student_email
+      SELECT f.*, u.name AS student_name, u.email AS student_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.user_id = ${userId}
       ORDER BY f.created_at DESC
@@ -205,7 +209,8 @@ export async function listFeeSubmissions(
     const [r] = await db()`
       SELECT
         COALESCE((SELECT json_agg(x) FROM (
-          SELECT f.*, u.name AS student_name, u.email AS student_email
+          SELECT f.*, u.name AS student_name, u.email AS student_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
           FROM fee_submissions f JOIN users u ON u.id = f.user_id
           WHERE (${status}::text IS NULL OR f.status = ${status}::fee_status)
           ORDER BY f.created_at DESC
@@ -223,7 +228,8 @@ export async function listFeeSubmissions(
 export async function getFeeSubmission(id: string): Promise<FeeSubmission | null> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT f.*, u.name AS student_name, u.email AS student_email
+      SELECT f.*, u.name AS student_name, u.email AS student_email,
+                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.id = ${id} LIMIT 1
     `;

@@ -253,7 +253,7 @@ export type UserSort = "recent" | "oldest" | "name" | "last_active";
 export async function getUsersPageData(
   filter: UserFilter & { sort?: UserSort } = {}
 ): Promise<{
-  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null })[];
+  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null })[];
   total: number;
   page: number;
   pages: number;
@@ -269,7 +269,7 @@ export async function getUsersPageData(
   const sort: UserSort = filter.sort ?? "recent";
 
   const empty = {
-    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null })[],
+    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null })[],
     total: 0,
     page: 1,
     pages: 1,
@@ -285,6 +285,7 @@ export async function getUsersPageData(
           SELECT json_agg(x) FROM (
             SELECT u.id, u.email, u.name, u.role, u.status, u.email_verified,
                    u.last_login_at, u.created_at,
+                   CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
                    (
                      SELECT count(*)::int FROM (
                        SELECT p.phone UNION ALL SELECT p.nationality
@@ -361,6 +362,7 @@ export async function getUsersPageData(
         profileFields: Number(u.profile_fields ?? 0),
         advisorId: u.advisor_id ? String(u.advisor_id) : null,
         advisorName: u.advisor_name ? String(u.advisor_name) : null,
+        avatarV: u.avatar_v == null ? null : Number(u.avatar_v),
       })),
       total,
       page: Math.floor(offset / limit) + 1,
@@ -552,6 +554,15 @@ export async function setAvatar(userId: string, dataUri: string | null): Promise
     await db()`UPDATE users SET avatar_url = ${dataUri}, updated_at = now() WHERE id = ${userId}`;
     return true;
   }, false);
+}
+
+/** The stored photo (data URI or https URL), or null. */
+export async function getAvatar(userId: string): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null;
+  return safeQuery(async () => {
+    const rows = await db()`SELECT avatar_url FROM users WHERE id = ${userId} LIMIT 1`;
+    return (rows[0]?.avatar_url as string | null) ?? null;
+  }, null);
 }
 
 export async function sessionEpoch(userId: string): Promise<number | null> {
