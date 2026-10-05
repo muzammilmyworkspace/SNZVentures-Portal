@@ -272,3 +272,18 @@ export function applicationCompletedEmail(opts: { name: string; portalUrl: strin
     cta: { label: "Open your portal", url: `${opts.portalUrl}/portal/journey` },
   });
 }
+
+/** Staff asked for a new copy of one document. */
+export function documentReuploadEmail(opts: { name: string; portalUrl: string; document: string; note: string }) {
+  return milestone({
+    heading: "Please upload one document again",
+    greetingName: opts.name,
+    paragraphs: [
+      `Our team has checked your documents. We need a new copy of: ${opts.document}.`,
+      opts.note,
+      "Open Documents in your portal and upload the corrected file. Everything else you sent is fine.",
+    ],
+    cta: { label: "Upload it again", url: `${opts.portalUrl}/portal/documents` },
+    footnote: "If anything is unclear, reply to this email or message us in the portal.",
+  });
+}

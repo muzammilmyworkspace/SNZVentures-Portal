@@ -50,17 +50,18 @@ export default async function AdminFeesPage({
   const verified = rows.filter((r) => r.status === "verified");
   const returned = rows.filter((r) => r.status === "rejected");
 
+  // ALL by default: the whole picture first, then narrow to what is waiting.
   const TABS = [
+    { key: "all", label: "All", rows },
     { key: "unverified", label: "Unverified", rows: waiting },
     { key: "verified", label: "Verified", rows: verified },
     { key: "returned", label: "Returned", rows: returned },
-    { key: "all", label: "All", rows },
   ];
   const tab = TABS.find((t) => t.key === sp.tab) ?? TABS[0];
   // Review cards are tall, so ten a page; the decided table is compact.
   const size = tab.key === "unverified" ? 10 : 20;
   const pg = paginate(tab.rows, pageFrom(sp.page), size);
-  const tabHref = (key: string) => (key === "unverified" ? "/portal/admin/fees" : `/portal/admin/fees?tab=${key}`);
+  const tabHref = (key: string) => (key === "all" ? "/portal/admin/fees" : `/portal/admin/fees?tab=${key}`);
 
   return (
     <>
@@ -78,14 +79,14 @@ export default async function AdminFeesPage({
           label="Total requests"
           value={rows.length}
           hint="Every fee declaration students have sent."
-          href="/portal/admin/fees?tab=all"
+          href="/portal/admin/fees"
         />
         <StatCard
           label="Unverified"
           value={waiting.length}
           urgent={waiting.length > 0}
           hint="Waiting for you to check the bank slip."
-          href="/portal/admin/fees"
+          href="/portal/admin/fees?tab=unverified"
         />
         <StatCard
           label="Verified"

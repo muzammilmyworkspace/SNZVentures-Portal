@@ -290,10 +290,10 @@ export default async function AdminUserPage({
             title="Documents"
             action={
               <Link
-                href="/portal/admin/documents"
+                href={`/portal/admin/requests?docs=${id}`}
                 className="label text-faint transition-colors hover:text-accent"
               >
-                Review queue
+                Review documents
               </Link>
             }
           >

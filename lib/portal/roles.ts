@@ -270,12 +270,6 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         */
         { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
         {
-          href: "/portal/admin/documents",
-          label: "Documents",
-          icon: "documents",
-          roles: ["admin", "super_admin"],
-        },
-        {
           href: "/portal/admin/analytics",
           label: "Analytics",
           icon: "activity",

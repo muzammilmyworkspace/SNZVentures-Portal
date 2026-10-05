@@ -3,6 +3,7 @@ import { getDocumentsForOwner } from "@/lib/db/repos/portal";
 import { findById } from "@/lib/db/repos/users";
 import { Person } from "./Avatar";
 import { StatusPill } from "./Pieces";
+import { DocActions, ApproveAll } from "./DocActions";
 
 /**
  * A STUDENT'S DOCUMENTS, beside the list they were opened from.
@@ -41,13 +42,17 @@ export async function DocumentsDrawer({
         aria-label="Close documents"
         className="absolute inset-0 bg-[rgb(4_8_20/0.6)] backdrop-blur-[2px]"
       />
-      <div className="relative flex h-full w-full flex-col border-l border-line bg-[var(--panel-solid)] shadow-2xl lg:w-1/2">
+      <div className="relative flex h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden border-l border-line bg-[var(--panel-solid)] shadow-2xl lg:w-[50vw] lg:max-w-[50vw]">
         <header className="border-b border-line px-5 py-4 sm:px-7">
           <div className="flex items-center justify-between gap-4">
             <h2 id="docs-title" className="text-[1.15rem] font-semibold text-fg-strong">
               Documents
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ApproveAll
+                userId={userId}
+                waiting={files.filter((d) => d.status === "uploaded" || d.status === "pending_review").length}
+              />
               {files.length > 0 && (
                 <a
                   href={`/api/admin/documents/zip?userId=${userId}`}
@@ -116,7 +121,7 @@ export async function DocumentsDrawer({
               {files.map((d) => (
                 <li
                   key={d.id}
-                  className={`flex items-center gap-3 px-4 py-3 ${d.id === previewId ? "bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]" : ""}`}
+                  className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 py-3 ${d.id === previewId ? "bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]" : ""}`}
                 >
                   <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-line text-[0.6rem] font-bold uppercase text-muted">
                     {(d.mimeType?.split("/")[1] ?? "file").replace("vnd.openxmlformats-officedocument.", "").slice(0, 4)}
@@ -127,6 +132,9 @@ export async function DocumentsDrawer({
                       {d.category}
                       {d.sizeBytes ? ` · ${Math.max(1, Math.round(d.sizeBytes / 1024))} KB` : ""}
                     </p>
+                    {d.reviewNote && d.status !== "approved" && (
+                      <p className="mt-1 text-[0.78rem] leading-relaxed text-danger">Asked: {d.reviewNote}</p>
+                    )}
                   </div>
                   <StatusPill status={d.status} label={d.status.replace(/_/g, " ")} />
                   <Link
@@ -145,12 +153,14 @@ export async function DocumentsDrawer({
                     href={`/api/portal/documents/${d.id}?download=1`}
                     aria-label={`Download ${d.name}`}
                     data-tip="Download"
-                    className="tip tip-end icon-btn"
+                    className="tip icon-btn"
                   >
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13.5h11" />
                     </svg>
                   </a>
+                  {/* Last, so its comment box opens below the whole row. */}
+                  <DocActions id={d.id} name={d.name} status={d.status} />
                 </li>
               ))}
             </ul>

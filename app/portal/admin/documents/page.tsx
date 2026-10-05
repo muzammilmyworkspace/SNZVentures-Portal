@@ -1,58 +1,10 @@
-import { requireAdmin } from "@/lib/auth/guard";
-import { getDocumentsForReview } from "@/lib/db/repos/portal";
-import { isDatabaseConfigured } from "@/lib/db/client";
-import { isStorageConfigured } from "@/lib/storage";
-import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
-import { NotConfigured } from "@/components/portal/NotConfigured";
-import { DocumentReview } from "@/components/portal/DocumentReview";
+import { redirect } from "next/navigation";
 
-export default async function AdminDocumentsPage() {
-  await requireAdmin();
-
-  if (!isDatabaseConfigured()) {
-    return (
-      <>
-        <PortalHeading eyebrow="Staff" title="Document review" />
-        <NotConfigured what="Document review" />
-      </>
-    );
-  }
-
-  const documents = await getDocumentsForReview(100);
-
-  return (
-    <>
-      <PortalHeading
-        eyebrow="Staff"
-        title="Document review"
-        lead="Approve, reject or request an update. The client is notified automatically."
-      />
-      {!isStorageConfigured() && (
-        <div className="mb-5 rounded-[var(--radius-md)] border border-amber-400/35 bg-amber-400/[0.06] p-5">
-          <p className="label text-warn">Storage not configured</p>
-          <p className="mt-2 text-[0.85rem] leading-relaxed text-warn/80">
-            Uploads are disabled and existing files cannot be downloaded until a
-            storage transport is set. See DEPLOYMENT.md.
-          </p>
-        </div>
-      )}
-      {/*
-        The list is a stack of per-client sections now, each with its own
-        border. Wrapping that in a Panel would draw a box around a column of
-        boxes, so the Panel is kept for the empty state only — which does still
-        want one.
-      */}
-      {documents.length === 0 ? (
-        <Panel>
-          <EmptyState
-            icon="check"
-            title="Nothing awaiting review"
-            body="Documents clients upload appear here for approval."
-          />
-        </Panel>
-      ) : (
-        <DocumentReview documents={documents} />
-      )}
-    </>
-  );
+/**
+ * The old firm-wide Documents queue. Documents are now reviewed beside each
+ * application, from the documents button on every pipeline row (approve, or
+ * ask for a new copy), so this address sends people there.
+ */
+export default function AdminDocumentsPage() {
+  redirect("/portal/admin/requests");
 }

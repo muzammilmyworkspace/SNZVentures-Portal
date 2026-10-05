@@ -162,7 +162,7 @@ export default async function AdminPage({
       label: "Documents to review",
       value: m.pendingDocuments ?? 0,
       note: "Uploaded by clients, waiting on your approval.",
-      href: "/portal/admin/documents",
+      href: "/portal/admin/requests",
     },
     {
       label: "Unread messages",
@@ -303,7 +303,7 @@ export default async function AdminPage({
               { label: "Applications", k: "applications", href: "/portal/admin/requests", hue: "var(--viz-2)" },
               { label: "Enquiries", k: "enquiries", href: "/portal/admin/enquiries", hue: "var(--viz-3)" },
               { label: "Fee declarations", k: "fees", href: "/portal/admin/fees", hue: "#9085e9" },
-              { label: "Documents uploaded", k: "documents", href: "/portal/admin/documents", hue: "#c98500" },
+              { label: "Documents uploaded", k: "documents", href: "/portal/admin/requests", hue: "#c98500" },
               { label: "Cases opened", k: "cases", href: "/portal/admin/cases", hue: "#4fb3c9" },
             ].map((t) => (
               <PeriodStat
@@ -445,7 +445,7 @@ export default async function AdminPage({
           title={admin ? "Documents awaiting review" : "My clients"}
           action={
             admin ? (
-              <Link href="/portal/admin/documents" className="label text-faint transition-colors hover:text-accent">
+              <Link href="/portal/admin/requests" className="label text-faint transition-colors hover:text-accent">
                 Review
               </Link>
             ) : undefined

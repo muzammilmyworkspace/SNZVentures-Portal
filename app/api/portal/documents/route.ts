@@ -4,6 +4,10 @@ import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { mirrorToDrive } from "@/lib/integrations/drive-mirror";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { sendMail, mailConfigured } from "@/lib/mail";
+import { documentReuploadEmail } from "@/lib/mail-templates";
+import { siteUrl } from "@/lib/site-url";
+import * as usersRepo from "@/lib/db/repos/users";
 import {
   putObject,
   buildKey,
@@ -114,7 +118,8 @@ export async function POST(request: Request) {
       repo.notifyStaff({
         title: `${session.name} uploaded a document`,
         body: label || file.name,
-        href: "/portal/admin/documents",
+        // Straight to this student's documents panel, where it is approved.
+        href: `/portal/admin/requests?docs=${session.userId}`,
         kind: "document",
         aboutUserId: session.userId,
         actorId: session.userId,
@@ -237,6 +242,30 @@ export async function PATCH(request: Request) {
     meta: { status },
     ip: clientIp(request),
   });
+
+  /*
+    A file sent back is also EMAILED, with the comment: the student may not
+    open the portal for days, and this is the one thing holding their file
+    up. Approvals are not emailed one by one; they would be a flood. Best
+    effort: the decision is already recorded.
+  */
+  if (status !== "approved" && (await mailConfigured())) {
+    try {
+      const owner = await usersRepo.findById(doc.ownerId);
+      if (owner) {
+        const mail = documentReuploadEmail({
+          name: owner.name,
+          portalUrl: siteUrl(),
+          document: doc.name,
+          note: reason,
+        });
+        await sendMail({ to: owner.email, subject: mail.subject, text: mail.text, html: mail.html });
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`[documents] review recorded for ${documentId} but the email failed:`, error);
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

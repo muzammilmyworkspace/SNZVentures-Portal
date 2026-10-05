@@ -387,6 +387,26 @@ export async function reviewDocument(
   `;
 }
 
+/**
+ * Approve every document this student has uploaded that is still waiting.
+ * Already approved, rejected or returned files are left as they are. Returns
+ * how many were approved.
+ */
+export async function approveAllDocuments(ownerId: string, reviewerId: string): Promise<number> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE documents
+      SET status = 'approved'::document_status, reviewed_by = ${reviewerId},
+          reviewed_at = now(), review_note = NULL, updated_at = now()
+      WHERE owner_id = ${ownerId}
+        AND storage_key IS NOT NULL
+        AND status IN ('uploaded', 'pending_review')
+      RETURNING id
+    `;
+    return rows.length;
+  }, 0);
+}
+
 export async function deleteDocument(id: string) {
   await db()`DELETE FROM documents WHERE id = ${id}`;
 }
