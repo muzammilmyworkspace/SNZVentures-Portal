@@ -50,7 +50,7 @@ import { cn } from "@/lib/utils";
  */
 
 type Answers = Record<string, unknown>;
-type Status = "draft" | "submitted" | "under_review" | "accepted" | "returned" | "applied";
+type Status = "draft" | "submitted" | "under_review" | "accepted" | "returned" | "applied" | "completed";
 
 /* ----------------------------------------------------------------- fields */
 
@@ -554,17 +554,21 @@ export function IntakeForm({
     return (
       <div className="rounded-[var(--radius-lg)] border border-moss-400/30 bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] p-6 sm:p-8">
         <p className="label text-accent">
-          {status === "applied" ? "Applied" : status === "accepted" ? "Ready to apply" : "Under review"}
+          {status === "completed" ? "Completed" : status === "applied" ? "Applied" : status === "accepted" ? "Ready to apply" : "Under review"}
         </p>
         <h2 className="mt-3 text-[1.35rem] font-bold tracking-[-0.02em] text-fg-strong">
-          {status === "applied"
+          {status === "completed"
+            ? "Your file is complete."
+            : status === "applied"
             ? "We have applied to your universities."
             : status === "accepted"
               ? `Your ${definition.title.toLowerCase()} has been approved.`
               : `Your ${definition.title.toLowerCase()} is with us.`}
         </h2>
         <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">
-          {status === "applied"
+          {status === "completed"
+            ? "Everything on this application is done. Thank you for choosing SnZ Ventures; your documents and messages stay here if you need them."
+            : status === "applied"
             ? "Your applications have gone to the universities. We will tell you as soon as they reply; you can follow it under Track progress."
             : status === "accepted"
             ? "Our team has reviewed everything and we are starting your university applications. You can follow each step under Track progress."

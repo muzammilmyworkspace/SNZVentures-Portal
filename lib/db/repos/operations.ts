@@ -49,7 +49,7 @@ export type IntakeForm = {
   id: string;
   userId: string;
   pathway: "study" | "career" | "business";
-  status: "draft" | "submitted" | "under_review" | "accepted" | "returned" | "applied";
+  status: "draft" | "submitted" | "under_review" | "accepted" | "returned" | "applied" | "completed";
   step: number;
   data: Record<string, unknown>;
   submittedAt: string | null;
@@ -549,6 +549,60 @@ export async function reviewIntake(
                },
                updated_at = now()
         WHERE id = ${row.case_id}
+      `;
+    }
+    return { ...mapIntake(row), caseId: row.case_id ? String(row.case_id) : null, fromStatus: String(row.from_status) };
+  }, null);
+}
+
+export type PipelineStage = "submitted" | "returned" | "accepted" | "applied" | "completed";
+
+/** Case status and next step that go with each pipeline stage. */
+const CASE_FOR_STAGE: Record<PipelineStage, { status: string; next: string }> = {
+  submitted: { status: "under_review", next: "Review the submitted application" },
+  returned: { status: "awaiting_client", next: "Waiting for the student to correct their application" },
+  accepted: { status: "in_progress", next: "Ready to apply: start the university applications" },
+  applied: { status: "in_progress", next: "Applied: waiting for the universities to decide" },
+  completed: { status: "completed", next: "Completed" },
+};
+
+/**
+ * MOVE AN APPLICATION TO ANY STAGE — the status control on each row.
+ *
+ * Unlike reviewIntake this does not insist on where it is coming from: staff
+ * correct mistakes and skip steps, and the control is theirs. It still refuses
+ * a move to where it already is (null), so a double click cannot send two
+ * emails, and it never touches a draft, which is the student's own.
+ */
+export async function moveIntake(
+  id: string,
+  to: PipelineStage
+): Promise<(IntakeForm & { caseId: string | null; fromStatus: string }) | null> {
+  return safeQuery(async () => {
+    const [row] = await db()`
+      WITH before AS (SELECT id, status::text AS status FROM intake_forms WHERE id = ${id})
+      UPDATE intake_forms f SET status = ${to}::intake_status, updated_at = now()
+      FROM before
+      WHERE f.id = before.id
+        AND f.status::text <> ${to}
+        AND f.status::text <> 'draft'
+        -- "submitted" and the older "under_review" are the same stage.
+        AND NOT (${to} = 'submitted' AND f.status::text = 'under_review')
+      RETURNING f.*, before.status AS from_status
+    `;
+    if (!row) return null;
+    const c = CASE_FOR_STAGE[to];
+    if (row.case_id) {
+      await db()`
+        UPDATE cases SET status = ${c.status}::case_status, next_action = ${c.next}, updated_at = now()
+        WHERE id = ${row.case_id}
+      `;
+    } else {
+      // A case opened by hand: same student, same pathway.
+      await db()`
+        UPDATE cases SET status = ${c.status}::case_status, next_action = ${c.next}, updated_at = now()
+        WHERE client_id = ${row.user_id} AND pathway::text = ${row.pathway}
+          AND status NOT IN ('closed')
       `;
     }
     return { ...mapIntake(row), caseId: row.case_id ? String(row.case_id) : null, fromStatus: String(row.from_status) };

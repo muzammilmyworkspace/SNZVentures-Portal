@@ -258,3 +258,17 @@ export function applicationAppliedEmail(opts: { name: string; portalUrl: string;
     cta: { label: "Track your progress", url: `${opts.portalUrl}/portal/journey` },
   });
 }
+
+/** The file is finished. */
+export function applicationCompletedEmail(opts: { name: string; portalUrl: string; note?: string | null }) {
+  return milestone({
+    heading: "Your file is complete",
+    greetingName: opts.name,
+    paragraphs: [
+      "Everything on your application is now done.",
+      ...(opts.note ? [opts.note] : []),
+      "Your documents and messages stay in your portal if you need them. Thank you for choosing SnZ Ventures.",
+    ],
+    cta: { label: "Open your portal", url: `${opts.portalUrl}/portal/journey` },
+  });
+}

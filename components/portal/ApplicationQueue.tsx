@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { PortalHeading, Panel, EmptyState, StatusPill } from "@/components/portal/Pieces";
+import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { getIntakeQueue } from "@/lib/db/repos/operations";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { Avatar } from "@/components/portal/Avatar";
-import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { ApplicationReview } from "@/components/portal/ApplicationReview";
 import { REVIEW_LABEL } from "@/lib/portal/review-status";
 import { BroughtByTag } from "@/components/portal/FeeBits";
 import { DocumentsDrawer } from "@/components/portal/DocumentsDrawer";
+import { StageSelect } from "@/components/portal/StageSelect";
 
 /**
  * ONE LIST, THREE STAGES OF THE STUDENT PIPELINE.
@@ -17,6 +17,9 @@ import { DocumentsDrawer } from "@/components/portal/DocumentsDrawer";
  *   ready    Ready to apply        reviewed and approved; apply next
  *   applied  Applied               submitted to the universities
  *
+ * The status on each row is a control: change it, press Save, and the
+ * application moves to that stage's section (see StageSelect).
+ *
  * Each has its own page and sidebar entry so the pipeline reads in order:
  * enquiry, fee, review, ready, applied. Oldest first everywhere, because the
  * one that has waited longest is the one to pick up next.
@@ -25,7 +28,7 @@ import { DocumentsDrawer } from "@/components/portal/DocumentsDrawer";
  * (`?review=<id>`), with the decision for that stage at its foot.
  */
 
-export type QueueStage = "review" | "ready" | "applied";
+export type QueueStage = "review" | "ready" | "applied" | "completed";
 
 const STAGES: Record<
   QueueStage,
@@ -41,7 +44,7 @@ const STAGES: Record<
 > = {
   review: {
     path: "/portal/admin/requests",
-    step: "Step 3 of 5",
+    step: "Step 3 of 6",
     title: "Review applications",
     lead: "Applications students have filled in and sent. Open one with the eye, read it, then move it to Ready to apply or send it back with comments.",
     statuses: ["submitted", "under_review", "returned"],
@@ -54,7 +57,7 @@ const STAGES: Record<
   },
   ready: {
     path: "/portal/admin/ready",
-    step: "Step 4 of 5",
+    step: "Step 4 of 6",
     title: "Ready to apply",
     lead: "Reviewed and approved. Apply to the universities, then open the application and mark it as applied.",
     statuses: ["accepted"],
@@ -62,21 +65,20 @@ const STAGES: Record<
   },
   applied: {
     path: "/portal/admin/applied",
-    step: "Step 5 of 5",
+    step: "Step 5 of 6",
     title: "Applied",
-    lead: "Applications submitted to the universities. What the universities reply is followed on each case.",
+    lead: "Applications submitted to the universities. When a file is finished, set its status to Completed.",
     statuses: ["applied"],
     empty: "Applications you mark as applied appear here.",
   },
-};
-
-/** StatusPill colour for each status. */
-const TONE: Record<string, string> = {
-  submitted: "under_review",
-  under_review: "under_review",
-  returned: "needs_update",
-  accepted: "approved",
-  applied: "submitted",
+  completed: {
+    path: "/portal/admin/completed",
+    step: "Step 6 of 6",
+    title: "Completed",
+    lead: "Finished files. Change the status on any row to reopen one.",
+    statuses: ["completed"],
+    empty: "Applications you mark as completed appear here.",
+  },
 };
 
 const PATHWAY_LABEL: Record<string, string> = {
@@ -196,7 +198,7 @@ export async function ApplicationQueue({
               <caption className="sr-only">{cfg.title}</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Client", "Brought by", "Type", "Account", "Submitted", showWaiting ? "Waiting" : "Updated", "Status", ""].map(
+                  {["Client", "Brought by", "Type", "Submitted", showWaiting ? "Waiting" : "Updated", "Status", ""].map(
                     (h, i) => (
                       <th key={h || i} scope="col" className="label px-5 py-3 text-faint">
                         {h || <span className="sr-only">Open</span>}
@@ -231,9 +233,6 @@ export async function ApplicationQueue({
                     <td className="px-5 py-3">
                       <span className="label text-faint">{PATHWAY_LABEL[r.pathway] ?? r.pathway}</span>
                     </td>
-                    <td className="px-5 py-3 text-[0.85rem] text-muted">
-                      {ROLE_LABEL[r.userRole as Role] ?? r.userRole}
-                    </td>
                     <td className="px-5 py-3 text-[0.8rem] text-faint">
                       {r.submittedAt
                         ? new Date(r.submittedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
@@ -247,7 +246,7 @@ export async function ApplicationQueue({
                           : new Date(r.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     </td>
                     <td className="px-5 py-3">
-                      <StatusPill status={TONE[r.status] ?? r.status} label={REVIEW_LABEL[r.status] ?? r.status} />
+                      <StageSelect intakeId={r.id} status={r.status} studentName={r.userName} />
                     </td>
                     <td className="px-5 py-3 text-right">
                       <span className="inline-flex items-center gap-2">

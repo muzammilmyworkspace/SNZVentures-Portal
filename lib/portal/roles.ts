@@ -199,7 +199,8 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         02 Fee verification     they paid; we check the bank slip
         03 Review applications  they sent their application; we read it
         04 Ready to apply       approved; we apply to the universities
-        05 Applied              done; waiting for the universities
+        05 Applied              sent; waiting for the universities
+        06 Completed            the file is finished
 
       Numbered, so where something sits says what happens to it next. The
       badge on each is what is waiting there. ADMIN ONLY: these are firm-wide
@@ -248,13 +249,26 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           step: 5,
           roles: ["admin", "super_admin"],
         },
+        {
+          href: "/portal/admin/completed",
+          label: "Completed",
+          icon: "activity",
+          step: 6,
+          roles: ["admin", "super_admin"],
+        },
       ],
     },
     {
       group: "Records",
       items: [
-        // Scoped in SQL to the advisor's own clients, so this one stays.
-        { href: "/portal/admin/cases", label: "Cases", icon: "applications" },
+        /*
+          CONSULTANTS ONLY. For an admin the pipeline above is the same list,
+          in stages, and moving an application there moves its case too. A
+          consultant has no pipeline pages (they are firm-wide), so this
+          scoped list of their own cases is how they follow their students.
+          The page itself still works for an admin by URL.
+        */
+        { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
         {
           href: "/portal/admin/documents",
           label: "Documents",

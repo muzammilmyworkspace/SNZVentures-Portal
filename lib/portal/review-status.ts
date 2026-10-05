@@ -12,4 +12,5 @@ export const REVIEW_LABEL: Record<string, string> = {
   returned: "Changes requested",
   accepted: "Ready to apply",
   applied: "Applied",
+  completed: "Completed",
 };
