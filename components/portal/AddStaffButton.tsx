@@ -85,14 +85,16 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
       </button>
 
       {/*
-        Into <body>, not here: the page heading this button sits in is
-        animated with a transform, which would make "fixed" relative to the
-        heading and let the list below cover the window.
+        Into the portal shell, not here: the page heading this button sits in
+        is animated with a transform, which would make "fixed" relative to the
+        heading and let the list below cover the window. Not into <body>
+        either: the panel colours (--panel-solid) are defined on the shell,
+        and outside it the window had no background at all.
       */}
       {open && createPortal(
         <div className="fixed inset-0 z-[80] grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-staff-title">
-          <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(4_8_20/0.6)] backdrop-blur-[2px]" />
-          <div className="relative w-full max-w-lg rounded-[18px] border border-line bg-[var(--panel-solid)] p-6 shadow-2xl">
+          <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(4_8_20/0.72)] backdrop-blur-[3px]" />
+          <div className="relative w-full max-w-lg rounded-[18px] border border-line bg-[var(--panel-solid,#1B2645)] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <h2 id="add-staff-title" className="text-[1.15rem] font-semibold text-fg-strong">
                 Add {label}
@@ -192,7 +194,7 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
             )}
           </div>
         </div>,
-        document.body
+        document.querySelector(".portal-shell") ?? document.body
       )}
     </>
   );
