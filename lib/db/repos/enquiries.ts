@@ -20,6 +20,9 @@ export type Enquiry = {
   utm: Record<string, string> | null;
   /** When they also pressed "Send on WhatsApp" after the form. */
   whatsappAt: string | null;
+  /** Their portal account, if one exists with the same email. */
+  accountId?: string | null;
+  avatarV?: number | null;
 };
 
 export type WhatsAppClick = {
@@ -61,6 +64,8 @@ const map = (r: Record<string, unknown>): Enquiry => ({
   referrer: r.referrer ? String(r.referrer) : null,
   utm: (r.utm as Record<string, string> | null) ?? null,
   whatsappAt: r.whatsapp_at ? new Date(r.whatsapp_at as string).toISOString() : null,
+  accountId: r.account_id ? String(r.account_id) : null,
+  avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
 });
 
 /**
@@ -136,7 +141,17 @@ export async function listEnquiries(limit = 50): Promise<{
       const [r] = await db()`
         SELECT
           COALESCE((SELECT json_agg(x) FROM (
-            SELECT * FROM enquiries ORDER BY created_at DESC LIMIT ${limit}
+            SELECT e.*, acct.id AS account_id, acct.avatar_v
+            FROM enquiries e
+            -- The same person may since have made an account; if so, their
+            -- photo is shown and the name links to their file.
+            LEFT JOIN LATERAL (
+              SELECT u.id,
+                     CASE WHEN u.avatar_url IS NULL THEN NULL
+                          ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v
+              FROM users u WHERE lower(u.email) = lower(e.email) LIMIT 1
+            ) acct ON TRUE
+            ORDER BY e.created_at DESC LIMIT ${limit}
           ) x), '[]'::json) AS rows,
           (SELECT count(*)::int FROM enquiries) AS total,
           (SELECT count(*)::int FROM enquiries WHERE delivered = FALSE) AS undelivered,

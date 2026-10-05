@@ -9,13 +9,60 @@ import { buildMetadata } from "@/lib/seo";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { SourceBadge, sourceLabel, PLACEMENT_LABEL } from "@/components/portal/SourceBadge";
 import { BarList } from "@/components/portal/DashboardCharts";
+import { Avatar } from "@/components/portal/Avatar";
+import { whatsappLink } from "@/lib/portal/whatsapp";
+import Link from "next/link";
+import type { Enquiry } from "@/lib/db/repos/enquiries";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Enquiries",
+  title: "Website enquiries",
   description: "Contact-form enquiries from the public site.",
   path: "/portal/admin/enquiries",
   noIndex: true,
 });
+
+const WA_PATH =
+  "M12 3a9 9 0 00-7.8 13.5L3 21l4.6-1.2A9 9 0 1012 3zm4.4 12.2c-.2.6-1.1 1.1-1.6 1.2-.4 0-.9.1-2.9-.7-2.4-1-4-3.5-4.1-3.6-.1-.2-1-1.3-1-2.5s.6-1.8.9-2c.2-.3.5-.3.6-.3h.5c.2 0 .4 0 .5.4l.8 1.8c.1.2.1.3 0 .5l-.4.5c-.1.2-.3.3-.1.6.2.3.7 1.1 1.5 1.8 1 .9 1.8 1.1 2.1 1.3.3.1.4.1.6-.1l.7-.9c.2-.2.3-.2.6-.1l1.7.8c.3.1.4.2.5.3 0 .2 0 .6-.2 1z";
+
+/**
+ * Message this person on WhatsApp, with a first line already written.
+ * Disabled, with the reason on hover, when the number has no country code.
+ */
+function WhatsAppAction({ enquiry: e }: { enquiry: Enquiry }) {
+  const first = e.name.trim().split(/\s+/)[0] ?? "";
+  const href = whatsappLink(
+    e.phone,
+    `Hello ${first}, this is SnZ Ventures. Thank you for your enquiry on our website. When is a good time to talk?`
+  );
+  if (!href) {
+    return (
+      <span
+        tabIndex={0}
+        aria-label={e.phone ? "No country code on this number, so WhatsApp cannot open it" : "No phone number given"}
+        data-tip={e.phone ? "Number has no country code" : "No phone number"}
+        className="tip tip-end icon-btn inline-flex cursor-not-allowed opacity-40"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d={WA_PATH} />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Message ${e.name} on WhatsApp`}
+      data-tip="Message on WhatsApp"
+      className="tip tip-end icon-btn inline-flex !border-[#25D366]/50 !text-[#25D366] hover:!bg-[#25D366]/15"
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path d={WA_PATH} />
+      </svg>
+    </a>
+  );
+}
 
 const PATHWAY_LABEL: Record<string, string> = {
   study: "Student",
@@ -66,9 +113,9 @@ export default async function EnquiriesPage({
   return (
     <>
       <PortalHeading
-        eyebrow="Staff"
-        title="Enquiries"
-        lead="Everyone who has used a form on the public site, newest first, with where they came from. WhatsApp chats started from the site are counted underneath."
+        eyebrow="From snzventures.com"
+        title="Website enquiries"
+        lead="People who contacted us directly through the website, before they have a portal account. Newest first, with where each one came from. WhatsApp chats started from the site are counted underneath."
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
@@ -96,7 +143,7 @@ export default async function EnquiriesPage({
         />
       </div>
 
-      <Panel title="All enquiries">
+      <Panel title="Direct enquiries from the website">
         {rows.length === 0 ? (
           <EmptyState
             icon="search"
@@ -109,9 +156,9 @@ export default async function EnquiriesPage({
               <caption className="sr-only">Contact form enquiries</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["Received", "Name", "Contact", "Came from", "Looking for", "Email sent"].map((h) => (
-                    <th key={h} scope="col" className="label pb-3 pr-4 text-faint">
-                      {h}
+                  {["Received", "Name", "Contact", "Came from", "Looking for", "Email sent", ""].map((h, i) => (
+                    <th key={h || i} scope="col" className="label pb-3 pr-4 text-faint">
+                      {h || <span className="sr-only">Message</span>}
                     </th>
                   ))}
                 </tr>
@@ -126,7 +173,27 @@ export default async function EnquiriesPage({
                         year: "numeric",
                       })}
                     </td>
-                    <td className="py-3 pr-4 text-[0.9rem] text-fg">{e.name}</td>
+                    <td className="py-3 pr-4 text-[0.9rem] text-fg">
+                      <span className="flex items-center gap-3">
+                        <Avatar
+                          id={e.accountId ?? e.id}
+                          name={e.name}
+                          photo={e.avatarV != null}
+                          v={e.avatarV}
+                          size="md"
+                        />
+                        {e.accountId ? (
+                          <Link
+                            href={`/portal/admin/users/${e.accountId}`}
+                            className="underline-offset-4 hover:text-accent hover:underline"
+                          >
+                            {e.name}
+                          </Link>
+                        ) : (
+                          e.name
+                        )}
+                      </span>
+                    </td>
                     <td className="py-3 pr-4 text-[0.85rem] text-muted">
                       <a
                         href={`mailto:${e.email}`}
@@ -173,6 +240,9 @@ export default async function EnquiriesPage({
                         status={e.delivered ? "approved" : "needs_update"}
                         label={e.delivered ? "Sent" : "Not sent"}
                       />
+                    </td>
+                    <td className="py-3 text-right">
+                      <WhatsAppAction enquiry={e} />
                     </td>
                   </tr>
                 ))}

@@ -713,3 +713,9 @@ html::-webkit-scrollbar-thumb:hover {
 .icon-btn[data-tone="danger"]:hover { color: var(--danger); border-color: var(--danger-line); background: var(--danger-soft); }
 .icon-btn[data-tone="warn"] { color: var(--danger); border-color: var(--danger-line); }
 .icon-btn[data-tone="warn"]:hover { background: var(--danger-soft); }
+
+/* A tooltip for a control at the right edge of a scrolling table: anchored to
+   its right side so it opens leftwards instead of being clipped. */
+.tip.tip-end::after { left: auto; right: 0; transform: translate(0, 4px); }
+.tip.tip-end:hover::after,
+.tip.tip-end:focus-visible::after { transform: translate(0, 0); }
