@@ -15,20 +15,23 @@ export function ReviewActions({
   closeHref,
   canProceed,
   canReturn,
+  canApply = false,
 }: {
   intakeId: string;
   studentName: string;
   closeHref: string;
   canProceed: boolean;
   canReturn: boolean;
+  /** Ready to apply: the decision is "we have applied". */
+  canApply?: boolean;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState<"proceed" | "return" | null>(null);
+  const [busy, setBusy] = useState<"proceed" | "return" | "applied" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const first = studentName.trim().split(/\s+/)[0] ?? "the student";
 
-  async function decide(action: "proceed" | "return") {
+  async function decide(action: "proceed" | "return" | "applied") {
     if (action === "return" && note.trim().length < 5) {
       setError(`Write what ${first} should change before sending it back.`);
       return;
@@ -51,7 +54,7 @@ export function ReviewActions({
     }
   }
 
-  if (!canProceed && !canReturn) return null;
+  if (!canProceed && !canReturn && !canApply) return null;
 
   return (
     <div>
@@ -64,11 +67,17 @@ export function ReviewActions({
         onChange={(e) => setNote(e.target.value)}
         rows={3}
         maxLength={2000}
-        placeholder="e.g. Please upload a clearer scan of your passport, and add your IELTS score."
+        placeholder={
+          canApply
+            ? "e.g. Applied to Vilnius University (Computer Science) and KTU (Business). Decisions expected in March."
+            : "e.g. Please upload a clearer scan of your passport, and add your IELTS score."
+        }
         className="field mt-1.5 w-full resize-y text-[0.9rem]"
       />
       <p className="mt-1 text-[0.75rem] text-faint">
-        Required to send it back. {first} sees this in the portal and by email.
+        {canApply
+          ? `Optional when marking it applied: say where you applied. ${first} sees this in the portal and by email.`
+          : `Required to send it back. ${first} sees this in the portal and by email.`}
       </p>
 
       {error && (
@@ -88,6 +97,19 @@ export function ReviewActions({
             )}
           >
             {busy === "return" ? "Sending…" : "Send back for changes"}
+          </button>
+        )}
+        {canApply && (
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => decide("applied")}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-6 text-[0.92rem] font-semibold text-[#070B1A] transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {busy === "applied" ? "Saving…" : "Mark as applied"}
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden className="h-4 w-4">
+              <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         )}
         {canProceed && (

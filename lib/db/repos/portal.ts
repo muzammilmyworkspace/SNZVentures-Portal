@@ -744,7 +744,11 @@ export async function notify(input: {
 export async function getSidebarBadges(
   userId: string,
   role: Role
-): Promise<{ messages: number; notifications: number; documents: number; tasks: number; avatarV: number | null }> {
+): Promise<{
+  messages: number; notifications: number; documents: number; tasks: number;
+  enquiries: number; fees: number; review: number; ready: number;
+  avatarV: number | null;
+}> {
   const staffWide = role === "admin" || role === "super_admin";
 
   return safeQuery(async () => {
@@ -787,16 +791,30 @@ export async function getSidebarBadges(
           SELECT CASE WHEN u.avatar_url IS NULL THEN NULL
                       ELSE floor(extract(epoch FROM u.updated_at))::int END
           FROM users u WHERE u.id = ${userId}
-        ) AS avatar_v
+        ) AS avatar_v,
+        -- The pipeline queues, for admins only (zero for everyone else, so a
+        -- consultant's sidebar never counts work that is not theirs).
+        CASE WHEN ${staffWide}::boolean THEN
+          (SELECT count(*)::int FROM enquiries WHERE handled_at IS NULL) ELSE 0 END AS q_enquiries,
+        CASE WHEN ${staffWide}::boolean THEN
+          (SELECT count(*)::int FROM fee_submissions WHERE status = 'submitted') ELSE 0 END AS q_fees,
+        CASE WHEN ${staffWide}::boolean THEN
+          (SELECT count(*)::int FROM intake_forms WHERE status IN ('submitted', 'under_review')) ELSE 0 END AS q_review,
+        CASE WHEN ${staffWide}::boolean THEN
+          (SELECT count(*)::int FROM intake_forms WHERE status = 'accepted') ELSE 0 END AS q_ready
     `;
     return {
       messages: Number(r?.messages ?? 0),
       notifications: Number(r?.notifications ?? 0),
       documents: Number(r?.documents ?? 0),
       tasks: Number(r?.tasks ?? 0),
+      enquiries: Number(r?.q_enquiries ?? 0),
+      fees: Number(r?.q_fees ?? 0),
+      review: Number(r?.q_review ?? 0),
+      ready: Number(r?.q_ready ?? 0),
       avatarV: r?.avatar_v == null ? null : Number(r.avatar_v),
     };
-  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, avatarV: null });
+  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, enquiries: 0, fees: 0, review: 0, ready: 0, avatarV: null });
 }
 
 /** Unread count for the sidebar badge. */

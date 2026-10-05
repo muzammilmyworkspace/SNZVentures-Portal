@@ -6,7 +6,7 @@ import { findById } from "@/lib/db/repos/users";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { sendMail, mailConfigured } from "@/lib/mail";
-import { applicationReturnedEmail, applicationReadyEmail } from "@/lib/mail-templates";
+import { applicationReturnedEmail, applicationReadyEmail, applicationAppliedEmail } from "@/lib/mail-templates";
 import { siteUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
   const { intakeId, action } = body;
   const note = typeof body.note === "string" ? body.note.trim().slice(0, 2000) : "";
-  if (typeof intakeId !== "string" || (action !== "proceed" && action !== "return")) {
+  if (typeof intakeId !== "string" || (action !== "proceed" && action !== "return" && action !== "applied")) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
   if (action === "return" && note.length < 5) {
@@ -76,12 +76,12 @@ export async function POST(request: Request) {
     subjectId: intake.userId,
     fromStatus: updated.fromStatus,
     toStatus: updated.status,
-    note: note || (action === "proceed" ? "Reviewed and ready to apply." : null),
+    note: note || (action === "proceed" ? "Reviewed and ready to apply." : action === "applied" ? "Applied to the universities." : null),
     actorId: session.userId,
   });
 
   await audit({
-    action: action === "proceed" ? "intake.accepted" : "intake.returned",
+    action: action === "proceed" ? "intake.accepted" : action === "applied" ? "intake.applied" : "intake.returned",
     actorId: session.userId,
     actorEmail: session.email,
     entity: "intake",
@@ -93,9 +93,15 @@ export async function POST(request: Request) {
   await repo.notify({
     userId: intake.userId,
     kind: "status",
-    title: action === "proceed" ? "Your application is ready to apply" : "Your application needs a few changes",
-    body: action === "proceed" ? note || "We will now start your university applications." : note,
-    href: action === "proceed" ? "/portal/journey" : "/portal/application",
+    title:
+      action === "proceed" ? "Your application is ready to apply"
+      : action === "applied" ? "We have applied to your universities"
+      : "Your application needs a few changes",
+    body:
+      action === "proceed" ? note || "We will now start your university applications."
+      : action === "applied" ? note || "We will tell you as soon as the universities reply."
+      : note,
+    href: action === "return" ? "/portal/application" : "/portal/journey",
   });
 
   // Email is best effort: the decision is recorded and visible in the portal
@@ -107,7 +113,9 @@ export async function POST(request: Request) {
       const mail =
         action === "proceed"
           ? applicationReadyEmail({ name: student.name, portalUrl: base, note: note || null })
-          : applicationReturnedEmail({ name: student.name, portalUrl: base, note });
+          : action === "applied"
+            ? applicationAppliedEmail({ name: student.name, portalUrl: base, note: note || null })
+            : applicationReturnedEmail({ name: student.name, portalUrl: base, note });
       await sendMail({ to: student.email, subject: mail.subject, text: mail.text, html: mail.html });
     } catch (error) {
       // eslint-disable-next-line no-console

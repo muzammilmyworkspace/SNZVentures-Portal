@@ -244,3 +244,17 @@ export function applicationReadyEmail(opts: { name: string; portalUrl: string; n
     cta: { label: "Open your portal", url: `${opts.portalUrl}/portal/journey` },
   });
 }
+
+/** Staff have submitted the applications to the universities. */
+export function applicationAppliedEmail(opts: { name: string; portalUrl: string; note?: string | null }) {
+  return milestone({
+    heading: "We have applied to your universities",
+    greetingName: opts.name,
+    paragraphs: [
+      "Your applications have now been submitted.",
+      ...(opts.note ? [opts.note] : []),
+      "Universities usually take a few weeks to reply. We will tell you the moment we hear, and you can follow every step in your portal.",
+    ],
+    cta: { label: "Track your progress", url: `${opts.portalUrl}/portal/journey` },
+  });
+}

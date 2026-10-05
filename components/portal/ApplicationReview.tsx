@@ -34,7 +34,8 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
   const file = await ops.getAdminUserFile(intake.userId, intake.pathway);
   const history = file.history.filter((h) => h.entity === "application" && h.entityId === intake.id);
   const canProceed = intake.status === "submitted" || intake.status === "under_review";
-  const canReturn = canProceed || intake.status === "accepted";
+  const canApply = intake.status === "accepted";
+  const canReturn = canProceed || canApply;
 
   return (
     <Shell
@@ -61,6 +62,7 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
           closeHref={closeHref}
           canProceed={canProceed}
           canReturn={canReturn}
+          canApply={canApply}
         />
       }
     >

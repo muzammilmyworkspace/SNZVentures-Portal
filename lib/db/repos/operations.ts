@@ -49,7 +49,7 @@ export type IntakeForm = {
   id: string;
   userId: string;
   pathway: "study" | "career" | "business";
-  status: "draft" | "submitted" | "under_review" | "accepted" | "returned";
+  status: "draft" | "submitted" | "under_review" | "accepted" | "returned" | "applied";
   step: number;
   data: Record<string, unknown>;
   submittedAt: string | null;
@@ -513,6 +513,7 @@ export async function setIntakeStatus(
  * THE REVIEW DECISION on a submitted application.
  *
  *   proceed → accepted ("Ready to apply")
+ *   applied → applied (staff have applied to the universities)
  *   return  → returned (the student edits and submits again)
  *
  * Conditional on the status it is moving FROM, so two staff deciding in two
@@ -521,11 +522,14 @@ export async function setIntakeStatus(
  */
 export async function reviewIntake(
   id: string,
-  action: "proceed" | "return"
+  action: "proceed" | "return" | "applied"
 ): Promise<(IntakeForm & { caseId: string | null; fromStatus: string }) | null> {
   return safeQuery(async () => {
-    const from = action === "proceed" ? ["submitted", "under_review"] : ["submitted", "under_review", "accepted"];
-    const to = action === "proceed" ? "accepted" : "returned";
+    const from =
+      action === "proceed" ? ["submitted", "under_review"]
+      : action === "applied" ? ["accepted"]
+      : ["submitted", "under_review", "accepted"];
+    const to = action === "proceed" ? "accepted" : action === "applied" ? "applied" : "returned";
     const [row] = await db()`
       WITH before AS (SELECT id, status::text AS status FROM intake_forms WHERE id = ${id})
       UPDATE intake_forms f SET status = ${to}::intake_status, updated_at = now()
@@ -537,8 +541,12 @@ export async function reviewIntake(
     if (row.case_id) {
       await db()`
         UPDATE cases
-           SET status = ${action === "proceed" ? "in_progress" : "awaiting_client"}::case_status,
-               next_action = ${action === "proceed" ? "Ready to apply: start the university applications" : "Waiting for the student to correct their application"},
+           SET status = ${action === "return" ? "awaiting_client" : "in_progress"}::case_status,
+               next_action = ${
+                 action === "proceed" ? "Ready to apply: start the university applications"
+                 : action === "applied" ? "Applied: waiting for the universities to decide"
+                 : "Waiting for the student to correct their application"
+               },
                updated_at = now()
         WHERE id = ${row.case_id}
       `;

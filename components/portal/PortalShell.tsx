@@ -237,10 +237,27 @@ export function PortalShell({
                         <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
                       </motion.span>
                     )}
-                    <span className={on ? "text-accent" : undefined}>
-                      <Icon name={item.icon} />
+                    {item.step ? (
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "num inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[0.66rem] font-semibold",
+                          on
+                            ? "border-[var(--accent)] bg-[var(--accent)] text-[#070B1A]"
+                            : "border-[var(--line-strong)] text-muted group-hover:border-[var(--accent)] group-hover:text-accent"
+                        )}
+                      >
+                        {String(item.step).padStart(2, "0")}
+                      </span>
+                    ) : (
+                      <span className={on ? "text-accent" : undefined}>
+                        <Icon name={item.icon} />
+                      </span>
+                    )}
+                    <span className="flex-1">
+                      {item.step ? <span className="sr-only">Step {item.step}: </span> : null}
+                      {item.label}
                     </span>
-                    <span className="flex-1">{item.label}</span>
                     {count > 0 && (
                       <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-moss-400 px-1.5 text-[0.7rem] font-semibold text-navy-950">
                         {count > 99 ? "99+" : count}

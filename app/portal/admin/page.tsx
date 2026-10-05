@@ -153,7 +153,7 @@ export default async function AdminPage({
       href: "/portal/admin/enquiries",
     },
     {
-      label: "Submitted applications",
+      label: "Applications to review",
       value: m.newQueries ?? 0,
       note: "Completed forms waiting for a first reply.",
       href: "/portal/admin/requests",

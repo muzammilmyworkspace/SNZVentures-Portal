@@ -37,7 +37,9 @@ export function portalRoleFor(role: Role): PortalRole {
 /** Where a signed-in user lands. */
 export const homeFor = (role: Role) => `/portal/${portalRoleFor(role)}`;
 
-export type BadgeKey = "documents" | "messages" | "notifications" | "tasks" | "requests";
+export type BadgeKey =
+  | "documents" | "messages" | "notifications" | "tasks" | "requests"
+  | "enquiries" | "fees" | "review" | "ready";
 
 export type IconKey =
   | "dashboard" | "journey" | "applications" | "universities" | "documents"
@@ -50,6 +52,8 @@ export type NavItem = {
   label: string;
   icon: IconKey;
   badgeKey?: BadgeKey;
+  /** Position in the student pipeline, drawn in place of the icon. */
+  step?: number;
   /**
    * Restrict to specific underlying roles. advisor, admin and super_admin all
    * resolve to the "admin" nav, but a few destinations guard tighter than the
@@ -185,51 +189,70 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
 
   admin: [
     {
-      group: "Operations",
+      group: "Overview",
+      items: [{ href: "/portal/admin", label: "Dashboard", icon: "dashboard" }],
+    },
+    /*
+      THE STUDENT PIPELINE, IN THE ORDER A STUDENT MOVES THROUGH IT.
+
+        01 Website enquiries    somebody contacted us from the website
+        02 Fee verification     they paid; we check the bank slip
+        03 Review applications  they sent their application; we read it
+        04 Ready to apply       approved; we apply to the universities
+        05 Applied              done; waiting for the universities
+
+      Numbered, so where something sits says what happens to it next. The
+      badge on each is what is waiting there. ADMIN ONLY: these are firm-wide
+      queues, not a consultant's own book (their students are under People),
+      and each page guards itself as well.
+    */
+    {
+      group: "Student pipeline",
       items: [
-        { href: "/portal/admin", label: "Dashboard", icon: "dashboard" },
-        /*
-          Enquiries and Analytics are firm-wide and their pages require an
-          admin. Before consultants used this area the gate was invisible,
-          because everyone who saw the nav could open everything in it; now an
-          advisor would meet a 403 on a link the sidebar offered them. The
-          guard was never the problem — the menu was.
-        */
         {
           href: "/portal/admin/enquiries",
           label: "Website enquiries",
           icon: "messages",
+          step: 1,
+          badgeKey: "enquiries",
           roles: ["admin", "super_admin"],
         },
-        /*
-          ADMIN ONLY, all three, and the reason is the same for each: they are
-          firm-wide QUEUES, not a view of anybody's own work. Requests lists
-          every submitted intake, Documents every uploaded file awaiting
-          approval, Fee verification every payment claimed — none of them
-          scoped to a consultant, because none of them is a consultant's job.
-          Processing is what the firm does; enrolling is what a consultant
-          does.
-
-          They were reachable by an advisor, and the pages fetched everything,
-          so a consultant with no students of their own could read other
-          people's intakes. The guards on the pages are what actually fix that;
-          these entries stop offering a link that now refuses.
-        */
-        // FIRST of the two: the fee is checked before an application can even
-        // be filled in, so the queue that comes first in a student's path
-        // comes first here.
         {
           href: "/portal/admin/fees",
           label: "Fee verification",
           icon: "requests",
+          step: 2,
+          badgeKey: "fees",
           roles: ["admin", "super_admin"],
         },
         {
           href: "/portal/admin/requests",
-          label: "Requests",
+          label: "Review applications",
           icon: "requests",
+          step: 3,
+          badgeKey: "review",
           roles: ["admin", "super_admin"],
         },
+        {
+          href: "/portal/admin/ready",
+          label: "Ready to apply",
+          icon: "applications",
+          step: 4,
+          badgeKey: "ready",
+          roles: ["admin", "super_admin"],
+        },
+        {
+          href: "/portal/admin/applied",
+          label: "Applied",
+          icon: "universities",
+          step: 5,
+          roles: ["admin", "super_admin"],
+        },
+      ],
+    },
+    {
+      group: "Records",
+      items: [
         // Scoped in SQL to the advisor's own clients, so this one stays.
         { href: "/portal/admin/cases", label: "Cases", icon: "applications" },
         {

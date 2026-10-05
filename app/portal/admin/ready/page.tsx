@@ -6,7 +6,7 @@ import { PortalHeading } from "@/components/portal/Pieces";
 import { ApplicationQueue } from "@/components/portal/ApplicationQueue";
 
 export const metadata: Metadata = {
-  title: "Review applications",
+  title: "Ready to apply",
   robots: { index: false, follow: false },
 };
 
@@ -21,10 +21,10 @@ export default async function Page({
   if (!isDatabaseConfigured()) {
     return (
       <>
-        <PortalHeading eyebrow="Student pipeline" title="Review applications" />
+        <PortalHeading eyebrow="Student pipeline" title="Ready to apply" />
         <NotConfigured what="Applications" />
       </>
     );
   }
-  return <ApplicationQueue stage="review" params={params} />;
+  return <ApplicationQueue stage="ready" params={params} />;
 }

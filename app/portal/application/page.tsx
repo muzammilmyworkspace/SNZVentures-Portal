@@ -47,7 +47,7 @@ export default async function ApplicationPage() {
           <p className="text-[0.9rem] leading-relaxed text-muted">
             This page belongs to client accounts. Submitted forms are in{" "}
             <a href="/portal/admin/requests" className="text-accent underline underline-offset-4">
-              Requests
+              Review applications
             </a>
             .
           </p>

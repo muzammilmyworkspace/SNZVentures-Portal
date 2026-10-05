@@ -115,7 +115,7 @@ export default async function AnalyticsPage() {
         <StatCard
           label="New, unopened"
           value={m.newQueries ?? 0}
-          href="/portal/admin/requests?status=submitted"
+          href="/portal/admin/requests?status=review"
           urgent={(m.newQueries ?? 0) > 0}
         />
         <StatCard label="Total users" value={m.totalUsers ?? 0} href="/portal/admin/users" />
