@@ -14,6 +14,7 @@ import { motion } from "motion/react";
 import { PortalBackdrop } from "./PortalBackdrop";
 import { useReduced } from "./useReduced";
 import { Avatar } from "./Avatar";
+import { areaForPath, canUse } from "@/lib/portal/permissions";
 
 /**
  * PORTAL CHROME
@@ -64,6 +65,7 @@ export function PortalShell({
   name,
   userId,
   avatarV = null,
+  permissions = null,
   role,
   badges = {},
   lockedPaths = [],
@@ -75,6 +77,8 @@ export function PortalShell({
   userId: string;
   /** The viewer's photo version, or null for initials. */
   avatarV?: number | null;
+  /** Employee access: only these areas show in the sidebar (null = all). */
+  permissions?: string[] | null;
   role: Role;
   /** Live counts, computed on the server. Absent or zero renders nothing. */
   badges?: Badges;
@@ -105,7 +109,12 @@ export function PortalShell({
 
   const portalRole = portalRoleFor(role);
   const groups = navFor[portalRole]
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || i.roles.includes(role)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (i) => (!i.roles || i.roles.includes(role)) && canUse(role, permissions, areaForPath(i.href))
+      ),
+    }))
     .filter((g) => g.items.length > 0);
   const home = homeFor(role);
 

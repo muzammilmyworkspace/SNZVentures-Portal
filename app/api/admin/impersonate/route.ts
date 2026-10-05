@@ -9,6 +9,7 @@ import {
   REFUSAL_MESSAGE,
   IMPERSONATION_MAX_AGE_SECONDS,
 } from "@/lib/auth/impersonation";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
   const ip = clientIp(request);
 
   if (!rateLimit(`impersonate:${session.userId}`, { limit: 20, windowMs: 10 * 60_000 }).ok) {

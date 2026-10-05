@@ -7,6 +7,7 @@ import { buildZip, safeEntryName, type ZipEntry } from "@/lib/zip";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { filenamePrefix } from "@/lib/application/documents";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,10 @@ export async function GET(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "applications");
+    if (denied) return denied;
+  }
 
   const userId = new URL(request.url).searchParams.get("userId");
   if (!userId) {

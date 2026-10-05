@@ -10,6 +10,8 @@ import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import { isDatabaseConfigured } from "@/lib/db/client";
+import { AREA_KEYS, type Area } from "@/lib/portal/permissions";
+import { setPermissions } from "@/lib/db/repos/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,7 +73,20 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
-  const { name, email } = (body ?? {}) as Record<string, unknown>;
+  const { name, email, kind, permissions } = (body ?? {}) as Record<string, unknown>;
+  /*
+    CONSULTANT OR EMPLOYEE. An employee is an admin account limited to the
+    areas ticked when they were added (030); an empty list is refused, since
+    an employee who can open nothing is a mistake, not a choice.
+  */
+  const isEmployee = kind === "employee";
+  const areas = isEmployee && Array.isArray(permissions)
+    ? [...new Set(permissions.filter((p): p is Area => typeof p === "string" && (AREA_KEYS as string[]).includes(p)))]
+    : [];
+  if (isEmployee && areas.length === 0) {
+    return NextResponse.json({ ok: false, error: "Tick at least one area they may use." }, { status: 400 });
+  }
+  const role = isEmployee ? "admin" : "advisor";
 
   if (typeof name !== "string" || name.trim().length < 2 || name.length > 120) {
     return NextResponse.json({ ok: false, error: "Enter their full name." }, { status: 400 });
@@ -106,7 +121,7 @@ export async function POST(request: Request) {
     user = await usersRepo.createUser({
       email,
       name,
-      role: "advisor",
+      role,
       // Random, hashed, and immediately out of scope. Nobody ever holds it.
       passwordHash: await hashPassword(randomBytes(32).toString("base64url")),
     });
@@ -125,6 +140,8 @@ export async function POST(request: Request) {
     collects the contact details the firm needs — and the kinds keep each link
     usable only on its own page. See migration 022.
   */
+  if (isEmployee) await setPermissions(user.id, areas);
+
   const link = `${siteUrl()}/set-up?token=${encodeURIComponent(
     await store.issueToken(user.id, "account_setup", SETUP_TTL_MINUTES)
   )}`;
@@ -143,19 +160,22 @@ export async function POST(request: Request) {
     try {
       await sendMail({
         to: user.email,
-        subject: "Your SnZ Ventures consultant account",
+        subject: isEmployee ? "Your SnZ Ventures staff account" : "Your SnZ Ventures consultant account",
         text: [
           `Hello ${user.name},`,
           "",
-          "An account has been created for you on the SnZ Ventures consultant portal.",
+          isEmployee
+            ? "An account has been created for you on the SnZ Ventures staff portal."
+            : "An account has been created for you on the SnZ Ventures consultant portal.",
           "",
           `You sign in with: ${user.email}`,
           "",
           "Set up your account here — the link works once and expires in three days:",
           link,
           "",
-          "After that you can enrol your students by sending them a link from",
-          "Your students in the portal.",
+          ...(isEmployee
+            ? ["After that, sign in and you will see the parts of the portal you have been given."]
+            : ["After that you can enrol your students with your consultant code or a link", "from Your students in the portal."]),
           "",
           "If you were not expecting this, ignore this message and nothing happens.",
           "",
@@ -176,7 +196,7 @@ export async function POST(request: Request) {
     actorEmail: session.email,
     entity: "user",
     entityId: user.id,
-    meta: { email: user.email, role: "advisor", emailed },
+    meta: { email: user.email, role, emailed, ...(isEmployee ? { permissions: areas } : {}) },
     ip,
   });
 

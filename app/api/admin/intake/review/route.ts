@@ -13,6 +13,7 @@ import {
   applicationCompletedEmail,
 } from "@/lib/mail-templates";
 import { siteUrl } from "@/lib/site-url";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,6 +44,10 @@ export async function POST(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "applications");
+    if (denied) return denied;
+  }
 
   const ip = clientIp(request);
   if (!rateLimit(`intakereview:${session.userId}`, { limit: 60, windowMs: 10 * 60_000 }).ok) {

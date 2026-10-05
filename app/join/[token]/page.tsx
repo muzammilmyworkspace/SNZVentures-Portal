@@ -146,7 +146,7 @@ export default async function JoinPage({
           SnZ Ventures. Finish signing up and they will be your consultant.
         </p>
 
-        <RegisterForm invite={token} invitedEmail={invite.email} />
+        <RegisterForm invite={token} invitedEmail={invite.email} invitedName={invite.name ?? null} />
 
         <p className="text-[0.8rem] leading-relaxed text-faint">
           Not expecting this, or don&rsquo;t recognise that name? Don&rsquo;t continue — close

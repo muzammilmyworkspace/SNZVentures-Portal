@@ -3,6 +3,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { UsersView } from "@/components/portal/UsersView";
+import { requireArea } from "@/lib/auth/permissions";
 
 /** Everyone on the portal: students, consultants and employees. See UsersView. */
 export default async function AdminUsersPage({
@@ -10,7 +11,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { session } = await requireAdmin();
+  const { session } = await requireArea("users");
   const raw = await searchParams;
   if (!isDatabaseConfigured()) {
     return (

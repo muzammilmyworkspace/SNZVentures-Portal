@@ -3,6 +3,7 @@ import { apiRequireStaff, isAdmin } from "@/lib/auth/guard";
 import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "applications");
+    if (denied) return denied;
+  }
 
   if (!rateLimit(`docs-approve-all:${session.userId}`, { limit: 30, windowMs: 10 * 60_000 }).ok) {
     return NextResponse.json({ ok: false, error: "Slow down a moment." }, { status: 429 });

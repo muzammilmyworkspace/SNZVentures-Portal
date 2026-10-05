@@ -68,6 +68,8 @@ for (const page of found.sort()) {
   const adminGuarded =
     /requireAdmin\s*\(/.test(src) ||
     /requireSuperAdmin\s*\(/.test(src) ||
+    // requireArea (lib/auth/permissions) runs requireAdmin first, then the employee area check.
+    /requireArea\s*\(/.test(src) ||
     /requireRole\s*\(\s*ADMIN_ROLES/.test(src);
 
   const reason = ADVISOR_SAFE[page];

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 export function InviteStudent({ forConsultantId }: { forConsultantId?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,7 +36,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
       const res = await fetch("/api/portal/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email || null, note: note || null, forConsultantId }),
+        body: JSON.stringify({ name, email: email || null, note: note || null, forConsultantId }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -51,6 +52,7 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
       setLink(data.link);
       setSentTo(data.emailed ? (data.sentTo ?? null) : null);
       setEmail("");
+      setName("");
       setNote("");
       // The list of pending links below this panel is server-rendered.
       router.refresh();
@@ -146,6 +148,20 @@ export function InviteStudent({ forConsultantId }: { forConsultantId?: string })
 
   return (
     <form onSubmit={create} className="space-y-4">
+      <div>
+        <label htmlFor="invite-name" className="field-label">
+          Student&apos;s name
+        </label>
+        <input
+          id="invite-name"
+          required
+          className="field"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Ayesha Khan"
+        />
+      </div>
+
       <div>
         <label htmlFor="invite-email" className="field-label">
           Their email

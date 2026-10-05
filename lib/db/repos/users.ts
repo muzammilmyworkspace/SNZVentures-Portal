@@ -632,3 +632,15 @@ export async function userIdsForFilter(filter: UserFilter, cap = 2000): Promise<
     return rows.map((r) => String(r.id));
   }, []);
 }
+
+/** Set an employee's areas (030). `null` lifts every restriction. */
+export async function setPermissions(userId: string, permissions: string[] | null): Promise<boolean> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE users SET permissions = ${permissions}::text[], updated_at = now()
+      WHERE id = ${userId} AND role = 'admin'
+      RETURNING id
+    `;
+    return rows.length > 0;
+  }, false);
+}

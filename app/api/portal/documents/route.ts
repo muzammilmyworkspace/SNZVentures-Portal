@@ -15,6 +15,7 @@ import {
   isStorageConfigured,
   MAX_UPLOAD_BYTES,
 } from "@/lib/storage";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 // Uploads must not be cached or statically analysed.
@@ -154,6 +155,10 @@ export async function PATCH(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "applications");
+    if (denied) return denied;
+  }
 
   if (!isStaff(session.role)) {
     return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });

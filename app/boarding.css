@@ -719,3 +719,30 @@ html::-webkit-scrollbar-thumb:hover {
 .tip.tip-end::after { left: auto; right: 0; transform: translate(0, 4px); }
 .tip.tip-end:hover::after,
 .tip.tip-end:focus-visible::after { transform: translate(0, 0); }
+
+/* ── People colours: student (and other clients), consultant, employee ──────
+   One hue per group, used on the role control, the ID and the role tag so a
+   long list sorts itself by eye. The word is always there too. */
+[data-group="student"] { --group: #3987e5; }
+[data-group="consultant"] { --group: #d99a0b; }
+[data-group="employee"] { --group: #9085e9; }
+:root[data-theme="light"] [data-group="student"] { --group: #2a6fc4; }
+:root[data-theme="light"] [data-group="consultant"] { --group: #a46f00; }
+:root[data-theme="light"] [data-group="employee"] { --group: #6b5bd6; }
+.chip-select[data-group] {
+  color: var(--group);
+  border-color: color-mix(in srgb, var(--group) 45%, transparent);
+  background-color: color-mix(in srgb, var(--group) 12%, transparent);
+}
+.group-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--group) 45%, transparent);
+  background: color-mix(in srgb, var(--group) 12%, transparent);
+  color: var(--group);
+  padding: 0.12rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.group-id { color: var(--group); }

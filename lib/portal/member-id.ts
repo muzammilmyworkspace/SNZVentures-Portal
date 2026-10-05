@@ -8,3 +8,8 @@ export function memberId(role: string, memberNo: number | null): string {
   const prefix = role === "advisor" ? "CON" : role === "admin" || role === "super_admin" ? "EMP" : "STU";
   return `${prefix}-${String(memberNo).padStart(4, "0")}`;
 }
+
+/** Which colour group a role belongs to (see [data-group] in boarding.css). */
+export function groupOf(role: string): "student" | "consultant" | "employee" {
+  return role === "advisor" ? "consultant" : role === "admin" || role === "super_admin" ? "employee" : "student";
+}

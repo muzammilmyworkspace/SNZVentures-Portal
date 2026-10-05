@@ -788,6 +788,8 @@ export async function getSidebarBadges(
   messages: number; notifications: number; documents: number; tasks: number;
   enquiries: number; fees: number; review: number; ready: number;
   avatarV: number | null;
+  /** Employee access (030): null means unrestricted. */
+  permissions: string[] | null;
 }> {
   const staffWide = role === "admin" || role === "super_admin";
 
@@ -832,6 +834,7 @@ export async function getSidebarBadges(
                       ELSE floor(extract(epoch FROM u.updated_at))::int END
           FROM users u WHERE u.id = ${userId}
         ) AS avatar_v,
+        (SELECT u.permissions FROM users u WHERE u.id = ${userId}) AS permissions,
         -- The pipeline queues, for admins only (zero for everyone else, so a
         -- consultant's sidebar never counts work that is not theirs).
         CASE WHEN ${staffWide}::boolean THEN
@@ -853,8 +856,9 @@ export async function getSidebarBadges(
       review: Number(r?.q_review ?? 0),
       ready: Number(r?.q_ready ?? 0),
       avatarV: r?.avatar_v == null ? null : Number(r.avatar_v),
+      permissions: (r?.permissions as string[] | null) ?? null,
     };
-  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, enquiries: 0, fees: 0, review: 0, ready: 0, avatarV: null });
+  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, enquiries: 0, fees: 0, review: 0, ready: 0, avatarV: null, permissions: null });
 }
 
 /** Unread count for the sidebar badge. */
@@ -994,12 +998,15 @@ export type AdvisorLoad = {
   lastLoginAt: string | null;
   avatarV?: number | null;
   consultantCode?: string | null;
+  memberNo?: number | null;
+  /** Employee access (030); null = unrestricted. */
+  permissions?: string[] | null;
 };
 
 export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.consultant_code,
+      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.consultant_code, u.member_no, u.permissions,
              CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v,
              count(DISTINCT sa.client_id)::int AS client_count,
              count(DISTINCT c.id) FILTER (
@@ -1018,7 +1025,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       LEFT JOIN staff_assignments sa ON sa.advisor_id = u.id
       LEFT JOIN cases c ON c.advisor_id = u.id
       WHERE u.role IN ('advisor','admin','super_admin')
-      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at, u.consultant_code
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at, u.consultant_code, u.member_no, u.permissions
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -1033,6 +1040,8 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       lastLoginAt: iso(r.last_login_at),
       avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
       consultantCode: r.consultant_code ? String(r.consultant_code) : null,
+      memberNo: r.member_no == null ? null : Number(r.member_no),
+      permissions: (r.permissions as string[] | null) ?? null,
     }));
   }, []);
 }

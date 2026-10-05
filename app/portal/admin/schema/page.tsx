@@ -4,6 +4,7 @@ import { schemaStatus } from "@/lib/db/migrator";
 import { storageDiagnosis, storageProbe, supabaseBucketName } from "@/lib/storage";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { SchemaPanel } from "@/components/portal/SchemaPanel";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const metadata: Metadata = { title: "Database & storage" };
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic";
  * the product, in words that name the variable.
  */
 export default async function SchemaPage() {
-  await requireAdmin();
+  await requireArea("system");
 
   const [schema, probe] = await Promise.all([schemaStatus(), storageProbe()]);
   const storage = storageDiagnosis();

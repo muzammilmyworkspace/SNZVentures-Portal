@@ -4,6 +4,7 @@ import { broadcastMessage } from "@/lib/db/repos/portal";
 import { userIdsForFilter, type UserFilter } from "@/lib/db/repos/users";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
 
   if (!rateLimit(`broadcast:${session.userId}`, { limit: 10, windowMs: 10 * 60_000 }).ok) {
     return NextResponse.json({ ok: false, error: "Too many sends. Wait a few minutes." }, { status: 429 });

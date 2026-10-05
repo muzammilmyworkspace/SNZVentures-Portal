@@ -12,6 +12,7 @@ import * as oauthRepo from "@/lib/db/repos/oauth";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { DriveConnect } from "@/components/portal/DriveConnect";
 import { McpConnect } from "@/components/portal/McpConnect";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const metadata: Metadata = { title: "Integrations", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function IntegrationsPage({
 }: {
   searchParams: Promise<{ drive?: string }>;
 }) {
-  const { session } = await requireAdmin();
+  const { session } = await requireArea("system");
   const { drive } = await searchParams;
   const status = await connectionStatus();
   const keys = await mcpTokens.list(session.userId);

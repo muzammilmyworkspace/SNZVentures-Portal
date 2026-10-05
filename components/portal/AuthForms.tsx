@@ -341,7 +341,8 @@ const PATHWAYS = [
 export function RegisterForm({
   invite,
   invitedEmail,
-}: { invite?: string; invitedEmail?: string | null } = {}) {
+  invitedName,
+}: { invite?: string; invitedEmail?: string | null; invitedName?: string | null } = {}) {
   /*
     1 pathway, 2 details, 3 password. Splitting the details off the password
     is what makes room to ask for a phone number and a location without the
@@ -349,7 +350,7 @@ export function RegisterForm({
   */
   const [step, setStep] = useState(1);
   const [pathway, setPathway] = useState<string | null>(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(invitedName ?? "");
   /*
     Locked to the invitation when there is one. The consultant addressed it to
     this person at this address, and that is where it arrived — letting it be

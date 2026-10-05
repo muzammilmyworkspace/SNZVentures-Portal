@@ -90,6 +90,8 @@ export async function createInvite(input: {
   createdBy: string;
   email?: string | null;
   note?: string | null;
+  /** The student's name, for the email greeting and the sign-up form. */
+  name?: string | null;
   ttlDays?: number;
 }): Promise<{ id: string; token: string; expiresAt: string } | null> {
   if (!isDatabaseConfigured()) return null;
@@ -101,10 +103,11 @@ export async function createInvite(input: {
   return safeQuery(async () => {
     const rows = await db()`
       INSERT INTO student_invites
-        (consultant_id, created_by, token_hash, email, note, expires_at)
+        (consultant_id, created_by, token_hash, email, note, name, expires_at)
       VALUES (
         ${input.consultantId}, ${input.createdBy}, ${hashToken(raw)},
         ${input.email?.trim().toLowerCase() || null}, ${input.note?.trim() || null},
+        ${input.name?.trim().slice(0, 120) || null},
         ${expires}
       )
       RETURNING id, expires_at
@@ -123,6 +126,7 @@ export type InvitePreview = {
   /** The address the invitation was sent to; the account is created with it. */
   email: string | null;
   expiresAt: string;
+  name?: string | null;
 };
 
 /**
@@ -140,7 +144,7 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
   if (!isDatabaseConfigured() || !rawToken) return null;
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT i.expires_at, i.email, u.name AS consultant_name
+      SELECT i.expires_at, i.email, i.name, u.name AS consultant_name
         FROM student_invites i
         JOIN users u ON u.id = i.consultant_id
        WHERE i.token_hash = ${hashToken(rawToken)}
@@ -155,6 +159,7 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
     return {
       consultantName: String(rows[0].consultant_name),
       email: rows[0].email ? String(rows[0].email) : null,
+      name: rows[0].name ? String(rows[0].name) : null,
       expiresAt: new Date(String(rows[0].expires_at)).toISOString(),
     };
   }, null);

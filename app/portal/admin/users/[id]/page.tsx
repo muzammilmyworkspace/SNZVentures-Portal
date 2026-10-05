@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { permissionsOf } from "@/lib/auth/permissions";
+import { canUse } from "@/lib/portal/permissions";
 import { requireStaff, isAdmin } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
@@ -67,6 +69,8 @@ export default async function AdminUserPage({
 }) {
   const { id } = await params;
   const { session, role } = await requireStaff();
+  // An employee without the Users area cannot open client files either.
+  if (!canUse(role, await permissionsOf(session.userId), "users")) redirect("/portal/admin");
 
   if (!isDatabaseConfigured()) {
     return (

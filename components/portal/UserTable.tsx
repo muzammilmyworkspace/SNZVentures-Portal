@@ -8,7 +8,7 @@ import { ROLE_LABEL, type Role, CLIENT_ROLES } from "@/lib/auth/types";
 import { StatusPill } from "./Pieces";
 import { Avatar } from "./Avatar";
 import { MessageBar } from "./MessageBar";
-import { memberId } from "@/lib/portal/member-id";
+import { memberId, groupOf } from "@/lib/portal/member-id";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -215,19 +215,20 @@ export function UserTable({
                     </span>
                   </td>
 
-                  <td className="whitespace-nowrap px-5 py-3 font-mono text-[0.8rem] font-semibold text-muted">
+                  <td data-group={groupOf(u.role)} className="group-id whitespace-nowrap px-5 py-3 font-mono text-[0.8rem] font-semibold">
                     {memberId(u.role, u.memberNo ?? null)}
                   </td>
 
                   <td className="px-5 py-3">
                     {locked ? (
-                      <span className="label text-faint">{ROLE_LABEL[u.role]}</span>
+                      <span data-group={groupOf(u.role)} className="group-tag">{ROLE_LABEL[u.role]}</span>
                     ) : (
                       <select
                         aria-label={`Role for ${u.name}`}
                         value={u.role}
                         disabled={pending}
                         onChange={(e) => act(u.id, { action: "set_role", role: e.target.value })}
+                        data-group={groupOf(u.role)}
                         className="chip-select"
                       >
                         {grantable.map((r) => (

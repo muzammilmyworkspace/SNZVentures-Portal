@@ -7,6 +7,7 @@ import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import type { Role } from "@/lib/auth/types";
 import * as store from "@/lib/auth/store";
 import { siteUrl } from "@/lib/site-url";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
 
   const ip = clientIp(request);
   if (!rateLimit(`admin:${session.userId}`, { limit: 60, windowMs: 5 * 60_000 }).ok) {

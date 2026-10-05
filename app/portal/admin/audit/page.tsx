@@ -4,6 +4,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
+import { requireArea } from "@/lib/auth/permissions";
 
 export default async function AuditPage({
   searchParams,
@@ -11,7 +12,7 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  await requireAdmin();
+  await requireArea("system");
 
   if (!isDatabaseConfigured()) {
     return (

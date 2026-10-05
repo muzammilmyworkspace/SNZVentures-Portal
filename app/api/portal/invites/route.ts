@@ -61,7 +61,11 @@ export async function POST(request: Request) {
   } catch {
     body = {};
   }
-  const { email, note, forConsultantId } = (body ?? {}) as Record<string, unknown>;
+  const { email, note, forConsultantId, name } = (body ?? {}) as Record<string, unknown>;
+  const studentName = typeof name === "string" ? name.trim().slice(0, 120) : "";
+  if (studentName.length < 2) {
+    return NextResponse.json({ ok: false, error: "Enter the student's name." }, { status: 400 });
+  }
 
   /*
     The id comes from the session unless an ADMIN names one. Reading it from
@@ -105,6 +109,7 @@ export async function POST(request: Request) {
     createdBy: session.userId,
     email: typeof email === "string" ? email.slice(0, 200) : null,
     note: typeof note === "string" ? note.slice(0, 200) : null,
+    name: studentName,
   });
 
   if (!created) {
@@ -137,15 +142,15 @@ export async function POST(request: Request) {
         to,
         subject: `${session.name} has invited you to SnZ Ventures`,
         text: [
-          "Hello,",
+          `Hello ${studentName.split(/\s+/)[0]},`,
           "",
           `${session.name} at SnZ Ventures has invited you to create your account.`,
           "",
           "Open this link to get started — it works once, and expires in 14 days:",
           link,
           "",
-          "You will be asked to choose a password, and then you can fill in your",
-          "application and upload your documents.",
+          "You will add your photo and a few details, choose a password, and then",
+          "you can fill in your application and upload your documents.",
           "",
           "If you were not expecting this, ignore this message. Nothing is created",
           "until you fill in the form yourself.",

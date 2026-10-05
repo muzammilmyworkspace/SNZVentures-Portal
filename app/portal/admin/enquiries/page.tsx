@@ -13,6 +13,7 @@ import { Avatar } from "@/components/portal/Avatar";
 import { whatsappLink } from "@/lib/portal/whatsapp";
 import Link from "next/link";
 import type { Enquiry } from "@/lib/db/repos/enquiries";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const metadata: Metadata = buildMetadata({
   title: "Website enquiries",
@@ -95,7 +96,7 @@ export default async function EnquiriesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  await requireRole(ADMIN_ROLES, "/portal/admin/enquiries");
+  await requireArea("enquiries");
 
   if (!isDatabaseConfigured()) {
     return (

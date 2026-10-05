@@ -67,7 +67,7 @@ export default async function PortalLayout({ children }: { children: React.React
     another, that alone was enough to hit the gateway timeout. It is now a
     single statement returning all four counts.
   */
-  const { avatarV, ...badges }: Badges & { avatarV?: number | null } = isDatabaseConfigured()
+  const { avatarV, permissions, ...badges }: Badges & { avatarV?: number | null; permissions?: string[] | null } = isDatabaseConfigured()
     ? await repo.getSidebarBadges(session.userId, session.role)
     : {};
 
@@ -129,6 +129,7 @@ export default async function PortalLayout({ children }: { children: React.React
       name={session.name}
       userId={session.userId}
       avatarV={avatarV ?? null}
+      permissions={permissions ?? null}
       role={session.role}
       badges={badges}
       lockedPaths={lockedPaths}

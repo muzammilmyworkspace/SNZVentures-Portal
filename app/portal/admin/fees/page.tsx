@@ -10,6 +10,7 @@ import { FeeReview } from "@/components/portal/FeeReview";
 import { Pager, paginate, pageFrom } from "@/components/portal/Pager";
 import { Person } from "@/components/portal/Avatar";
 import { BroughtByTag, DateTag, SlipButton } from "@/components/portal/FeeBits";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const metadata: Metadata = { title: "Fee verification" };
 
@@ -34,7 +35,7 @@ export default async function AdminFeesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  await requireAdmin();
+  await requireArea("fees");
 
   if (!isDatabaseConfigured()) {
     return (

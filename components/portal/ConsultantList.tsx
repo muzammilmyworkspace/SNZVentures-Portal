@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { DataTable, Row, Cell, StatusPill } from "@/components/portal/Pieces";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { Avatar } from "@/components/portal/Avatar";
+import { memberId } from "@/lib/portal/member-id";
+import { AREAS } from "@/lib/portal/permissions";
+import { EmployeeAccess } from "@/components/portal/EmployeeAccess";
 import type { AdvisorLoad, AdvisorClient, StaffProfile } from "@/lib/db/repos/portal";
 
 /**
@@ -113,6 +116,7 @@ export function ConsultantList({
   canDelete,
   canEdit,
   viewerId,
+  kind = "consultant",
 }: {
   consultants: AdvisorLoad[];
   clients: AdvisorClient[];
@@ -125,7 +129,10 @@ export function ConsultantList({
   canEdit: boolean;
   /** Nobody operates on their own row — the admin API refuses it outright. */
   viewerId: string;
+  /** Consultants (code, students) or employees (ID, access). */
+  kind?: "consultant" | "employee";
 }) {
+  const employee = kind === "employee";
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -247,58 +254,48 @@ export function ConsultantList({
       )}
 
       <DataTable
-        columns={[
-          "#",
-          "Consultant",
-          "Students",
-          "Open",
-          "Waiting on student",
-          "Last signed in",
-          "Active",
-          "",
-        ]}
-        caption="Consultants and what each one is carrying"
-        minWidth={980}
+        columns={["#", employee ? "ID" : "Code", "Name", "Email", employee ? "Access" : "Students", "Active", ""]}
+        caption={employee ? "Employees" : "Consultants"}
+        minWidth={900}
       >
         {consultants.map((c, idx) => (
           <Row key={c.id}>
             <Cell muted><span className="num">{idx + 1}</span></Cell>
             <Cell>
-              <span className="flex items-start gap-3">
-              <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} size="md" />
-              <span className="min-w-0">
-              {c.name}
-              <span className="mt-0.5 block text-[0.78rem] text-faint">{c.email}</span>
-              {c.consultantCode && (
-                <span
-                  className="tip mt-1.5 inline-block rounded-[6px] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 font-mono text-[0.75rem] font-semibold tracking-wide text-accent"
-                  data-tip="Students enter this code at sign-up"
-                  tabIndex={0}
-                >
-                  {c.consultantCode}
-                </span>
+              <span
+                data-group={employee ? "employee" : "consultant"}
+                className="group-id whitespace-nowrap font-mono text-[0.82rem] font-semibold"
+              >
+                {employee ? memberId(c.role, c.memberNo ?? null) : c.consultantCode ?? "—"}
+              </span>
+            </Cell>
+            <Cell>
+              <span className="flex items-center gap-3 whitespace-nowrap">
+                <Avatar id={c.id} name={c.name} photo={c.avatarV != null} v={c.avatarV} size="md" />
+                <span className="text-fg">{c.name}</span>
+                {c.role === "super_admin" && <span className="text-[0.7rem] text-faint">Super admin</span>}
+              </span>
+            </Cell>
+            <Cell muted>
+              <span className="whitespace-nowrap">{c.email}</span>
+            </Cell>
+            <Cell>
+              {employee ? (
+                c.role === "super_admin" || c.permissions == null ? (
+                  <span className="text-[0.82rem] text-fg">Full access</span>
+                ) : (
+                  <span
+                    className="tip whitespace-nowrap text-[0.82rem] text-fg"
+                    data-tip={c.permissions.map((k) => AREAS.find((a) => a.key === k)?.label ?? k).join(", ")}
+                    tabIndex={0}
+                  >
+                    {c.permissions.length} {c.permissions.length === 1 ? "area" : "areas"}
+                  </span>
+                )
+              ) : (
+                <span className="num">{c.clientCount}</span>
               )}
-              {/* Only worth saying when it is not the expected one. */}
-              {c.role !== "advisor" && (
-                <span className="mt-1 inline-block text-[0.72rem] text-faint">
-                  {ROLE_LABEL[c.role as Role]}
-                </span>
-              )}
-              </span>
-              </span>
             </Cell>
-            <Cell>
-              <span className="num">{c.clientCount}</span>
-            </Cell>
-            <Cell>
-              <span className="num">{c.openCases}</span>
-            </Cell>
-            <Cell>
-              <span className={c.needsAttention > 0 ? "num text-accent" : "num text-faint"}>
-                {c.needsAttention}
-              </span>
-            </Cell>
-            <Cell muted>{when(c.lastLoginAt)}</Cell>
             <Cell>
               {/*
                 Suspension is the reversible control, and the one to reach for
@@ -337,12 +334,25 @@ export function ConsultantList({
               )}
             </Cell>
             <Cell>
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex flex-nowrap items-center justify-end gap-2">
                 {/*
                   Only for consultants, only when active, and only for a super
                   admin. The server refuses every other combination anyway —
                   this just declines to offer a button that cannot work.
                 */}
+                {employee && (
+                  <span
+                    tabIndex={0}
+                    aria-label="Staff accounts cannot be viewed as"
+                    data-tip="Staff accounts can't be viewed as"
+                    className="tip flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-[var(--radius-sm)] border border-line text-faint opacity-50"
+                  >
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-4 w-4">
+                      <path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6" />
+                      <path d="M10 5l3 3-3 3M13 8H6" />
+                    </svg>
+                  </span>
+                )}
                 {canViewAs && c.role === "advisor" && c.status === "active" && (
                   <button
                     type="button"
@@ -382,7 +392,7 @@ export function ConsultantList({
                       setConfirmId(c.id);
                     }}
                     aria-label={`Delete ${c.name}`}
-                    data-tip="Delete consultant"
+                    data-tip={employee ? "Delete employee" : "Delete consultant"}
                     className="tip flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--danger-line)] text-danger transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
                   >
                     <TrashIcon />
@@ -611,6 +621,12 @@ export function ConsultantList({
                   </div>
                 </form>
               ) : (
+                <>
+                {employee && open.role === "admin" && (
+                  <div className="mt-3">
+                    <EmployeeAccess userId={open.id} permissions={open.permissions ?? null} canEdit={canEdit} />
+                  </div>
+                )}
                 <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
                   <Detail label="Full name" value={open.name} />
                   <Detail label="Email" value={open.email} />
@@ -621,6 +637,7 @@ export function ConsultantList({
                   <Detail label="Zip / postcode" value={profile?.postcode} />
                   <Detail label="Country" value={profile?.country} />
                 </dl>
+                </>
               )}
 
               <h3 className="label mt-7 text-faint">Their students</h3>
