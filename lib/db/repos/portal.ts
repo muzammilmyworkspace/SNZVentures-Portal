@@ -123,6 +123,8 @@ export type NotificationRow = {
   href: string | null;
   read: boolean;
   createdAt: string;
+  /** message, document, status, appointment, task or general. */
+  kind: string;
 };
 
 const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null);
@@ -693,6 +695,7 @@ export async function getNotifications(userId: string, limit = 50): Promise<Noti
       title: String(r.title),
       body: r.body ? String(r.body) : null,
       href: r.href ? String(r.href) : null,
+      kind: r.kind ? String(r.kind) : "general",
       read: Boolean(r.read_at),
       createdAt: iso(r.created_at)!,
     }));
@@ -917,6 +920,24 @@ export async function countUnreadMessages(userId: string, role: Role): Promise<n
 }
 
 /** Same reasoning as markConversationRead — bookkeeping must not break a page. */
+/**
+ * Open one notification: mark it read (only if it is the caller's) and say
+ * where it points. Null when it is not theirs.
+ */
+export async function openNotification(
+  userId: string,
+  id: string
+): Promise<{ href: string | null; kind: string } | null> {
+  return safeQuery(async () => {
+    const [r] = await db()`
+      UPDATE notifications SET read_at = COALESCE(read_at, now())
+       WHERE id = ${id} AND user_id = ${userId}
+      RETURNING href, kind
+    `;
+    return r ? { href: r.href ? String(r.href) : null, kind: String(r.kind ?? "general") } : null;
+  }, null);
+}
+
 export async function markNotificationsRead(userId: string) {
   await safeQuery(async () => {
     await db()`

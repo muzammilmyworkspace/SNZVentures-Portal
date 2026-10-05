@@ -9,6 +9,7 @@ import { ROLE_LABEL, type Role } from "@/lib/auth/types";
 import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey } from "@/lib/portal/roles";
 import { clearDraft } from "@/lib/portal/fee-draft";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { PortalBackdrop } from "./PortalBackdrop";
@@ -382,6 +383,8 @@ export function PortalShell({
                 {status.label}
               </span>
             )}
+
+            <NotificationBell unread={badges.notifications ?? 0} />
 
             <ThemeToggle />
 
