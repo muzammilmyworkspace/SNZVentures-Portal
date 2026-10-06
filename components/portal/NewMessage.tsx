@@ -39,12 +39,20 @@ const plusIcon = (
  * NEW MESSAGE — admins. Find anyone on the portal by name or email, write,
  * send; it lands in their own chat and the sender is taken into the thread.
  */
-export function NewMessageButton() {
+export function NewMessageButton({
+  preset = null,
+  studentsOnly = false,
+}: {
+  /** Write to this person, from a row's message icon. Drawn as an icon button. */
+  preset?: Person | null;
+  /** The student desk can only write to students. */
+  studentsOnly?: boolean;
+} = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<Person[]>([]);
-  const [to, setTo] = useState<Person | null>(null);
+  const [to, setTo] = useState<Person | null>(preset);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +79,7 @@ export function NewMessageButton() {
   function close() {
     setOpen(false);
     setQ("");
-    setTo(null);
+    setTo(preset);
     setText("");
     setError(null);
   }
@@ -97,14 +105,28 @@ export function NewMessageButton() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-[0.95rem] font-semibold text-[#070B1A] transition-opacity hover:opacity-90"
-      >
-        {plusIcon}
-        New message
-      </button>
+      {preset ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Message ${preset.name}`}
+          data-tip="Message"
+          className="tip icon-btn"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
+            <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" />
+          </svg>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-[0.95rem] font-semibold text-[#070B1A] transition-opacity hover:opacity-90"
+        >
+          {plusIcon}
+          New message
+        </button>
+      )}
       {open && (
         <Window title="New message" onClose={close}>
           <label htmlFor="nm-to" className="field-label">To</label>
@@ -117,9 +139,11 @@ export function NewMessageButton() {
                   <span className="block text-[0.78rem] text-faint">{to.email}</span>
                 </span>
               </span>
-              <button type="button" onClick={() => setTo(null)} className="text-[0.8rem] text-muted underline underline-offset-4 hover:text-fg">
-                Change
-              </button>
+              {!preset && (
+                <button type="button" onClick={() => setTo(null)} className="text-[0.8rem] text-muted underline underline-offset-4 hover:text-fg">
+                  Change
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -128,7 +152,7 @@ export function NewMessageButton() {
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search a student, consultant or employee by name or email"
+                placeholder={studentsOnly ? "Search a student by name or email" : "Search a student, consultant or employee by name or email"}
                 className="field mt-1.5"
               />
               {people.length > 0 && (

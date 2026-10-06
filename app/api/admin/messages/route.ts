@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiRequireAdmin } from "@/lib/auth/guard";
-import { apiAreaAllowed } from "@/lib/auth/permissions";
+import { apiAreaAllowed, onStudentDesk } from "@/lib/auth/permissions";
+import { onDesk } from "@/lib/db/repos/student-desk";
 import { broadcastMessageTo } from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
@@ -19,7 +20,8 @@ export async function POST(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
-  const denied = await apiAreaAllowed(session, "users");
+  const desk = await onStudentDesk(session);
+  const denied = desk ? null : await apiAreaAllowed(session, "users");
   if (denied) return denied;
 
   if (!rateLimit(`newmsg:${session.userId}`, { limit: 40, windowMs: 10 * 60_000 }).ok) {
@@ -36,6 +38,10 @@ export async function POST(request: Request) {
   const text = typeof body.body === "string" ? body.body.trim().slice(0, 4000) : "";
   if (!/^[0-9a-f-]{36}$/i.test(userId)) return NextResponse.json({ ok: false, error: "Choose who to send it to." }, { status: 400 });
   if (text.length < 1) return NextResponse.json({ ok: false, error: "Write the message first." }, { status: 400 });
+  // The student desk writes to the students on it, nobody else.
+  if (desk && !(await onDesk(userId))) {
+    return NextResponse.json({ ok: false, error: "You can message students on your list only." }, { status: 403 });
+  }
 
   const [conversationId] = await broadcastMessageTo(session.userId, [userId], text);
   if (!conversationId) return NextResponse.json({ ok: false, error: "That person could not be messaged." }, { status: 400 });

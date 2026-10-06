@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOpen } from "@/lib/portal/gate";
 import { requireUser, isAdmin } from "@/lib/auth/guard";
+import { onStudentDesk } from "@/lib/auth/permissions";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { PortalHeading, Panel, EmptyState, StatusPill, Tabs } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
@@ -141,7 +142,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
     );
   }
 
-  const all = await allConsultations();
+  // The student desk handles students' meetings only.
+  const desk = await onStudentDesk(session);
+  const all = (await allConsultations()).filter((c) => !desk || c.requesterRole === "student");
   const now = Date.now();
   const hourAgo = now - 60 * 60_000;
   const groups = {

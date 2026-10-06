@@ -13,7 +13,30 @@ export const AREAS = [
   { key: "users", label: "Users", hint: "Everyone on the portal, messages to many, student files" },
   { key: "consultants", label: "Consultants", hint: "The consultant list and their workload" },
   { key: "employees", label: "Employees", hint: "The staff list" },
+  {
+    key: "students",
+    label: "Students",
+    hint: "Fee-verified students: their files, documents and applications. Not who brought them",
+  },
 ] as const;
+
+/**
+ * THE "ADMIN" ROLE: an employee who works students' files from the verified
+ * fee to the submitted application, and sees nothing else. Not the consultant
+ * who brought a student, not where they came from, not the rest of the firm.
+ */
+export const STUDENT_DESK: string[] = ["students"];
+
+/** Is this an employee limited to the student desk? */
+export function isStudentDesk(role: string, permissions: string[] | null | undefined): boolean {
+  return (
+    role === "admin" &&
+    permissions != null &&
+    permissions.includes("students") &&
+    !permissions.includes("users") &&
+    !permissions.includes("consultants")
+  );
+}
 
 /**
  * "system" (audit log, database, integrations) is never offered as a tick
@@ -25,6 +48,7 @@ export const AREA_KEYS = AREAS.map((a) => a.key) as Area[];
 /** The area a staff page belongs to, or null for pages every admin may open. */
 export function areaForPath(path: string): Area | null {
   if (path.startsWith("/portal/admin/enquiries")) return "enquiries";
+  if (path.startsWith("/portal/admin/students")) return "students";
   if (path.startsWith("/portal/admin/fees")) return "fees";
   if (/^\/portal\/admin\/(requests|ready|applied|completed)(\/|$)/.test(path)) return "applications";
   if (path.startsWith("/portal/admin/users")) return "users";

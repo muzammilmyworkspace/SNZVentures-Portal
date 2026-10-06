@@ -7,6 +7,7 @@ import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { ChatPanel } from "@/components/portal/ChatPanel";
 import * as repo from "@/lib/db/repos/portal";
 import { NewMessageButton, MessageFirmButton } from "@/components/portal/NewMessage";
+import { onStudentDesk } from "@/lib/auth/permissions";
 import { Avatar } from "@/components/portal/Avatar";
 import { groupOf } from "@/lib/portal/member-id";
 
@@ -40,7 +41,11 @@ export default async function MessagesPage() {
   const staff = isStaff(session.role);
 
   if (staff) {
-    const conversations = await repo.getConversationsForStaff(session.userId, isAdmin(session.role));
+    // The student desk sees students' threads (and its own), nobody else's.
+    const desk = await onStudentDesk(session);
+    const conversations = (await repo.getConversationsForStaff(session.userId, isAdmin(session.role))).filter(
+      (c) => !desk || c.clientId === session.userId || c.clientRole === "student"
+    );
     const waiting = conversations.filter((c) => c.unread > 0).length;
     return (
       <>
@@ -50,11 +55,13 @@ export default async function MessagesPage() {
           lead={
             waiting
               ? `${waiting} ${waiting === 1 ? "conversation is" : "conversations are"} waiting for a reply. Most recently active first.`
-              : "Conversations with students, consultants and the team, most recently active first."
+              : desk
+                ? "Conversations with students, most recently active first."
+                : "Conversations with students, consultants and the team, most recently active first."
           }
           action={
             isAdmin(session.role) ? (
-              <NewMessageButton />
+              <NewMessageButton studentsOnly={desk} />
             ) : session.role === "advisor" ? (
               <MessageFirmButton name={session.name} />
             ) : undefined

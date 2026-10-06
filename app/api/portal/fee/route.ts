@@ -255,6 +255,7 @@ export async function POST(request: Request) {
     // the note in the documents route.
     after(
       repo.notifyStaff({
+        area: "fees",
         title: `${session.name} sent a payment receipt`,
         body: `${currency} ${amount.toFixed(2)} — ${feeType}, ${university}`,
         href: "/portal/admin/fees",

@@ -347,6 +347,7 @@ export async function POST(request: Request) {
   */
   after(
     repo.notifyStaff({
+      area: "applications",
       title: `${session.name} submitted their application`,
       body: "Signed and complete — ready to review.",
       href: `/portal/admin/users/${session.userId}`,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser, isStaff } from "@/lib/auth/guard";
+import { onStudentDesk } from "@/lib/auth/permissions";
 import { Panel } from "@/components/portal/Pieces";
 import { Avatar } from "@/components/portal/Avatar";
 import { groupOf } from "@/lib/portal/member-id";
@@ -33,7 +34,11 @@ export default async function ConversationPage({
     notFound();
   }
 
-  const messages = await repo.getMessages(id);
+  // The student desk is not told which consultant a student works with.
+  const desk = await onStudentDesk(session);
+  const messages = (await repo.getMessages(id)).map((m) =>
+    desk && m.authorRole === "advisor" ? { ...m, authorName: "Consultant" } : m
+  );
   await repo.markConversationRead(id, session.userId);
   const head = await repo.conversationHeader(id);
   const staff = isStaff(session.role);
@@ -77,7 +82,7 @@ export default async function ConversationPage({
         </span>
         {staff && !withFirm && head && (
           <Link
-            href={`/portal/admin/users/${head.ownerId}`}
+            href={desk ? `/portal/admin/students?q=${encodeURIComponent(head.email)}` : `/portal/admin/users/${head.ownerId}`}
             className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[0.88rem] text-fg transition-colors hover:border-[var(--accent)] hover:text-accent"
           >
             Open their file

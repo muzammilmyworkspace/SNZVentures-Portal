@@ -42,6 +42,7 @@ const ADVISOR_SAFE = {
   cases: "getCasesForAdvisor joins staff_assignments; only an admin gets getAllCases.",
   "my-students": "getAssignedClients and getCasesForAdvisor, both scoped to the session user.",
   "users/[id]": "An advisor is 404'd for a client not assigned to them, resolved in SQL.",
+  "forms/consent": "An advisor sees only the consent text in use (activeConsent); no client data, and the editing parts are super admin only.",
 };
 
 async function pages(dir, prefix = "") {
@@ -70,6 +71,8 @@ for (const page of found.sort()) {
     /requireSuperAdmin\s*\(/.test(src) ||
     // requireArea (lib/auth/permissions) runs requireAdmin first, then the employee area check.
     /requireArea\s*\(/.test(src) ||
+    // requireAreaOrDesk: requireAdmin, then the student desk or the area check.
+    /requireAreaOrDesk\s*\(/.test(src) ||
     /requireRole\s*\(\s*ADMIN_ROLES/.test(src);
 
   const reason = ADVISOR_SAFE[page];

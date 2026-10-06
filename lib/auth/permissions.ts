@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { db, safeQuery, isDatabaseConfigured } from "@/lib/db/client";
 import { requireAdmin, apiRequireUser } from "@/lib/auth/guard";
-import { canUse, type Area } from "@/lib/portal/permissions";
+import { canUse, isStudentDesk, type Area } from "@/lib/portal/permissions";
 import type { Session } from "@/lib/auth/types";
 
 /**
@@ -33,8 +33,34 @@ export async function requireArea(area: Area) {
  */
 export async function apiAreaAllowed(session: Session, area: Area): Promise<NextResponse | null> {
   if (session.role !== "admin") return null;
-  if (canUse(session.role, await permissionsOf(session.userId), area)) return null;
+  const permissions = await permissionsOf(session.userId);
+  if (canUse(session.role, permissions, area)) return null;
+  // The student desk does the application work (review, documents) from its
+  // own page, so the APIs behind that work are open to it.
+  if (area === "applications" && permissions?.includes("students")) return null;
   return NextResponse.json({ ok: false, error: "You do not have access to this area." }, { status: 403 });
+}
+
+/**
+ * Page guard for pages the student desk reaches by an old link (a
+ * notification, a message thread): send the desk to its Students page,
+ * keeping the student or application the link was about.
+ */
+export async function requireAreaOrDesk(area: Area, desk: Record<string, string | undefined> = {}) {
+  const guard = await requireAdmin();
+  const permissions = await permissionsOf(guard.session.userId);
+  if (isStudentDesk(guard.session.role, permissions)) {
+    const q = new URLSearchParams(Object.entries(desk).filter((e): e is [string, string] => Boolean(e[1])));
+    redirect(`/portal/admin/students${q.size ? `?${q}` : ""}`);
+  }
+  if (!canUse(guard.session.role, permissions, area)) redirect("/portal/admin");
+  return guard;
+}
+
+/** Is this signed-in person an employee limited to the student desk? */
+export async function onStudentDesk(session: Session): Promise<boolean> {
+  if (session.role !== "admin") return false;
+  return isStudentDesk(session.role, await permissionsOf(session.userId));
 }
 
 export { apiRequireUser };

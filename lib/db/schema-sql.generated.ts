@@ -172,4 +172,9 @@ export const MIGRATIONS: readonly Migration[] = [
     checksum: "8251b2fb4943a75d",
     sql: "-- ---------------------------------------------------------------------------\n-- A LOGO ON THE CONSENT.\n--\n-- Shown at the head of the consent students read and sign. Kept in the row\n-- itself (it is small, capped at 512 KB by the API) so it works without file\n-- storage and stays with the version it was published in.\n-- ---------------------------------------------------------------------------\n\nALTER TABLE consent_templates\n  ADD COLUMN IF NOT EXISTS logo_data BYTEA,\n  ADD COLUMN IF NOT EXISTS logo_type TEXT;\n",
   },
+  {
+    name: "034_student_desk.sql",
+    checksum: "7b8c905baa4a9e9a",
+    sql: "-- ---------------------------------------------------------------------------\n-- THE STUDENT DESK (\"Admin\" employees).\n--\n-- An Admin is added by the super admin with a name and email, gets a\n-- sign-in and a first password by email, and on first sign-in adds their\n-- photo and details and chooses their own password. Until they have,\n-- must_onboard keeps them on that one screen.\n-- ---------------------------------------------------------------------------\n\nALTER TABLE users\n  ADD COLUMN IF NOT EXISTS must_onboard BOOLEAN NOT NULL DEFAULT FALSE;\n",
+  },
 ];

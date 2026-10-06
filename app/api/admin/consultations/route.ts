@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiRequireAdmin } from "@/lib/auth/guard";
+import { onStudentDesk } from "@/lib/auth/permissions";
 import { getConsultation, scheduleConsultation, closeConsultation } from "@/lib/db/repos/consultations";
 import { notify } from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
@@ -40,6 +41,9 @@ export async function PATCH(request: Request) {
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, 1000) : null;
   const before = id ? await getConsultation(id) : null;
   if (!before) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+  if (before.requesterRole !== "student" && (await onStudentDesk(session))) {
+    return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+  }
 
   if (action === "schedule") {
     const startsAt = typeof body.startsAt === "string" ? new Date(body.startsAt) : null;

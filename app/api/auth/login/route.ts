@@ -5,6 +5,7 @@ import { createToken, setSessionCookie, authConfigured } from "@/lib/auth/sessio
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { audit } from "@/lib/db/repos/audit";
 import { homeFor } from "@/lib/portal/roles";
+import { mustOnboard } from "@/lib/db/repos/student-desk";
 
 export const runtime = "nodejs";
 
@@ -130,5 +131,7 @@ export async function POST(request: Request) {
     Returning it means the browser never has to guess where a role belongs, and
     never gets to choose — it follows what the server says.
   */
-  return NextResponse.json({ ok: true, role: user.role, redirectTo: homeFor(user.role) });
+  // An Admin signing in with the emailed password goes to /welcome first.
+  const firstTime = user.role === "admin" && (await mustOnboard(user.id));
+  return NextResponse.json({ ok: true, role: user.role, redirectTo: firstTime ? "/welcome" : homeFor(user.role) });
 }

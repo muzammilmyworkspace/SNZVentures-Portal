@@ -24,6 +24,9 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [areas, setAreas] = useState<string[]>([]);
+  // Employees: the "Admin" role (students only) or access chosen area by area.
+  const [role, setRole] = useState<"desk" | "custom">("desk");
+  const [creds, setCreds] = useState<{ loginUrl: string; email: string; password: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ name: string; email: string; link: string; emailed: boolean } | null>(null);
@@ -37,11 +40,14 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
     setName("");
     setEmail("");
     setAreas([]);
+    setRole("desk");
+    setCreds(null);
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (kind === "employee" && areas.length === 0) {
+    const desk = kind === "employee" && role === "desk";
+    if (kind === "employee" && !desk && areas.length === 0) {
       setError("Tick at least one area they may use.");
       return;
     }
@@ -51,7 +57,7 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
       const res = await fetch("/api/admin/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, kind, permissions: areas }),
+        body: JSON.stringify({ name, email, kind, permissions: areas, ...(desk ? { preset: "student_desk" } : {}) }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -60,9 +66,14 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
         email?: string;
         link?: string;
         emailed?: boolean;
+        password?: string;
+        loginUrl?: string;
       };
-      if (!res.ok || !data.ok || !data.link) throw new Error(data.error ?? "We couldn't create that account.");
-      setCreated({ name: data.name ?? name, email: data.email ?? email, link: data.link, emailed: Boolean(data.emailed) });
+      if (!res.ok || !data.ok || (!data.link && !data.password)) throw new Error(data.error ?? "We couldn't create that account.");
+      if (data.password && data.loginUrl) {
+        setCreds({ loginUrl: data.loginUrl, email: data.email ?? email, password: data.password });
+      }
+      setCreated({ name: data.name ?? name, email: data.email ?? email, link: data.link ?? "", emailed: Boolean(data.emailed) });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network problem. Please try again.");
@@ -106,7 +117,56 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
               </button>
             </div>
 
-            {created ? (
+            {created && creds ? (
+              <div className="mt-5 space-y-4">
+                <p className={created.emailed ? "note-ok p-4" : "note-warn p-4"}>
+                  <span className="text-[0.88rem] leading-relaxed">
+                    <strong className="font-semibold">{created.name}</strong> is now an Admin.{" "}
+                    {created.emailed
+                      ? `We have emailed ${created.email} their username and password.`
+                      : "Email is not set up here, so nothing was sent. Give them these details yourself:"}
+                  </span>
+                </p>
+                <dl className="rail space-y-2 p-4 text-[0.85rem]">
+                  {[
+                    ["Sign in at", creds.loginUrl],
+                    ["Username", creds.email],
+                    ["Password", creds.password],
+                  ].map(([k, v]) => (
+                    <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2">
+                      <dt className="text-faint">{k}</dt>
+                      <dd className="break-all font-mono text-fg">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(
+                          `Sign in at: ${creds.loginUrl}
+Username: ${creds.email}
+Password: ${creds.password}`
+                        );
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch {}
+                    }}
+                    className="inline-flex min-h-10 items-center rounded-full bg-[var(--accent)] px-4 text-[0.88rem] font-semibold text-[#070B1A]"
+                  >
+                    {copied ? "Copied" : "Copy details"}
+                  </button>
+                  <button type="button" onClick={close} className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[0.88rem] text-muted hover:text-fg">
+                    Done
+                  </button>
+                </div>
+                <p className="text-[0.78rem] text-faint">
+                  On first sign-in they add their photo and details and choose their own password. You can still open their
+                  account with View as from the list.
+                </p>
+              </div>
+            ) : created ? (
               <div className="mt-5 space-y-4">
                 <p className={created.emailed ? "note-ok p-4" : "note-warn p-4"}>
                   <span className="text-[0.88rem] leading-relaxed">
@@ -154,6 +214,37 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
 
                 {kind === "employee" && (
                   <fieldset>
+                    <legend className="field-label">Role</legend>
+                    <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                      {(
+                        [
+                          ["desk", "Admin", "Students only: their files, documents and applications, plus messages and consultations. Gets a username and password by email."],
+                          ["custom", "Custom access", "Choose the areas yourself. Gets a link to set up their account."],
+                        ] as const
+                      ).map(([k, title, hint]) => (
+                        <label
+                          key={k}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-[10px] border border-line p-3 transition-colors has-[:checked]:border-[var(--accent)] has-[:checked]:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+                        >
+                          <input
+                            type="radio"
+                            name="staff-role"
+                            checked={role === k}
+                            onChange={() => setRole(k)}
+                            className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+                          />
+                          <span>
+                            <span className="block text-[0.88rem] font-semibold text-fg">{title}</span>
+                            <span className="block text-[0.75rem] leading-snug text-faint">{hint}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+
+                {kind === "employee" && role === "custom" && (
+                  <fieldset>
                     <legend className="field-label">What they may use</legend>
                     <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
                       {AREAS.map((a) => (
@@ -187,7 +278,7 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
                     Cancel
                   </button>
                   <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-5 text-[0.9rem] font-semibold text-[#070B1A] disabled:opacity-50">
-                    {busy ? "Adding…" : `Add and send email`}
+                    {busy ? "Adding…" : kind === "employee" && role === "desk" ? "Add and send login" : "Add and send email"}
                   </button>
                 </div>
               </form>

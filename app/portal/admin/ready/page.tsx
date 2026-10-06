@@ -4,7 +4,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { PortalHeading } from "@/components/portal/Pieces";
 import { ApplicationQueue } from "@/components/portal/ApplicationQueue";
-import { requireArea } from "@/lib/auth/permissions";
+import { requireAreaOrDesk } from "@/lib/auth/permissions";
 
 export const metadata: Metadata = {
   title: "Ready to apply",
@@ -17,8 +17,8 @@ export default async function Page({
 }: {
   searchParams: Promise<{ status?: string; pathway?: string; page?: string; review?: string; docs?: string; preview?: string }>;
 }) {
-  await requireArea("applications");
   const params = await searchParams;
+  await requireAreaOrDesk("applications", { review: params.review, docs: params.docs });
   if (!isDatabaseConfigured()) {
     return (
       <>

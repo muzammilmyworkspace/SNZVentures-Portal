@@ -15,7 +15,7 @@ import { motion } from "motion/react";
 import { PortalBackdrop } from "./PortalBackdrop";
 import { useReduced } from "./useReduced";
 import { Avatar } from "./Avatar";
-import { areaForPath, canUse } from "@/lib/portal/permissions";
+import { areaForPath, canUse, isStudentDesk } from "@/lib/portal/permissions";
 
 /**
  * PORTAL CHROME
@@ -113,7 +113,11 @@ export function PortalShell({
     .map((g) => ({
       ...g,
       items: g.items.filter(
-        (i) => (!i.roles || i.roles.includes(role)) && canUse(role, permissions, areaForPath(i.href))
+        (i) =>
+          (!i.roles || i.roles.includes(role)) &&
+          canUse(role, permissions, areaForPath(i.href)) &&
+          // The student desk has no firm overview; Students is its home.
+          !(i.href === "/portal/admin" && isStudentDesk(role, permissions))
       ),
     }))
     .filter((g) => g.items.length > 0);

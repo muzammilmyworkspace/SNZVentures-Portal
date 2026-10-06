@@ -594,7 +594,24 @@ export async function canAccessConversation(
   viewerId: string,
   role: Role
 ): Promise<boolean> {
-  if (role === "admin" || role === "super_admin") return true;
+  if (role === "super_admin") return true;
+  if (role === "admin") {
+    /*
+      Every admin reads every thread, except the student desk: students'
+      threads and their own only, never a consultant's or a colleague's.
+    */
+    return safeQuery(async () => {
+      const [r] = await db()`
+        SELECT (me.permissions IS NOT NULL AND 'students' = ANY(me.permissions)
+                AND NOT ('users' = ANY(me.permissions)) AND NOT ('consultants' = ANY(me.permissions))) AS desk,
+               (cu.role = 'student' OR c.client_id = me.id) AS student_thread
+          FROM users me, conversations c JOIN users cu ON cu.id = c.client_id
+         WHERE me.id = ${viewerId} AND c.id = ${conversationId}
+      `;
+      if (!r) return false;
+      return r.desk !== true || r.student_thread === true;
+    }, false);
+  }
   return safeQuery(async () => {
     const rows = await db()`
       SELECT 1 FROM conversations c
@@ -754,6 +771,11 @@ export async function notifyStaff(input: {
   /** Whoever caused it, so they are not told about their own action. */
   actorId?: string;
   /**
+   * The area of the portal this belongs to. An employee limited to other
+   * areas is not told; the student desk hears about "applications" work.
+   */
+  area?: "enquiries" | "fees" | "applications" | "users" | "consultants";
+  /**
    * Suppress an identical title for the same person within this many minutes.
    *
    * Some things happen once — a receipt, a submitted application — and some
@@ -774,7 +796,13 @@ export async function notifyStaff(input: {
         FROM users u
        WHERE u.status = 'active'
          AND (
-           u.role IN ('admin', 'super_admin')
+           u.role = 'super_admin'
+           OR (u.role = 'admin' AND (
+                ${input.area ?? null}::text IS NULL
+                OR u.permissions IS NULL
+                OR ${input.area ?? ""} = ANY(u.permissions)
+                OR (${input.area ?? ""} = 'applications' AND 'students' = ANY(u.permissions))
+              ))
            OR u.id IN (
              SELECT a.advisor_id FROM staff_assignments a
               WHERE a.client_id = ${input.aboutUserId ?? null}

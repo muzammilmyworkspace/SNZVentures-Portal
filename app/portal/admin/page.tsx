@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ActivityChart, BarList, StudentRoster } from "@/components/portal/DashboardCharts";
 import { stageRows } from "@/lib/portal/advisor-stages";
 import { requireStaff } from "@/lib/auth/guard";
+import { onStudentDesk } from "@/lib/auth/permissions";
 import { isAdmin } from "@/lib/auth/guard";
 import {
   getAdminOverview,
@@ -77,6 +79,8 @@ export default async function AdminPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { session, role } = await requireStaff();
+  // The student desk has no overview of the firm; its home is its students.
+  if (await onStudentDesk(session)) redirect("/portal/admin/students");
   const range = resolveRange(await searchParams);
   const admin = isAdmin(role);
 

@@ -19,7 +19,16 @@ import { EscapeTo } from "./EscapeTo";
  * Access is the caller's job: the Requests page is admin only, and the API
  * that records the decision checks again.
  */
-export async function ApplicationReview({ intakeId, closeHref }: { intakeId: string; closeHref: string }) {
+export async function ApplicationReview({
+  intakeId,
+  closeHref,
+  limited = false,
+}: {
+  intakeId: string;
+  closeHref: string;
+  /** The student desk: no link to the full client file, which it cannot open. */
+  limited?: boolean;
+}) {
   const intake = await ops.getIntakeById(intakeId);
   const user = intake ? await findById(intake.userId) : null;
 
@@ -47,12 +56,14 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
           <Person id={user.id} name={user.name} sub={user.email} size="lg" />
           <div className="flex items-center gap-3">
             <StatusPill status={intake.status} label={REVIEW_LABEL[intake.status] ?? intake.status} />
-            <Link
-              href={`/portal/admin/users/${user.id}`}
-              className="label text-[0.72rem] text-faint underline-offset-4 hover:text-accent hover:underline"
-            >
-              Full client file
-            </Link>
+            {!limited && (
+              <Link
+                href={`/portal/admin/users/${user.id}`}
+                className="label text-[0.72rem] text-faint underline-offset-4 hover:text-accent hover:underline"
+              >
+                Full client file
+              </Link>
+            )}
           </div>
         </div>
       }

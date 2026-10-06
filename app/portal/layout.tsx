@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { mustOnboard } from "@/lib/db/repos/student-desk";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
 import { SessionKeepalive } from "@/components/portal/SessionKeepalive";
@@ -53,6 +54,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const session = await getSession();
   // Through the clearing route — see lib/auth/guard.ts for why not /login.
   if (!session) redirect("/api/auth/expired?next=/portal");
+  // An Admin's first sign-in: photo, details and their own password first.
+  if (session.role === "admin" && !session.impersonator && (await mustOnboard(session.userId))) redirect("/welcome");
 
   /*
     Sidebar counts, computed here so every page shows the same numbers rather

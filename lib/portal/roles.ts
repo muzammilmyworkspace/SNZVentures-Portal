@@ -277,7 +277,11 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
     */
     {
       group: "People",
-      items: [{ href: "/portal/admin/my-students", label: "Your students", icon: "users", roles: ["advisor"] }],
+      items: [
+        { href: "/portal/admin/my-students", label: "Your students", icon: "users", roles: ["advisor"] },
+        // The student desk: fee-verified students, without who brought them.
+        { href: "/portal/admin/students", label: "Students", icon: "users", roles: ["admin", "super_admin"] },
+      ],
     },
     /*
       EVERYONE WHO USES THE PORTAL, for admins. Users is the whole list with

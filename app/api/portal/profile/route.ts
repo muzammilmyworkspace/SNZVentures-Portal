@@ -67,6 +67,7 @@ export async function POST(request: Request) {
   */
   after(
     repo.notifyStaff({
+      area: session.role === "student" ? "applications" : "users",
       title: `${session.name} updated their details`,
       body: Object.keys(patch).join(", ").slice(0, 200) || undefined,
       href: `/portal/admin/users/${session.userId}`,

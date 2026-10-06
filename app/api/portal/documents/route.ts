@@ -122,6 +122,7 @@ export async function POST(request: Request) {
     */
     after(
       repo.notifyStaff({
+        area: "applications",
         title: `${session.name} uploaded a document`,
         body: label || file.name,
         // Straight to this student's documents panel, where it is approved.

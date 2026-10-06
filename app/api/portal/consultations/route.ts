@@ -49,6 +49,7 @@ export async function POST(request: Request) {
   if (!id) return NextResponse.json({ ok: false, error: "We could not save that. Please try again." }, { status: 500 });
 
   await notifyStaff({
+    area: session.role === "student" ? "applications" : "consultants",
     title: `${session.name} asked for a consultation`,
     body: [topic, preferred ? `Prefers: ${preferred}` : ""].filter(Boolean).join(" · "),
     href: `/portal/appointments?open=${id}`,

@@ -69,6 +69,7 @@ export async function POST(request: Request) {
   */
   after(
     repo.notifyStaff({
+      area: "fees",
       title: `${session.name} withdrew their payment receipt`,
       body: "They are sending a different one.",
       href: "/portal/admin/fees",

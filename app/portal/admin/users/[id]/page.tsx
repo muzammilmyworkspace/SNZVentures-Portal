@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { permissionsOf } from "@/lib/auth/permissions";
-import { canUse } from "@/lib/portal/permissions";
+import { canUse, isStudentDesk } from "@/lib/portal/permissions";
 import { requireStaff, isAdmin } from "@/lib/auth/guard";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { NotConfigured } from "@/components/portal/NotConfigured";
@@ -70,8 +70,11 @@ export default async function AdminUserPage({
 }) {
   const { id } = await params;
   const { session, role } = await requireStaff();
-  // An employee without the Users area cannot open client files either.
-  if (!canUse(role, await permissionsOf(session.userId), "users")) redirect("/portal/admin");
+  // An employee without the Users area cannot open client files either. The
+  // student desk opens the student on its own page instead.
+  const permissions = isAdmin(role) ? await permissionsOf(session.userId) : null;
+  if (isStudentDesk(role, permissions)) redirect(`/portal/admin/students?user=${encodeURIComponent(id)}`);
+  if (!canUse(role, permissions, "users")) redirect("/portal/admin");
 
   if (!isDatabaseConfigured()) {
     return (

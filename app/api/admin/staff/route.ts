@@ -10,7 +10,8 @@ import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import { isDatabaseConfigured } from "@/lib/db/client";
-import { AREA_KEYS, type Area } from "@/lib/portal/permissions";
+import { AREA_KEYS, STUDENT_DESK, type Area } from "@/lib/portal/permissions";
+import { setMustOnboard } from "@/lib/db/repos/student-desk";
 import { setPermissions } from "@/lib/db/repos/users";
 
 export const runtime = "nodejs";
@@ -45,7 +46,20 @@ const SETUP_TTL_MINUTES = 60 * 24 * 3;
  * A password sent by email is a password that lives in that inbox for ever,
  * and in the sent folder of whoever forwarded it. This avoids ever creating
  * that copy rather than trying to manage it.
+ *
+ * THE ONE EXCEPTION is the "Admin" role (the student desk), which the firm
+ * asked to receive a username and password by email. Until they choose their
+ * own at /welcome, every portal page sends them there; choosing it ends every
+ * session the emailed one started.
  */
+/** A first password that reads cleanly in an email: no 0/O, 1/l/I. */
+function makePassword(): string {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = randomBytes(12);
+  const pick = (n: number) => Array.from(bytes.subarray(n, n + 4), (b) => abc[b % abc.length]).join("");
+  return `SnZ-${pick(0)}-${pick(4)}-${pick(8)}`;
+}
+
 export async function POST(request: Request) {
   const guard = await apiRequireSuperAdmin();
   if (!guard.ok) return guard.response;
@@ -73,14 +87,22 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
-  const { name, email, kind, permissions } = (body ?? {}) as Record<string, unknown>;
+  const { name, email, kind, permissions, preset } = (body ?? {}) as Record<string, unknown>;
   /*
     CONSULTANT OR EMPLOYEE. An employee is an admin account limited to the
     areas ticked when they were added (030); an empty list is refused, since
     an employee who can open nothing is a mistake, not a choice.
   */
   const isEmployee = kind === "employee";
-  const areas = isEmployee && Array.isArray(permissions)
+  /*
+    THE "ADMIN" ROLE (the student desk): students only, from the verified fee
+    to the submitted application. Signs in with a password sent by email and
+    must choose their own on first sign-in (see /portal/welcome).
+  */
+  const desk = isEmployee && preset === "student_desk";
+  const areas = desk
+    ? (STUDENT_DESK as Area[])
+    : isEmployee && Array.isArray(permissions)
     ? [...new Set(permissions.filter((p): p is Area => typeof p === "string" && (AREA_KEYS as string[]).includes(p)))]
     : [];
   if (isEmployee && areas.length === 0) {
@@ -117,13 +139,14 @@ export async function POST(request: Request) {
   }
 
   let user;
+  let firstPassword = "";
   try {
     user = await usersRepo.createUser({
       email,
       name,
       role,
       // Random, hashed, and immediately out of scope. Nobody ever holds it.
-      passwordHash: await hashPassword(randomBytes(32).toString("base64url")),
+      passwordHash: await hashPassword(desk ? (firstPassword = makePassword()) : randomBytes(32).toString("base64url")),
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -141,6 +164,61 @@ export async function POST(request: Request) {
     usable only on its own page. See migration 022.
   */
   if (isEmployee) await setPermissions(user.id, areas);
+
+  if (desk) {
+    await usersRepo.setEmailVerified(user.id);
+    await setMustOnboard(user.id, true);
+    const loginUrl = `${siteUrl()}/login`;
+    let sent = false;
+    if (await mailConfigured()) {
+      try {
+        await sendMail({
+          to: user.email,
+          subject: "Your SnZ Ventures admin account",
+          text: [
+            `Hello ${user.name},`,
+            "",
+            "An admin account has been created for you on the SnZ Ventures portal.",
+            "",
+            `Sign in at: ${loginUrl}`,
+            `Username: ${user.email}`,
+            `Password: ${firstPassword}`,
+            "",
+            "When you first sign in you will add your photo and details and choose",
+            "your own password. The one above stops working once you do.",
+            "",
+            "If you were not expecting this, ignore this message.",
+            "",
+            "SnZ Ventures",
+          ].join("\n"),
+        });
+        sent = true;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("[create-staff] credentials email failed:", error);
+      }
+    }
+    await audit({
+      action: "staff.created",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "user",
+      entityId: user.id,
+      // Never the password itself.
+      meta: { email: user.email, role, emailed: sent, permissions: areas, desk: true },
+      ip,
+    });
+    return NextResponse.json({
+      ok: true,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      desk: true,
+      password: firstPassword,
+      loginUrl,
+      emailed: sent,
+    });
+  }
 
   const link = `${siteUrl()}/set-up?token=${encodeURIComponent(
     await store.issueToken(user.id, "account_setup", SETUP_TTL_MINUTES)

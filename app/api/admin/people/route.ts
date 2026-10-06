@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiRequireAdmin } from "@/lib/auth/guard";
-import { apiAreaAllowed } from "@/lib/auth/permissions";
+import { apiAreaAllowed, onStudentDesk } from "@/lib/auth/permissions";
 import { db, safeQuery } from "@/lib/db/client";
 
 export const runtime = "nodejs";
@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
-  const denied = await apiAreaAllowed(guard.session, "users");
+  // The student desk finds students only; everyone else needs the Users area.
+  const desk = await onStudentDesk(guard.session);
+  const denied = desk ? null : await apiAreaAllowed(guard.session, "users");
   if (denied) return denied;
 
   const q = (new URL(request.url).searchParams.get("q") ?? "").trim().slice(0, 80);
@@ -26,6 +28,7 @@ export async function GET(request: Request) {
              CASE WHEN avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM updated_at))::int END AS avatar_v
         FROM users
        WHERE id <> ${guard.session.userId}
+         AND (${!desk} OR role = 'student')
          AND (name ILIKE ${"%" + q + "%"} OR email ILIKE ${"%" + q + "%"})
        ORDER BY name
        LIMIT 12
