@@ -104,6 +104,7 @@ export type ConversationRow = {
   lastBody?: string | null;
   /** True when the client wrote last, i.e. it is waiting on the team. */
   lastFromClient?: boolean;
+  lastAuthorId?: string | null;
 };
 
 export type MessageRow = {
@@ -547,7 +548,9 @@ export async function getConversationsForStaff(
                  (SELECT m.author_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_author,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
-                    AND m.author_id = c.client_id) AS unread
+                    AND CASE WHEN c.client_id = ${staffId}
+                             THEN m.author_id <> ${staffId}
+                             ELSE m.author_id = c.client_id END) AS unread
           FROM conversations c JOIN users u ON u.id = c.client_id
           ORDER BY c.updated_at DESC LIMIT 100
         `
@@ -559,7 +562,9 @@ export async function getConversationsForStaff(
                  (SELECT m.author_id FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_author,
                  (SELECT count(*)::int FROM messages m
                   WHERE m.conversation_id = c.id AND m.read_at IS NULL
-                    AND m.author_id = c.client_id) AS unread
+                    AND CASE WHEN c.client_id = ${staffId}
+                             THEN m.author_id <> ${staffId}
+                             ELSE m.author_id = c.client_id END) AS unread
           FROM conversations c JOIN users u ON u.id = c.client_id
           -- Their students' threads, and their own (a message from the firm).
           WHERE c.client_id = ${staffId}
@@ -579,6 +584,7 @@ export async function getConversationsForStaff(
       clientAvatarV: r.client_avatar_v == null ? null : Number(r.client_avatar_v),
       lastBody: r.last_body ? String(r.last_body) : null,
       lastFromClient: r.last_author != null && String(r.last_author) === String(r.client_id),
+      lastAuthorId: r.last_author != null ? String(r.last_author) : null,
     }));
   }, []);
 }
@@ -671,12 +677,26 @@ export async function conversationOwner(conversationId: string): Promise<string 
  * hang on an unhandled rejection — because a bookkeeping update did. The reader
  * still sees their messages; the badge simply clears on the next visit.
  */
+/**
+ * Mark read what was written TO the viewer, and nothing else.
+ *
+ * A conversation has two sides: its owner (the client, or a consultant in
+ * their own thread with the firm) and the team. The owner reading marks the
+ * team's messages read; a staff member reading marks only the owner's. It
+ * used to mark everything not written by the viewer, so a consultant opening
+ * a thread also cleared an admin's message the student had not yet seen.
+ */
 export async function markConversationRead(conversationId: string, viewerId: string) {
   await safeQuery(async () => {
     await db()`
-      UPDATE messages SET read_at = now()
-      WHERE conversation_id = ${conversationId}
-        AND author_id <> ${viewerId} AND read_at IS NULL
+      UPDATE messages m SET read_at = now()
+        FROM conversations c
+       WHERE c.id = m.conversation_id
+         AND m.conversation_id = ${conversationId}
+         AND m.read_at IS NULL
+         AND CASE WHEN c.client_id = ${viewerId}
+                  THEN m.author_id <> ${viewerId}
+                  ELSE m.author_id = c.client_id END
     `;
     return true;
   }, false);
@@ -820,17 +840,20 @@ export async function getSidebarBadges(
     const [r] = await db()`
       SELECT
         (
+          -- Unread messages written TO this person: the team's messages in
+          -- their own thread, and (for staff) the owners' messages in the
+          -- threads they look after. Never the team's messages to a client.
           SELECT count(*)::int FROM messages m
+            JOIN conversations c ON c.id = m.conversation_id
           WHERE m.read_at IS NULL AND m.author_id <> ${userId}
             AND (
-              ${staffWide}::boolean
-              OR EXISTS (
-                SELECT 1 FROM conversations c
-                WHERE c.id = m.conversation_id
-                  AND (c.client_id = ${userId}
-                       OR EXISTS (SELECT 1 FROM staff_assignments sa
-                                  WHERE sa.advisor_id = ${userId}
-                                    AND sa.client_id = c.client_id))
+              c.client_id = ${userId}
+              OR (
+                m.author_id = c.client_id
+                AND (${staffWide}::boolean
+                     OR EXISTS (SELECT 1 FROM staff_assignments sa
+                                WHERE sa.advisor_id = ${userId}
+                                  AND sa.client_id = c.client_id))
               )
             )
         ) AS messages,

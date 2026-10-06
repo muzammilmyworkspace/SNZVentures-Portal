@@ -102,7 +102,9 @@ export default async function MessagesPage() {
                           <span className="truncate text-[0.78rem] text-faint">· {c.subject}</span>
                         </span>
                         <span className={`mt-1 block truncate text-[0.86rem] ${fresh ? "text-fg" : "text-muted"}`}>
-                          {c.lastBody ? `${c.lastFromClient ? "" : "You: "}${c.lastBody}` : "No messages yet"}
+                          {c.lastBody
+                            ? `${c.lastAuthorId === session.userId ? "You: " : !own && !c.lastFromClient ? "SnZ: " : ""}${c.lastBody}`
+                            : "No messages yet"}
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1.5">
@@ -113,8 +115,8 @@ export default async function MessagesPage() {
                           <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.7rem] font-bold text-[#070B1A]">
                             {c.unread}
                           </span>
-                        ) : c.lastFromClient ? (
-                          <span className="text-[0.7rem] font-semibold text-warn">Waiting on you</span>
+                        ) : (own ? !c.lastFromClient : c.lastFromClient) && c.lastBody ? (
+                          <span className="text-[0.7rem] font-semibold text-warn">{own ? "Reply waiting" : "Waiting on you"}</span>
                         ) : null}
                       </span>
                     </a>
