@@ -3,6 +3,7 @@ import * as store from "@/lib/auth/store";
 import * as repo from "@/lib/db/repos/portal";
 import { apiRequireUser } from "@/lib/auth/guard";
 import { PROFILE_FIELDS } from "@/lib/portal/data";
+import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,10 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/profile");
+    if (locked) return locked;
+  }
   const { session } = guard;
 
   if (!store.isStoreReady()) {

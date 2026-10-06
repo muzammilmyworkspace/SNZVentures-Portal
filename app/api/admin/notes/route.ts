@@ -3,6 +3,7 @@ import { apiRequireStaff } from "@/lib/auth/guard";
 import * as ops from "@/lib/db/repos/operations";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,10 @@ const MAX = 4000;
 export async function GET(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
 
   const subject = new URL(request.url).searchParams.get("subject");
   if (!subject) {
@@ -38,6 +43,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
   const { session } = guard;
 
   if (!rateLimit(`note:${session.userId}`, { limit: 60, windowMs: 10 * 60_000 }).ok) {
@@ -91,6 +100,10 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const guard = await apiRequireStaff();
   if (!guard.ok) return guard.response;
+  {
+    const denied = await apiAreaAllowed(guard.session, "users");
+    if (denied) return denied;
+  }
   const { session } = guard;
 
   const id = new URL(request.url).searchParams.get("id");

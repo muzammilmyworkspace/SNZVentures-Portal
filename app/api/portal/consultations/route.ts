@@ -4,6 +4,7 @@ import { requestConsultation } from "@/lib/db/repos/consultations";
 import { notifyStaff } from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,10 @@ const MODES = ["video", "phone", "office"] as const;
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/appointments");
+    if (locked) return locked;
+  }
   const { session } = guard;
   if (isAdmin(session.role)) {
     return NextResponse.json({ ok: false, error: "Consultations are booked by students and consultants." }, { status: 400 });

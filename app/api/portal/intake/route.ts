@@ -4,9 +4,11 @@ import * as ops from "@/lib/db/repos/operations";
 import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
-import { PATHWAY_FOR_ROLE, intakeFor, validateStep } from "@/lib/portal/intake";
+import { PATHWAY_FOR_ROLE, intakeFor, validateStep, documentsComplete } from "@/lib/portal/intake";
+import { documentsFor } from "@/lib/application/documents";
 import { recordConsent } from "@/lib/db/repos/consents";
 import { CONSENT_VERSION } from "@/lib/portal/consent";
+import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +49,10 @@ export async function GET() {
 export async function PUT(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/application");
+    if (locked) return locked;
+  }
   const { session } = guard;
 
   const pathway = pathwayFor(session.role);
@@ -149,6 +155,10 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/application");
+    if (locked) return locked;
+  }
   const { session } = guard;
 
   const pathway = pathwayFor(session.role);
@@ -193,6 +203,22 @@ export async function POST(request: Request) {
     const result = validateStep(s, merged, { requireAll: true });
     Object.assign(clean, result.clean);
     result.missing.forEach((label) => missing.push({ step: i, label }));
+  });
+
+  /*
+    REQUIRED DOCUMENTS. Which slots are required depends on the study level
+    (another step), so validateStep cannot judge them; the whole form can.
+    Without this a form whose documents step was marked required still went
+    through with none attached.
+  */
+  definition.steps.forEach((s, i) => {
+    const docs = s.fields.find((f) => f.type === "documents" && f.required);
+    if (docs && !documentsComplete(merged)) {
+      const held = (merged.documents ?? {}) as Record<string, unknown>;
+      for (const slot of documentsFor(String(merged.applyLevel ?? "")).filter((d) => d.required && !held[d.key])) {
+        missing.push({ step: i, label: `Document: ${slot.title}` });
+      }
+    }
   });
 
   if (missing.length) {

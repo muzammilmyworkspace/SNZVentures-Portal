@@ -5,6 +5,7 @@ import { driveAuthUrl, driveConfigured } from "@/lib/integrations/drive";
 import { disconnect } from "@/lib/db/repos/drive";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp } from "@/lib/auth/rate-limit";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic";
  * than a second, weaker one written for this.
  */
 export async function GET(request: Request) {
-  await requireAdmin();
+  await requireArea("system");
 
   /*
     Every redirect here is resolved against the REQUEST, not a configured base.
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { session } = await requireAdmin();
+  const { session } = await requireArea("system");
   await disconnect();
   await audit({
     action: "drive.disconnected",

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/lib/db/client";
-import { studentStage, pathOpen } from "./stage";
+import { NextResponse } from "next/server";
+import { studentStage, pathOpen, lockReason } from "./stage";
 
 /**
  * THE SERVER-SIDE HALF OF THE GATE.
@@ -42,4 +43,24 @@ export async function requireOpen(path: string): Promise<void> {
     thing.
   */
   redirect(`/portal/student?locked=${encodeURIComponent(path)}`);
+}
+
+/**
+ * THE SAME GATE, FOR API ROUTES. The page guard above only stops the page;
+ * without this a student whose fee is not yet verified could still save and
+ * submit an application, upload documents or book a consultation by calling
+ * the route directly. Returns a 403 to send back, or null to carry on.
+ * Non-students pass, as above.
+ */
+export async function apiRequireOpen(
+  session: { userId: string; role: string },
+  path: string
+): Promise<NextResponse | null> {
+  if (session.role !== "student" || !isDatabaseConfigured()) return null;
+  const { stage } = await studentStage(session.userId);
+  if (pathOpen(path, stage)) return null;
+  return NextResponse.json(
+    { ok: false, error: lockReason(stage) ?? "This is not open for you yet." },
+    { status: 403 }
+  );
 }

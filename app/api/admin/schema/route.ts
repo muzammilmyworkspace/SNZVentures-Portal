@@ -3,6 +3,7 @@ import { apiRequireAdmin } from "@/lib/auth/guard";
 import { schemaStatus, applyPending } from "@/lib/db/migrator";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { apiAreaAllowed } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,12 +30,20 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
+  {
+    const denied = await apiAreaAllowed(guard.session, "system");
+    if (denied) return denied;
+  }
   return NextResponse.json({ ok: true, status: await schemaStatus() });
 }
 
 export async function POST(request: Request) {
   const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
+  {
+    const denied = await apiAreaAllowed(guard.session, "system");
+    if (denied) return denied;
+  }
   const { session } = guard;
 
   const ip = clientIp(request);

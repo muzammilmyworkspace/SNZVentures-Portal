@@ -3,6 +3,7 @@ import { apiRequireUser } from "@/lib/auth/guard";
 import { setTick } from "@/lib/db/repos/checklist";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { ADMISSION_CHECKLIST, VISA_CHECKLIST } from "@/lib/application/checklist";
+import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,10 @@ const KNOWN = new Set(
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/checklist");
+    if (locked) return locked;
+  }
   const { session } = guard;
 
   // Generous: this is somebody working down a list, and a run of ticks in

@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { permissionsOf } from "@/lib/auth/permissions";
+import { canUse } from "@/lib/portal/permissions";
 import { requireStaff, isAdmin } from "@/lib/auth/guard";
 import { getAllCases, getCasesForAdvisor } from "@/lib/db/repos/portal";
 import { isDatabaseConfigured } from "@/lib/db/client";
@@ -28,6 +31,8 @@ export default async function AdminCasesPage({
     return qs ? `/portal/admin/cases?${qs}` : "/portal/admin/cases";
   };
   const { session, role } = await requireStaff();
+  // Firm-wide for an admin, so an employee needs the Applications area.
+  if (isAdmin(role) && !canUse(role, await permissionsOf(session.userId), "applications")) redirect("/portal/admin");
 
   if (!isDatabaseConfigured()) {
     return (

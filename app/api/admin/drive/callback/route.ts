@@ -10,6 +10,7 @@ import {
 import { saveConnection, saveRootFolder } from "@/lib/db/repos/drive";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp } from "@/lib/auth/rate-limit";
+import { requireArea } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ const back = (origin: string, why: string) =>
  * completable by whoever happens to hold the tab.
  */
 export async function GET(request: Request) {
-  const { session } = await requireAdmin();
+  const { session } = await requireArea("system");
 
   const url = new URL(request.url);
   const origin = url.origin;

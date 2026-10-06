@@ -16,6 +16,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/storage";
 import { apiAreaAllowed } from "@/lib/auth/permissions";
+import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
 // Uploads must not be cached or statically analysed.
@@ -32,6 +33,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
+  {
+    const locked = await apiRequireOpen(guard.session, "/portal/documents");
+    if (locked) return locked;
+  }
   const { session } = guard;
 
   const ip = clientIp(request);
