@@ -1004,19 +1004,26 @@ export async function getPublishedOpportunities(limit = 60) {
 
 /* ------------------------------------------------------ staff assignment */
 
+/**
+ * A client's consultant, SET rather than added: every existing assignment is
+ * removed and this one put in its place, in one transaction. Adding meant a
+ * "change" left the old consultant attached too, so the student showed in
+ * both consultants' lists and the file kept naming the old one.
+ */
 export async function assignAdvisor(clientId: string, advisorId: string, assignedBy: string) {
-  await db()`
-    INSERT INTO staff_assignments (client_id, advisor_id, assigned_by)
-    VALUES (${clientId}, ${advisorId}, ${assignedBy})
-    ON CONFLICT (client_id, advisor_id) DO NOTHING
-  `;
+  await db().begin(async (tx) => {
+    await tx`DELETE FROM staff_assignments WHERE client_id = ${clientId} AND advisor_id <> ${advisorId}`;
+    await tx`
+      INSERT INTO staff_assignments (client_id, advisor_id, assigned_by)
+      VALUES (${clientId}, ${advisorId}, ${assignedBy})
+      ON CONFLICT (client_id, advisor_id) DO NOTHING
+    `;
+  });
 }
 
-export async function unassignAdvisor(clientId: string, advisorId: string) {
-  await db()`
-    DELETE FROM staff_assignments
-    WHERE client_id = ${clientId} AND advisor_id = ${advisorId}
-  `;
+/** Direct (no consultant): every assignment for this client goes. */
+export async function unassignAdvisor(clientId: string, _advisorId?: string) {
+  await db()`DELETE FROM staff_assignments WHERE client_id = ${clientId}`;
 }
 
 /**

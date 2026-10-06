@@ -383,7 +383,7 @@ export async function consultantForCode(
     const [row] = await db()`
       SELECT id, name FROM users
       WHERE upper(consultant_code) = ${c}
-        AND role IN ('advisor', 'admin', 'super_admin') AND status = 'active'
+        AND role = 'advisor' AND status = 'active'
       LIMIT 1
     `;
     return row ? { id: String(row.id), name: String(row.name) } : null;
@@ -452,7 +452,10 @@ export async function consultantChoices(
             ORDER BY sa.created_at ASC LIMIT 1) AS current_id,
           COALESCE((SELECT json_agg(x ORDER BY x.name) FROM (
             SELECT id, name, consultant_code AS code FROM users
-             WHERE role IN ('advisor', 'admin', 'super_admin') AND status = 'active'
+             WHERE (role = 'advisor' AND status = 'active')
+                -- whoever holds them now stays listed, so the choice shows truthfully
+                OR id = (SELECT sa.advisor_id FROM staff_assignments sa WHERE sa.client_id = ${clientId}
+                         ORDER BY sa.created_at ASC LIMIT 1)
           ) x), '[]'::json) AS advisors
       `;
       return {

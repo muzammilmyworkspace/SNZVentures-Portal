@@ -114,9 +114,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: false, error: "Invalid advisor." }, { status: 400 });
       }
       const advisor = await usersRepo.findById(advisorId);
-      if (!advisor || !["advisor", "admin", "super_admin"].includes(advisor.role)) {
+      // Consultants only: an admin or employee is not somebody's consultant.
+      if (!advisor || advisor.role !== "advisor" || advisor.status !== "active") {
         return NextResponse.json(
-          { ok: false, error: "That user is not an advisor." },
+          { ok: false, error: "Choose an active consultant." },
           { status: 400 }
         );
       }
@@ -134,10 +135,7 @@ export async function POST(request: Request) {
     }
 
     case "unassign_advisor": {
-      if (typeof advisorId !== "string") {
-        return NextResponse.json({ ok: false, error: "Invalid advisor." }, { status: 400 });
-      }
-      await portalRepo.unassignAdvisor(userId, advisorId);
+      await portalRepo.unassignAdvisor(userId);
       await audit({
         action: "staff.unassigned",
         actorId: session.userId,
