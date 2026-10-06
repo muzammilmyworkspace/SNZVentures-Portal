@@ -15,6 +15,7 @@ import { DIAL_CODES } from "@/lib/application/reference";
 import { dateProblem, resolveBound } from "@/lib/application/dates";
 import { ReviewSummary } from "@/components/application/ReviewSummary";
 import { UndertakingDoc } from "@/components/application/UndertakingDoc";
+import type { ConsentView } from "@/lib/portal/forms";
 import { ChecklistBoard } from "@/components/application/ChecklistBoard";
 import {
   applyMask,
@@ -366,6 +367,7 @@ export function IntakeForm({
   checklistTicks = {},
   status,
   returnNote = null,
+  consent = null,
 }: {
   definition: IntakeDefinition;
   initialAnswers: Answers;
@@ -378,6 +380,8 @@ export function IntakeForm({
   status: Status;
   /** What staff asked to change, when they sent the form back. */
   returnNote?: { note: string; at: string } | null;
+  /** The consent in force, when the super admin has replaced the built-in one. */
+  consent?: ConsentView | null;
 }) {
   const router = useRouter();
   const steps = definition.steps;
@@ -744,7 +748,7 @@ export function IntakeForm({
                       initialTicks={checklistTicks}
                     />
                   ) : f.type === "consent" ? (
-                    <UndertakingDoc />
+                    <UndertakingDoc consent={consent} />
                   ) : f.type === "review" ? (
                     <ReviewSummary definition={definition} answers={answers} onEdit={setIndex} />
                   ) : f.type === "derived" ? (

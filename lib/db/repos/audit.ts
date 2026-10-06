@@ -146,7 +146,11 @@ export type AuditAction =
   // Raising an invoice, and moving its status (017). Super admin only —
   // raising one is the firm speaking about money in its own name.
   | "invoice.created"
-  | "invoice.status_changed";
+  | "invoice.status_changed"
+  | "form.consent_published"
+  | "form.consent_current"
+  | "form.application_saved"
+  | "form.application_reset";
 
 export async function audit(entry: {
   action: AuditAction;

@@ -1,3 +1,4 @@
+import { loadIntake } from "@/lib/portal/forms";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/guard";
@@ -7,7 +8,7 @@ import { studentStage } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
 import { getIntake } from "@/lib/db/repos/operations";
-import { intakeFor, intakeCompletion } from "@/lib/portal/intake";
+import { intakeCompletion } from "@/lib/portal/intake";
 import { JOURNEYS, type Role } from "@/lib/auth/types";
 import { PortalHeading, Panel, JourneyTrack } from "@/components/portal/Pieces";
 
@@ -62,7 +63,7 @@ export default async function JourneyPage() {
   const intake = isDatabaseConfigured() ? await getIntake(session.userId, "study") : null;
   const completion =
     position.index >= 2 && intake
-      ? intakeCompletion(intakeFor("study"), (intake.data ?? {}) as Record<string, unknown>)
+      ? intakeCompletion((await loadIntake("study")), (intake.data ?? {}) as Record<string, unknown>)
       : null;
 
   return (

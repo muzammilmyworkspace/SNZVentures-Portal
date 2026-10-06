@@ -9,6 +9,7 @@ import {
   CONSENT_VERSION,
 } from "@/lib/portal/consent";
 import { cn } from "@/lib/utils";
+import type { ConsentView } from "@/lib/portal/forms";
 
 /**
  * FORM B — the Student Consent & Undertaking, shown in full before signing.
@@ -61,19 +62,35 @@ function Clause({ text, emphasis }: { text: string; emphasis: string[] }) {
   );
 }
 
-export function UndertakingDoc() {
+export function UndertakingDoc({ consent }: { consent?: ConsentView | null }) {
   const [readToEnd, setReadToEnd] = useState(false);
   const box = useRef<HTMLDivElement | null>(null);
+  // Written or uploaded by the super admin; otherwise the built-in wording.
+  const custom = consent?.custom ? consent : null;
 
   return (
     <div className="rounded-[var(--radius-md)] border border-line">
       <header className="border-b border-line px-5 py-4">
         <h3 className="text-[1.05rem] font-bold tracking-[-0.01em] text-fg-strong">
-          {CONSENT_TITLE}
+          {custom ? custom.title : CONSENT_TITLE}
         </h3>
         <p className="mt-1 text-[0.82rem] text-muted">
           Between you and {CONSENT_PARTY}
         </p>
+        {custom?.fileUrl && (
+          <a
+            href={custom.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => !custom.body && setReadToEnd(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-[0.82rem] font-medium text-fg hover:border-[var(--accent)] hover:text-accent"
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3" />
+            </svg>
+            Open the consent document{custom.fileName ? ` (${custom.fileName})` : ""}
+          </a>
+        )}
       </header>
 
       <div
@@ -84,6 +101,21 @@ export function UndertakingDoc() {
         }}
         className="max-h-[45vh] overflow-y-auto overscroll-contain px-5 py-4"
       >
+        {custom ? (
+          custom.body ? (
+            <div className="space-y-3">
+              {custom.body.split(/\n{2,}/).map((para, i) => (
+                <p key={i} className="whitespace-pre-wrap text-[0.88rem] leading-relaxed text-muted">
+                  {para}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[0.88rem] leading-relaxed text-muted">
+              Open the document above and read it in full before you sign.
+            </p>
+          )
+        ) : (
         <ol className="space-y-4">
           {CONSENT_CLAUSES.map((clause, i) => (
             <li key={i} className="flex gap-3">
@@ -99,6 +131,7 @@ export function UndertakingDoc() {
             </li>
           ))}
         </ol>
+        )}
 
         <p className="mt-5 border-t border-line pt-4 text-[0.88rem] leading-relaxed text-fg">
           {CONSENT_CLOSING}
@@ -107,7 +140,7 @@ export function UndertakingDoc() {
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
         <span className="font-mono text-[0.68rem] text-faint">
-          Version {CONSENT_VERSION}
+          Version {custom ? custom.version : CONSENT_VERSION}
         </span>
         <span
           className={cn(

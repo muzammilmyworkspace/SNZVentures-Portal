@@ -1,3 +1,4 @@
+import { loadIntake } from "@/lib/portal/forms";
 import { NextResponse } from "next/server";
 import { apiRequireAdmin } from "@/lib/auth/guard";
 import * as store from "@/lib/db/repos/users";
@@ -14,7 +15,6 @@ import {
   ROOT_FOLDER_NAME,
 } from "@/lib/integrations/drive";
 import { getSignedUrl } from "@/lib/storage";
-import { intakeFor } from "@/lib/portal/intake";
 import { filenamePrefix } from "@/lib/application/documents";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
 
   if (intake) {
     const text = answersToText(
-      intakeFor("study").steps.flatMap((s) => s.fields),
+      (await loadIntake("study")).steps.flatMap((s) => s.fields),
       data,
       `${user.name} — application`
     );

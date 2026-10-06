@@ -1,3 +1,4 @@
+import { loadIntake } from "@/lib/portal/forms";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -21,7 +22,7 @@ import * as invitesRepo from "@/lib/db/repos/invites";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import * as repo from "@/lib/db/repos/portal";
 import * as ops from "@/lib/db/repos/operations";
-import { intakeFor, PATHWAY_FOR_ROLE } from "@/lib/portal/intake";
+import { PATHWAY_FOR_ROLE } from "@/lib/portal/intake";
 import { answerOf } from "@/lib/portal/intake-answers";
 import { ROLE_LABEL, CLIENT_ROLES, type Role } from "@/lib/auth/types";
 import { AssignConsultant } from "@/components/portal/AssignConsultant";
@@ -112,7 +113,7 @@ export default async function AdminUserPage({
     : null;
   const { documents, cases, intake, history, notes, consents } = file;
 
-  const definition = pathway ? intakeFor(pathway) : null;
+  const definition = pathway ? (await loadIntake(pathway)) : null;
 
   return (
     <>

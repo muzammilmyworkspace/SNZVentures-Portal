@@ -1,7 +1,7 @@
+import { loadIntake } from "@/lib/portal/forms";
 import Link from "next/link";
 import * as ops from "@/lib/db/repos/operations";
 import { findById } from "@/lib/db/repos/users";
-import { intakeFor } from "@/lib/portal/intake";
 import { answerOf } from "@/lib/portal/intake-answers";
 import { Person } from "./Avatar";
 import { StatusPill } from "./Pieces";
@@ -31,7 +31,7 @@ export async function ApplicationReview({ intakeId, closeHref }: { intakeId: str
     );
   }
 
-  const definition = intakeFor(intake.pathway);
+  const definition = (await loadIntake(intake.pathway));
   const file = await ops.getAdminUserFile(intake.userId, intake.pathway);
   const history = file.history.filter((h) => h.entity === "application" && h.entityId === intake.id);
   const canProceed = intake.status === "submitted" || intake.status === "under_review";

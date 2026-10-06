@@ -302,6 +302,15 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       ],
     },
     {
+      // Super admin only: the consent students sign and the questions they
+      // answer. Changing either changes it for every student at once.
+      group: "Forms",
+      items: [
+        { href: "/portal/admin/forms/consent", label: "Consent form", icon: "documents", roles: ["super_admin"] },
+        { href: "/portal/admin/forms/application", label: "Application form", icon: "applications", roles: ["super_admin"] },
+      ],
+    },
+    {
       group: "Billing",
       items: [
         // Super admin only. Raising an invoice is the firm speaking about

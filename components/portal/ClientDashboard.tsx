@@ -1,3 +1,4 @@
+import { loadIntake } from "@/lib/portal/forms";
 import Link from "next/link";
 import type { Session } from "@/lib/auth/types";
 import { JOURNEYS } from "@/lib/auth/types";
@@ -11,7 +12,7 @@ import {
   REQUIRED_DOCUMENTS,
 } from "@/lib/portal/data";
 import { getIntake } from "@/lib/db/repos/operations";
-import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/intake";
+import { PATHWAY_FOR_ROLE, intakeCompletion } from "@/lib/portal/intake";
 import { studentStage, pathOpen, feeCleared, lockReason } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
@@ -99,7 +100,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
   const feeOpen = !stageInfo || feeCleared(stageInfo.stage);
 
   const applicationProgress =
-    pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data) : null;
+    pathway && intake ? intakeCompletion((await loadIntake(pathway)), intake.data) : null;
 
   /*
     THE CHECKLIST, ON THE DASHBOARD.
@@ -140,7 +141,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
   const intakeReturned = intake?.status === "returned";
   const intakeDone = Boolean(intake && intake.status !== "draft" && !intakeReturned);
   const intakePercent =
-    pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data).percent : 0;
+    pathway && intake ? intakeCompletion((await loadIntake(pathway)), intake.data).percent : 0;
 
   /**
    * The next step, derived from real state in priority order.

@@ -30,7 +30,7 @@ export function areaForPath(path: string): Area | null {
   if (path.startsWith("/portal/admin/users")) return "users";
   if (path.startsWith("/portal/admin/staff")) return "consultants";
   if (path.startsWith("/portal/admin/employees")) return "employees";
-  if (/^\/portal\/admin\/(audit|schema|integrations)(\/|$)/.test(path)) return "system";
+  if (/^\/portal\/admin\/(audit|schema|integrations|forms)(\/|$)/.test(path)) return "system";
   return null;
 }
 

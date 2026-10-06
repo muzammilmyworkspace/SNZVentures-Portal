@@ -1,13 +1,13 @@
+import { loadIntake, activeConsent } from "@/lib/portal/forms";
 import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as ops from "@/lib/db/repos/operations";
 import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
-import { PATHWAY_FOR_ROLE, intakeFor, validateStep, documentsComplete } from "@/lib/portal/intake";
+import { PATHWAY_FOR_ROLE, validateStep, documentsComplete } from "@/lib/portal/intake";
 import { documentsFor } from "@/lib/application/documents";
 import { recordConsent } from "@/lib/db/repos/consents";
-import { CONSENT_VERSION } from "@/lib/portal/consent";
 import { apiRequireOpen } from "@/lib/portal/gate";
 
 export const runtime = "nodejs";
@@ -75,7 +75,7 @@ export async function PUT(request: Request) {
   }
 
   const { step, answers, resumeAt } = (body ?? {}) as Record<string, unknown>;
-  const steps = intakeFor(pathway).steps;
+  const steps = (await loadIntake(pathway)).steps;
   const index = Number(step);
 
   if (!Number.isInteger(index) || index < 0 || index >= steps.length) {
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
   // check the WHOLE form. Validating only the last step would let someone
   // submit with steps 1–8 empty by jumping straight to step 9.
   const merged = { ...(existing?.data ?? {}), ...incoming };
-  const definition = intakeFor(pathway);
+  const definition = (await loadIntake(pathway));
   const missing: { step: number; label: string }[] = [];
   const clean: Record<string, unknown> = {};
 
@@ -271,9 +271,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // The version of the consent on screen today: the one written by the
+    // super admin if there is one, else the built-in wording.
+    const consentVersion = (await activeConsent()).version;
     const recorded = await recordConsent({
       userId: session.userId,
-      version: CONSENT_VERSION,
+      version: consentVersion,
       signedName: signature,
       ip: clientIp(request),
       userAgent: request.headers.get("user-agent"),
@@ -296,7 +299,7 @@ export async function POST(request: Request) {
       actorEmail: session.email,
       entity: "user",
       entityId: session.userId,
-      meta: { kind: "student_undertaking", version: CONSENT_VERSION, at: "application_submit" },
+      meta: { kind: "student_undertaking", version: consentVersion, at: "application_submit" },
       ip: clientIp(request),
     });
   }

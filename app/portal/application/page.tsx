@@ -1,3 +1,4 @@
+import { loadIntake, activeConsent } from "@/lib/portal/forms";
 import type { Metadata } from "next";
 import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
@@ -7,7 +8,7 @@ import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { IntakeForm } from "@/components/portal/IntakeForm";
 import { lastReturnNote, getIntake } from "@/lib/db/repos/operations";
 import { ticksFor } from "@/lib/db/repos/checklist";
-import { PATHWAY_FOR_ROLE, intakeFor } from "@/lib/portal/intake";
+import { PATHWAY_FOR_ROLE } from "@/lib/portal/intake";
 
 /** Private. Never indexed — see app/portal/layout.tsx. */
 export const metadata: Metadata = { title: "Your application", robots: { index: false, follow: false } };
@@ -65,7 +66,7 @@ export default async function ApplicationPage() {
     );
   }
 
-  const definition = intakeFor(pathway);
+  const definition = (await loadIntake(pathway));
   const form = await getIntake(session.userId, pathway);
   /*
     The checklist ticks come from their own table, not from the form. They have
@@ -90,6 +91,7 @@ export default async function ApplicationPage() {
           checklistTicks={checklistTicks}
           status={form?.status ?? "draft"}
           returnNote={returnNote}
+          consent={pathway === "study" ? await activeConsent() : null}
         />
       </Panel>
     </>
