@@ -217,7 +217,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
 
       <PortalHeading
         eyebrow={ctx.eyebrow}
-        title={`Welcome back, ${firstName}.`}
+        title={`Hello, ${firstName}.`}
         lead={ctx.lead}
       />
 

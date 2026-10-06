@@ -3,6 +3,7 @@ import { studentHistory, type HistoryEvent } from "@/lib/db/repos/operations";
 import { findById } from "@/lib/db/repos/users";
 import { Person, Avatar } from "./Avatar";
 import { REVIEW_LABEL } from "@/lib/portal/review-status";
+import { EscapeTo } from "./EscapeTo";
 
 /**
  * A STUDENT'S HISTORY, like a commit log for their file.
@@ -144,6 +145,7 @@ export async function HistoryDrawer({ userId, closeHref }: { userId: string; clo
 
   return (
     <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <EscapeTo href={closeHref} />
       <Link href={closeHref} scroll={false} aria-label="Close history" className="absolute inset-0 bg-[rgb(4_8_20/0.6)] backdrop-blur-[2px]" />
       <div className="relative flex h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden border-l border-line bg-[var(--panel-solid)] shadow-2xl lg:w-[50vw] lg:max-w-[50vw]">
         <header className="border-b border-line px-5 py-4 sm:px-7">

@@ -364,7 +364,14 @@ export async function getUsersPageData(
 
         COALESCE((
           SELECT json_object_agg(role, n) FROM (
-            SELECT role::text AS role, count(*)::int AS n FROM users GROUP BY role
+            -- The same search and status as the list, so the tab counts say how
+            -- many each tab will actually show.
+            SELECT u.role::text AS role, count(*)::int AS n FROM users u
+            WHERE (${q}::text IS NULL
+                   OR u.name ILIKE ${"%" + (q ?? "") + "%"}
+                   OR u.email ILIKE ${"%" + (q ?? "") + "%"})
+              AND (${status}::user_status IS NULL OR u.status = ${status}::user_status)
+            GROUP BY u.role
           ) y
         ), '{}'::json) AS role_counts
     `;

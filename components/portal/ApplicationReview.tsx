@@ -7,6 +7,7 @@ import { Person } from "./Avatar";
 import { StatusPill } from "./Pieces";
 import { ReviewActions } from "./ReviewActions";
 import { REVIEW_LABEL } from "@/lib/portal/review-status";
+import { EscapeTo } from "./EscapeTo";
 
 /**
  * THE REVIEW WINDOW, opened over the Requests list by `?review=<intake id>`.
@@ -160,6 +161,7 @@ function Shell({
 }) {
   return (
     <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-labelledby="review-title">
+      <EscapeTo href={closeHref} />
       <Link
         href={closeHref}
         scroll={false}

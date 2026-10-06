@@ -227,6 +227,12 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    // Checked here so an empty form neither reads as wrong details nor uses
+    // up one of the sign-in attempts the rate limit allows.
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
     setBusy(true);
     try {
       const { res, data } = await post("/api/auth/login", { email, password });
@@ -567,6 +573,8 @@ export function RegisterForm({
               setError(null);
               if (!name.trim()) return setError("Enter your full name.");
               if (!invitedEmail && !email.trim()) return setError("Enter your email address.");
+              if (!invitedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()))
+                return setError("That email address doesn't look right.");
               if (!phone.trim()) return setError("Enter your phone number.");
               if (!city.trim()) return setError("Enter your city.");
               if (!country.trim()) return setError("Enter your country.");
@@ -649,8 +657,15 @@ export function ForgotForm() {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
+    setError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      setError("Enter the email address you signed up with.");
+      return;
+    }
     setBusy(true);
     await post("/api/auth/forgot-password", { email }).catch(() => undefined);
     // Always the same outcome — never reveal whether an account exists.
@@ -687,6 +702,7 @@ export function ForgotForm() {
         autoComplete="email"
         placeholder="you@example.com"
       />
+      {error && <ErrorNote>{error}</ErrorNote>}
       <Action type="submit" size="lg" className="w-full">
         {busy ? "Sending…" : "Send reset link"}
       </Action>

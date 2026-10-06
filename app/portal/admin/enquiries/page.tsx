@@ -108,7 +108,7 @@ export default async function EnquiriesPage({
     );
   }
 
-  const { rows, total, undelivered, unhandled, whatsapp } = await listEnquiries(100);
+  const { rows, total, undelivered, unhandled, whatsapp } = await listEnquiries(2000);
   const pg = paginate(rows, pageFrom(sp.page), 20);
   const wg = paginate(whatsapp.recent, pageFrom(sp.wpage), 10);
 

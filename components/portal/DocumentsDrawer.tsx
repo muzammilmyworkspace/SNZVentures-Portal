@@ -4,6 +4,7 @@ import { findById } from "@/lib/db/repos/users";
 import { Person } from "./Avatar";
 import { StatusPill } from "./Pieces";
 import { DocActions, ApproveAll } from "./DocActions";
+import { EscapeTo } from "./EscapeTo";
 
 /**
  * A STUDENT'S DOCUMENTS, beside the list they were opened from.
@@ -36,6 +37,7 @@ export async function DocumentsDrawer({
 
   return (
     <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-labelledby="docs-title">
+      <EscapeTo href={baseHref.close} />
       <Link
         href={baseHref.close}
         scroll={false}

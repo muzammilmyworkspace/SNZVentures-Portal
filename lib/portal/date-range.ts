@@ -52,7 +52,9 @@ function parseDay(raw: unknown): Date | null {
   const s = Array.isArray(raw) ? raw[0] : raw;
   if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
   const d = new Date(s + "T00:00:00Z");
-  return Number.isNaN(d.getTime()) ? null : d;
+  // 2026-02-31 parses as 3 March; refuse any date that did not survive as typed.
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) return null;
+  return d;
 }
 
 function fmtSpan(from: Date, toExclusive: Date): string {
