@@ -29,13 +29,14 @@ export type ConsentView = {
   body: string | null;
   fileUrl: string | null;
   fileName: string | null;
+  logoUrl: string | null;
   custom: boolean;
 };
 
 export async function activeConsent(): Promise<ConsentView> {
   const t = await currentConsentTemplate();
   if (!t) {
-    return { title: CONSENT_TITLE, version: CONSENT_VERSION, body: null, fileUrl: null, fileName: null, custom: false };
+    return { title: CONSENT_TITLE, version: CONSENT_VERSION, body: null, fileUrl: null, fileName: null, logoUrl: null, custom: false };
   }
   return {
     title: t.title,
@@ -43,6 +44,7 @@ export async function activeConsent(): Promise<ConsentView> {
     body: t.body,
     fileUrl: t.fileKey ? `/api/portal/consent-file/${t.id}` : null,
     fileName: t.fileName,
+    logoUrl: t.hasLogo ? `/api/portal/consent-logo/${t.id}` : null,
     custom: true,
   };
 }

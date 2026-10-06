@@ -71,6 +71,10 @@ export function UndertakingDoc({ consent }: { consent?: ConsentView | null }) {
   return (
     <div className="rounded-[var(--radius-md)] border border-line">
       <header className="border-b border-line px-5 py-4">
+        {custom?.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={custom.logoUrl} alt="Logo" className="mb-3 max-h-16 w-auto max-w-[220px] object-contain" />
+        )}
         <h3 className="text-[1.05rem] font-bold tracking-[-0.01em] text-fg-strong">
           {custom ? custom.title : CONSENT_TITLE}
         </h3>

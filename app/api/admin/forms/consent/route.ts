@@ -69,7 +69,30 @@ export async function POST(request: Request) {
     }
   }
 
-  const template = await createConsentTemplate({ title, body: body || null, file: stored, createdBy: session.userId });
+  /*
+    THE LOGO. Small images only, kept in the row so it works without file
+    storage. No SVG: it can carry script, and this is served to every account.
+    "keep" carries the logo of the version in use over to the new one.
+  */
+  let logo: { data: Buffer; type: string } | "keep" | null = form.get("keepLogo") === "1" ? "keep" : null;
+  const logoFile = form.get("logo");
+  if (logoFile instanceof File && logoFile.size > 0) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(logoFile.type)) {
+      return NextResponse.json({ ok: false, error: "The logo must be a PNG, JPG or WebP image." }, { status: 400 });
+    }
+    if (logoFile.size > 512 * 1024) {
+      return NextResponse.json({ ok: false, error: "The logo must be 512 KB or smaller." }, { status: 400 });
+    }
+    logo = { data: Buffer.from(await logoFile.arrayBuffer()), type: logoFile.type };
+  }
+
+  const template = await createConsentTemplate({
+    title,
+    body: body || null,
+    file: stored,
+    logo,
+    createdBy: session.userId,
+  });
   if (!template) return NextResponse.json({ ok: false, error: "That didn't save." }, { status: 503 });
 
   await audit({
@@ -78,7 +101,7 @@ export async function POST(request: Request) {
     actorEmail: session.email,
     entity: "consent_template",
     entityId: template.id,
-    meta: { version: template.version, title, file: stored?.name ?? null },
+    meta: { version: template.version, title, file: stored?.name ?? null, logo: template.hasLogo },
     ip: clientIp(request),
   });
   return NextResponse.json({ ok: true, id: template.id, version: template.version });

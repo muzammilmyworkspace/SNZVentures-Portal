@@ -21,6 +21,7 @@ export type ConsentRow = {
   fileUrl: string | null;
   fileName: string | null;
   isCurrent: boolean;
+  logoUrl: string | null;
   createdBy: string | null;
   createdAt: string;
   signed: number;
@@ -31,7 +32,16 @@ const PRIMARY =
 const GHOST =
   "inline-flex min-h-9 items-center gap-2 rounded-full border border-line px-4 text-[0.82rem] font-medium text-fg transition-colors hover:border-[var(--accent)] hover:text-accent disabled:opacity-50";
 
-export function ConsentPublisher({ defaultTitle, storageOn }: { defaultTitle: string; storageOn: boolean }) {
+export function ConsentPublisher({
+  defaultTitle,
+  storageOn,
+  currentLogoUrl,
+}: {
+  defaultTitle: string;
+  storageOn: boolean;
+  /** The logo of the version in use, carried over unless replaced or removed. */
+  currentLogoUrl: string | null;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<"type" | "upload">("type");
   const [title, setTitle] = useState(defaultTitle);
@@ -41,6 +51,26 @@ export function ConsentPublisher({ defaultTitle, storageOn }: { defaultTitle: st
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const input = useRef<HTMLInputElement | null>(null);
+  const logoInput = useRef<HTMLInputElement | null>(null);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [keepLogo, setKeepLogo] = useState(Boolean(currentLogoUrl));
+  const shownLogo = logoPreview ?? (keepLogo ? currentLogoUrl : null);
+
+  function pickLogo(f: File | null) {
+    setError(null);
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+    if (f && !["image/png", "image/jpeg", "image/webp"].includes(f.type)) {
+      setError("The logo must be a PNG, JPG or WebP image.");
+      f = null;
+    } else if (f && f.size > 512 * 1024) {
+      setError("The logo must be 512 KB or smaller.");
+      f = null;
+    }
+    setLogo(f);
+    setLogoPreview(f ? URL.createObjectURL(f) : null);
+    if (!f && logoInput.current) logoInput.current.value = "";
+  }
 
   async function publish() {
     setError(null);
@@ -54,6 +84,8 @@ export function ConsentPublisher({ defaultTitle, storageOn }: { defaultTitle: st
       form.set("title", title.trim());
       if (body.trim()) form.set("body", body.trim());
       if (mode === "upload" && file) form.set("file", file);
+      if (logo) form.set("logo", logo);
+      else if (keepLogo) form.set("keepLogo", "1");
       const res = await fetch("/api/admin/forms/consent", { method: "POST", body: form });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; version?: number };
       if (!res.ok || !data.ok) throw new Error(data.error ?? "That didn't save.");
@@ -61,6 +93,7 @@ export function ConsentPublisher({ defaultTitle, storageOn }: { defaultTitle: st
       setBody("");
       setFile(null);
       if (input.current) input.current.value = "";
+      pickLogo(null);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn't save.");
@@ -92,6 +125,45 @@ export function ConsentPublisher({ defaultTitle, storageOn }: { defaultTitle: st
             {label}
           </button>
         ))}
+      </div>
+
+      <div>
+        <span className="field-label">Logo (optional)</span>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="grid h-20 w-40 place-items-center overflow-hidden rounded-[var(--radius-md)] border border-dashed border-[var(--line-strong)] bg-[color-mix(in_srgb,var(--fg)_3%,transparent)]">
+            {shownLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={shownLogo} alt="Logo preview" className="max-h-16 max-w-[9rem] object-contain" />
+            ) : (
+              <span className="text-[0.75rem] text-faint">No logo</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <label className={cn(GHOST, "cursor-pointer")}>
+              {shownLogo ? "Change logo" : "Upload logo"}
+              <input
+                ref={logoInput}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                onChange={(e) => pickLogo(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {shownLogo && (
+              <button
+                type="button"
+                onClick={() => {
+                  pickLogo(null);
+                  setKeepLogo(false);
+                }}
+                className={GHOST}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+        <span className="mt-1 block text-[0.75rem] text-faint">PNG, JPG or WebP, up to 512 KB. Shown at the top of the consent.</span>
       </div>
 
       <label className="block">
@@ -205,6 +277,10 @@ export function ConsentVersions({
           <li key={r.id} className="py-3.5">
             <div className="flex flex-wrap items-center gap-3">
               <span className="num w-10 shrink-0 font-mono text-[0.8rem] text-faint">v{r.version}</span>
+              {r.logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={r.logoUrl} alt="" className="h-8 w-auto max-w-[4rem] shrink-0 object-contain" />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[0.92rem] font-semibold text-fg-strong">{r.title}</p>
                 <p className="text-[0.76rem] text-faint">

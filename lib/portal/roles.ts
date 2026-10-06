@@ -302,11 +302,11 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       ],
     },
     {
-      // Super admin only: the consent students sign and the questions they
-      // answer. Changing either changes it for every student at once.
+      // The consent students sign and the questions they answer. Only the
+      // super admin changes them; consultants can read the consent.
       group: "Forms",
       items: [
-        { href: "/portal/admin/forms/consent", label: "Consent form", icon: "documents", roles: ["super_admin"] },
+        { href: "/portal/admin/forms/consent", label: "Consent form", icon: "documents", roles: ["super_admin", "advisor"] },
         { href: "/portal/admin/forms/application", label: "Application form", icon: "applications", roles: ["super_admin"] },
       ],
     },

@@ -1,22 +1,43 @@
 import type { Metadata } from "next";
-import { requireSuperAdmin } from "@/lib/auth/guard";
+import { requireRole } from "@/lib/auth/guard";
 import { listConsentTemplates, signaturesByVersion, templateVersion } from "@/lib/db/repos/forms";
 import { CONSENT_TITLE, CONSENT_VERSION } from "@/lib/portal/consent";
+import { activeConsent } from "@/lib/portal/forms";
 import { isStorageConfigured } from "@/lib/storage";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
 import { ConsentPublisher, ConsentVersions, type ConsentRow } from "@/components/portal/ConsentManager";
+import { UndertakingDoc } from "@/components/application/UndertakingDoc";
 
 export const metadata: Metadata = { title: "Consent form", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 /**
- * THE CONSENT STUDENTS SIGN. Super admin only.
+ * THE CONSENT STUDENTS SIGN.
  *
- * Write it here or upload the document; whichever is "In use" is what a
- * student reads and signs at the end of their application.
+ * The super admin writes or uploads it here; whichever is "In use" is what a
+ * student reads and signs at the end of their application. Consultants see
+ * the consent in use, read-only, so they can walk a student through it.
+ * Nobody else opens this page.
  */
 export default async function ConsentFormPage() {
-  await requireSuperAdmin();
+  const session = await requireRole(["super_admin", "advisor"]);
+  const current = await activeConsent();
+
+  if (session.role === "advisor") {
+    return (
+      <>
+        <PortalHeading
+          eyebrow="Forms"
+          title="Consent form"
+          lead="The consent your students read and sign at the end of their application. Only SnZ Ventures can change it."
+        />
+        <Panel title="In use">
+          <UndertakingDoc consent={current} />
+        </Panel>
+      </>
+    );
+  }
+
   const [templates, signed] = await Promise.all([listConsentTemplates(), signaturesByVersion()]);
 
   const rows: ConsentRow[] = templates.map((t) => ({
@@ -28,6 +49,7 @@ export default async function ConsentFormPage() {
     fileUrl: t.fileKey ? `/api/portal/consent-file/${t.id}` : null,
     fileName: t.fileName,
     isCurrent: t.isCurrent,
+    logoUrl: t.hasLogo ? `/api/portal/consent-logo/${t.id}` : null,
     createdBy: t.createdBy,
     createdAt: t.createdAt,
     signed: signed[templateVersion(t)] ?? 0,
@@ -41,23 +63,32 @@ export default async function ConsentFormPage() {
       <PortalHeading
         eyebrow="Forms"
         title="Consent form"
-        lead="The consent every student signs before their application is sent. Type it or upload the document; publishing makes it the one students sign from now on."
+        lead="The consent every student signs before their application is sent. Type it or upload the document; publishing makes it the one students sign from now on. Consultants can see it but not change it."
       />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <Panel title="New version">
-          <ConsentPublisher defaultTitle={templates[0]?.title ?? CONSENT_TITLE} storageOn={isStorageConfigured()} />
-        </Panel>
-        <Panel title="Versions">
-          <ConsentVersions
-            rows={rows}
-            builtIn={{
-              title: CONSENT_TITLE,
-              version: CONSENT_VERSION,
-              signed: builtInSigned,
-              isCurrent: !templates.some((t) => t.isCurrent),
-            }}
+          <ConsentPublisher
+            defaultTitle={templates[0]?.title ?? CONSENT_TITLE}
+            storageOn={isStorageConfigured()}
+            currentLogoUrl={current.logoUrl}
           />
         </Panel>
+        <div className="space-y-6">
+          <Panel title="Versions">
+            <ConsentVersions
+              rows={rows}
+              builtIn={{
+                title: CONSENT_TITLE,
+                version: CONSENT_VERSION,
+                signed: builtInSigned,
+                isCurrent: !templates.some((t) => t.isCurrent),
+              }}
+            />
+          </Panel>
+          <Panel title="What students see">
+            <UndertakingDoc consent={current} />
+          </Panel>
+        </div>
       </div>
     </>
   );

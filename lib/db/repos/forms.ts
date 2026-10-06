@@ -18,6 +18,7 @@ export type ConsentTemplate = {
   fileType: string | null;
   fileProvider: string | null;
   isCurrent: boolean;
+  hasLogo: boolean;
   createdBy: string | null;
   createdAt: string;
 };
@@ -33,6 +34,7 @@ function toTemplate(r: Record<string, unknown>): ConsentTemplate {
     fileType: r.file_type ? String(r.file_type) : null,
     fileProvider: r.file_provider ? String(r.file_provider) : null,
     isCurrent: r.is_current === true,
+    hasLogo: r.has_logo === true,
     createdBy: r.created_by_name ? String(r.created_by_name) : null,
     createdAt: new Date(r.created_at as string).toISOString(),
   };
@@ -45,7 +47,7 @@ export async function listConsentTemplates(): Promise<ConsentTemplate[]> {
   if (!isDatabaseConfigured()) return [];
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT t.*, u.name AS created_by_name
+      SELECT t.id, t.version, t.title, t.body, t.file_key, t.file_name, t.file_type, t.file_provider, t.is_current, t.created_by, t.created_at, (t.logo_type IS NOT NULL) AS has_logo, u.name AS created_by_name
       FROM consent_templates t LEFT JOIN users u ON u.id = t.created_by
       ORDER BY t.version DESC
     `;
@@ -57,7 +59,7 @@ export async function currentConsentTemplate(): Promise<ConsentTemplate | null> 
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {
     const [r] = await db()`
-      SELECT t.*, u.name AS created_by_name
+      SELECT t.id, t.version, t.title, t.body, t.file_key, t.file_name, t.file_type, t.file_provider, t.is_current, t.created_by, t.created_at, (t.logo_type IS NOT NULL) AS has_logo, u.name AS created_by_name
       FROM consent_templates t LEFT JOIN users u ON u.id = t.created_by
       WHERE t.is_current LIMIT 1
     `;
@@ -68,7 +70,7 @@ export async function currentConsentTemplate(): Promise<ConsentTemplate | null> 
 export async function getConsentTemplate(id: string): Promise<ConsentTemplate | null> {
   if (!isDatabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   return safeQuery(async () => {
-    const [r] = await db()`SELECT t.*, NULL AS created_by_name FROM consent_templates t WHERE t.id = ${id}`;
+    const [r] = await db()`SELECT t.id, t.version, t.title, t.body, t.file_key, t.file_name, t.file_type, t.file_provider, t.is_current, t.created_by, t.created_at, (t.logo_type IS NOT NULL) AS has_logo, NULL AS created_by_name FROM consent_templates t WHERE t.id = ${id}`;
     return r ? toTemplate(r) : null;
   }, null);
 }
@@ -78,24 +80,43 @@ export async function createConsentTemplate(input: {
   title: string;
   body: string | null;
   file: { key: string; name: string; type: string; provider: string } | null;
+  /** A new logo, "keep" to carry the current version's logo over, or null for none. */
+  logo: { data: Buffer; type: string } | "keep" | null;
   createdBy: string;
 }): Promise<ConsentTemplate | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {
     return db().begin(async (sql) => {
+      let logo: { data: Buffer | null; type: string | null } = { data: null, type: null };
+      if (input.logo === "keep") {
+        const [prev] = await sql`SELECT logo_data, logo_type FROM consent_templates WHERE is_current AND logo_type IS NOT NULL`;
+        if (prev) logo = { data: prev.logo_data as Buffer, type: String(prev.logo_type) };
+      } else if (input.logo) {
+        logo = input.logo;
+      }
       await sql`UPDATE consent_templates SET is_current = FALSE WHERE is_current`;
       const [r] = await sql`
-        INSERT INTO consent_templates (version, title, body, file_key, file_name, file_type, file_provider, is_current, created_by)
+        INSERT INTO consent_templates (version, title, body, file_key, file_name, file_type, file_provider, logo_data, logo_type, is_current, created_by)
         VALUES (
           (SELECT COALESCE(MAX(version), 0) + 1 FROM consent_templates),
           ${input.title}, ${input.body},
           ${input.file?.key ?? null}, ${input.file?.name ?? null}, ${input.file?.type ?? null}, ${input.file?.provider ?? null},
+          ${logo.data}, ${logo.type},
           TRUE, ${input.createdBy}
         )
-        RETURNING *, NULL AS created_by_name
+        RETURNING id, version, title, body, file_key, file_name, file_type, file_provider, is_current, created_by, created_at, (logo_type IS NOT NULL) AS has_logo, NULL AS created_by_name
       `;
       return toTemplate(r);
     });
+  }, null);
+}
+
+/** The logo of one consent version, for the image route. */
+export async function getConsentLogo(id: string): Promise<{ data: Buffer; type: string } | null> {
+  if (!isDatabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  return safeQuery(async () => {
+    const [r] = await db()`SELECT logo_data, logo_type FROM consent_templates WHERE id = ${id} AND logo_type IS NOT NULL`;
+    return r ? { data: r.logo_data as Buffer, type: String(r.logo_type) } : null;
   }, null);
 }
 
