@@ -19,7 +19,9 @@
 // v2 (Oct 2026): nationality is stated as "nationality: X", which reads
 // correctly whether the student wrote "Pakistani" or "Pakistan"; v1 produced
 // "a national of Pakistani".
-export const PAYMENT_CONSENT_VERSION = "2026-10-payment-v2";
+// v3 (Oct 2026): no longer asserts the fee is below the minimum for an
+// international transfer, which was untrue for larger fees.
+export const PAYMENT_CONSENT_VERSION = "2026-10-payment-v3";
 export const PAYMENT_CONSENT_KIND = "payment_authorization";
 export const PAYMENT_CONSENT_TITLE = "Payment Authorization & Declaration";
 
@@ -74,7 +76,7 @@ export function paymentDeclarationBody(f: PaymentDeclarationFacts): string[] {
   );
 
   out.push(
-    `I understand that the ${f.feeType.toLowerCase()} required by the institution is below the minimum amount accepted for international bank transfers, and that the institution does not provide an online card payment link or an alternative online payment method. It is therefore not practical for me to transfer the fee directly to the institution myself.`
+    `I understand that it is not practical for me to pay the ${f.feeType.toLowerCase()} required by the institution directly myself, for example because of international transfer limits or because the institution offers no online payment method I can use.`
   );
 
   if (f.thirdParty && f.payerName) {

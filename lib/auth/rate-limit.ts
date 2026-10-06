@@ -42,9 +42,12 @@ export function rateLimit(
 }
 
 export function clientIp(request: Request): string {
+  // Platform-set headers first: a client can send its own X-Forwarded-For,
+  // but not x-real-ip / x-vercel-forwarded-for, which the edge overwrites.
   return (
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
     "anonymous"
   );
 }
