@@ -196,3 +196,12 @@ export async function markHandled(id: string): Promise<boolean> {
     return rows.length > 0;
   }, false);
 }
+
+/** Undo a mistaken "answered". */
+export async function markUnhandled(id: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`UPDATE enquiries SET handled_at = NULL WHERE id = ${id} RETURNING id`;
+    return rows.length > 0;
+  }, false);
+}

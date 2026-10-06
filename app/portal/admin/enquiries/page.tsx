@@ -12,6 +12,7 @@ import { BarList } from "@/components/portal/DashboardCharts";
 import { Avatar } from "@/components/portal/Avatar";
 import { whatsappLink } from "@/lib/portal/whatsapp";
 import Link from "next/link";
+import { EnquiryHandled } from "@/components/portal/EnquiryHandled";
 import type { Enquiry } from "@/lib/db/repos/enquiries";
 import { requireArea } from "@/lib/auth/permissions";
 
@@ -136,12 +137,7 @@ export default async function EnquiriesPage({
           }
           href="/portal/admin/enquiries"
         />
-        <WorkCard
-          label="Total received"
-          value={total}
-          note="Since the contact form started recording them."
-          href="/portal/admin/enquiries"
-        />
+        <StatCard label="Total received" value={total} hint="Since the contact form started recording them." />
       </div>
 
       <Panel title="Direct enquiries from the website">
@@ -244,7 +240,10 @@ export default async function EnquiriesPage({
                       />
                     </td>
                     <td className="py-3 text-right">
-                      <WhatsAppAction enquiry={e} />
+                      <span className="inline-flex items-center gap-2">
+                        <WhatsAppAction enquiry={e} />
+                        <EnquiryHandled id={e.id} handledAt={e.handledAt} />
+                      </span>
                     </td>
                   </tr>
                 ))}

@@ -12,7 +12,7 @@ import {
 } from "@/lib/portal/data";
 import { getIntake } from "@/lib/db/repos/operations";
 import { PATHWAY_FOR_ROLE, intakeFor, intakeCompletion } from "@/lib/portal/intake";
-import { studentStage } from "@/lib/portal/stage";
+import { studentStage, pathOpen, feeCleared, lockReason } from "@/lib/portal/stage";
 import { flowPosition } from "@/lib/portal/journey-flow";
 import { FlowTrack } from "@/components/portal/FlowTrack";
 import { ProgressGauges } from "@/components/portal/DashboardCharts";
@@ -88,6 +88,15 @@ export async function ClientDashboard({ session }: { session: Session }) {
   */
   const stageInfo = role === "student" ? await studentStage(session.userId) : null;
   const position = stageInfo ? flowPosition(stageInfo.stage) : null;
+  /*
+    WHAT IS OPEN TO THEM. Pages behind the fee gate send a student back to
+    the dashboard, so linking to one before the fee is verified is a button
+    that does nothing. Every link to a gated page goes through go(), and the
+    card links to them are hidden until they open.
+  */
+  const open = (href: string) => !stageInfo || pathOpen(href, stageInfo.stage);
+  const go = (href: string) => (open(href) ? href : "/portal/student");
+  const feeOpen = !stageInfo || feeCleared(stageInfo.stage);
 
   const applicationProgress =
     pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data) : null;
@@ -127,7 +136,9 @@ export async function ClientDashboard({ session }: { session: Session }) {
   const actionDocs = documents.filter(
     (d) => d.status === "rejected" || d.status === "needs_update"
   );
-  const intakeDone = Boolean(intake && intake.status !== "draft");
+  // Sent back for changes is not "done": the form is theirs again.
+  const intakeReturned = intake?.status === "returned";
+  const intakeDone = Boolean(intake && intake.status !== "draft" && !intakeReturned);
   const intakePercent =
     pathway && intake ? intakeCompletion(intakeFor(pathway), intake.data).percent : 0;
 
@@ -139,13 +150,27 @@ export async function ClientDashboard({ session }: { session: Session }) {
    * request from an advisor, and only when none of those are outstanding does
    * booking a conversation become the most useful thing to say.
    */
-  const nextStep = actionDocs.length
+  const nextStep = !feeOpen
+    ? {
+        title: "Verify your fee",
+        body: (stageInfo && lockReason(stageInfo.stage)) ?? "Send your payment receipt so we can open your application.",
+        href: "/portal/student",
+        cta: "Open fee verification",
+      }
+    : intakeReturned
+    ? {
+        title: "Your application needs a few changes",
+        body: "Our team has asked you to change a few things. Open your application to see what, then send it again.",
+        href: go("/portal/application"),
+        cta: "Make the changes",
+      }
+    : actionDocs.length
     ? {
         title: `${actionDocs[0].name} needs attention`,
         body:
           actionDocs[0].reviewNote ??
           "This document was returned. Replacing it lets your case continue.",
-        href: "/portal/documents",
+        href: go("/portal/documents"),
         cta: "Upload replacement",
       }
     : !intakeDone
@@ -154,27 +179,27 @@ export async function ClientDashboard({ session }: { session: Session }) {
           body: intake
             ? `You're ${intakePercent}% through. It saves as you go, so you can stop and come back.`
             : "A short set of questions so we can advise on your actual case rather than a general one.",
-          href: "/portal/application",
+          href: go("/portal/application"),
           cta: intake ? "Continue" : "Start now",
         }
       : openTasks.length
         ? {
             title: openTasks[0].title,
             body: openTasks[0].detail ?? "Open this task for the detail.",
-            href: "/portal/tasks",
+            href: go("/portal/tasks"),
             cta: "View tasks",
           }
         : completion.percent < 100
           ? {
               title: "Complete your profile",
               body: `${completion.filled} of ${completion.total} details so far. The rest is what turns a general answer into one about your case.`,
-              href: "/portal/profile",
+              href: go("/portal/profile"),
               cta: "Continue your profile",
             }
           : {
               title: "Book a conversation",
               body: "Everything we need is on file. The next step is a short call so we can tell you honestly what your options look like.",
-              href: "/portal/appointments",
+              href: go("/portal/appointments"),
               cta: "Request a consultation",
             };
 
@@ -205,19 +230,19 @@ export async function ClientDashboard({ session }: { session: Session }) {
                 label: "Journey",
                 value: Math.round(((position.index + (position.waiting ? 0.5 : 0)) / (STUDENT_FLOW.length - 1)) * 100),
                 caption: `Stage ${position.index + 1} of ${STUDENT_FLOW.length}: ${STUDENT_FLOW[position.index]?.name ?? ""}`,
-                href: "/portal/journey",
+                href: go("/portal/journey"),
               },
               {
                 label: "Application",
                 value: intakeDone ? 100 : intakePercent,
-                caption: intakeDone ? "Submitted" : intake ? "Saves as you go" : "Not started yet",
-                href: "/portal/application",
+                caption: intakeDone ? "Submitted" : intakeReturned ? "Changes requested" : intake ? "Saves as you go" : "Not started yet",
+                href: go("/portal/application"),
               },
               {
                 label: "Documents",
                 value: admissionDocs.percent,
                 caption: `${admissionDocs.done} of ${admissionDocs.total} on the checklist`,
-                href: "/portal/checklist",
+                href: go("/portal/checklist"),
               },
             ]}
           />
@@ -247,7 +272,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
               ? "Returned by your advisor — replacing them lets your case continue."
               : `${documents.length} on file. Nothing has been sent back.`
           }
-          href="/portal/documents"
+          href={go("/portal/documents")}
         />
         <WorkCard
           label="Open tasks"
@@ -257,7 +282,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
               ? "Things your advisor has asked you for."
               : "Nothing outstanding. Tasks appear here when we need something."
           }
-          href="/portal/tasks"
+          href={go("/portal/tasks")}
         />
         <WorkCard
           label={casesLabel}
@@ -269,7 +294,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
                 ? "Requests you raise with us will be tracked here."
                 : "Applications we prepare with you will be tracked here."
           }
-          href="/portal/cases"
+          href={go("/portal/cases")}
         />
         <WorkCard
           label="Consultations"
@@ -277,16 +302,16 @@ export async function ClientDashboard({ session }: { session: Session }) {
           note={
             appointments.length
               ? "Booked with your advisor."
-              : "No calls booked. You can request one at any time."
+              : feeOpen ? "No calls booked. You can request one at any time." : "Opens once your fee is verified."
           }
-          href="/portal/appointments"
+          href={go("/portal/appointments")}
         />
       </div>
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1.55fr_1fr]">
         <Panel
           title={role === "business" ? "Where your setup stands" : "Where you are"}
-          action={<CardLink href="/portal/journey">See each stage</CardLink>}
+          action={open("/portal/journey") ? <CardLink href="/portal/journey">See each stage</CardLink> : undefined}
         >
           {position ? (
             <>
@@ -350,7 +375,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
                 <p className="mt-5 border-t border-line pt-4 text-[0.8rem] leading-relaxed text-faint">
                   Your account profile is {completion.percent}% complete.{" "}
                   <Link
-                    href="/portal/profile"
+                    href={go("/portal/profile")}
                     className="text-accent underline underline-offset-4"
                   >
                     Add the rest
@@ -385,7 +410,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
                 </ul>
               )}
               <Link
-                href="/portal/profile"
+                href={go("/portal/profile")}
                 className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] mt-6 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
               >
                 Complete profile
@@ -399,7 +424,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
         <Panel
           className="mt-5"
           title="Document checklist"
-          action={<CardLink href="/portal/checklist">Open the checklist</CardLink>}
+          action={open("/portal/checklist") ? <CardLink href="/portal/checklist">Open the checklist</CardLink> : undefined}
         >
           {february && (
             <p className="mb-4 rounded-[var(--radius-sm)] border border-moss-400/50 bg-moss-400/[0.08] px-4 py-3 text-[0.86rem] leading-relaxed text-fg">
@@ -472,7 +497,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
       )}
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
-        <Panel title={casesLabel} action={<CardLink href="/portal/cases">View all</CardLink>}>
+        <Panel title={casesLabel} action={open("/portal/cases") ? <CardLink href="/portal/cases">View all</CardLink> : undefined}>
           {cases.length === 0 ? (
             <EmptyState
               icon="file"
@@ -496,7 +521,7 @@ export async function ClientDashboard({ session }: { session: Session }) {
           )}
         </Panel>
 
-        <Panel title="Documents" action={<CardLink href="/portal/documents">View all</CardLink>}>
+        <Panel title="Documents" action={open("/portal/documents") ? <CardLink href="/portal/documents">View all</CardLink> : undefined}>
           {documents.length === 0 ? (
             <div>
               <p className="mb-4 text-[0.85rem] leading-relaxed text-muted">

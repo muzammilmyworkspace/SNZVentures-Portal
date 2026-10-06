@@ -188,8 +188,8 @@ export default async function AdminPage({
     {
       label: "My clients",
       value: myClients.length,
-      note: "People assigned to you by an administrator.",
-      href: "/portal/admin/users",
+      note: "Students who are yours.",
+      href: "/portal/admin/my-students",
     },
   ];
 
@@ -417,7 +417,7 @@ export default async function AdminPage({
                     <tr key={c.id} className="border-b border-line last:border-0">
                       <td className="py-3 pr-4">
                         <Link
-                          href={`/portal/admin/cases/${c.id}`}
+                          href={`/portal/admin/users/${(c as { clientId?: string }).clientId ?? ""}`}
                           className="text-[0.9rem] text-fg hover:text-accent"
                         >
                           {c.clientName}

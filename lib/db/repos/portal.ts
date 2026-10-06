@@ -1533,14 +1533,19 @@ export async function getAdminOverview(limitCases = 12, limitDocs = 10, limitUse
           'professionals',    (SELECT count(*)::int FROM users WHERE role='professional'),
           'businesses',       (SELECT count(*)::int FROM users WHERE role='business'),
           'advisors',         (SELECT count(*)::int FROM users WHERE role IN ('advisor','admin','super_admin')),
+          'consultants',      (SELECT count(*)::int FROM users WHERE role = 'advisor' AND status = 'active'),
           'openCases',        (SELECT count(*)::int FROM cases WHERE status NOT IN ('completed','closed')),
           'completedCases',   (SELECT count(*)::int FROM cases WHERE status IN ('completed','closed')),
           'pendingDocuments', (SELECT count(*)::int FROM documents WHERE status IN ('uploaded','pending_review')),
           'applications',     (SELECT count(*)::int FROM applications),
           'appointments',     (SELECT count(*)::int FROM appointments WHERE status IN ('requested','confirmed')),
-          'unreadMessages',   (SELECT count(*)::int FROM messages WHERE read_at IS NULL),
+          -- Written by a conversation's owner and not yet read by the team:
+          -- the team's own unread messages to clients are not work for us.
+          'unreadMessages',   (SELECT count(*)::int FROM messages m JOIN conversations c ON c.id = m.conversation_id
+                               WHERE m.read_at IS NULL AND m.author_id = c.client_id),
           'totalQueries',     (SELECT count(*)::int FROM intake_forms WHERE status <> 'draft'),
-          'newQueries',       (SELECT count(*)::int FROM intake_forms WHERE status = 'submitted'),
+          -- Same rule as the sidebar's Review applications badge.
+          'newQueries',       (SELECT count(*)::int FROM intake_forms WHERE status IN ('submitted','under_review')),
           'studentQueries',   (SELECT count(*)::int FROM intake_forms WHERE status <> 'draft' AND pathway = 'study'),
           'careerQueries',    (SELECT count(*)::int FROM intake_forms WHERE status <> 'draft' AND pathway = 'career'),
           'businessQueries',  (SELECT count(*)::int FROM intake_forms WHERE status <> 'draft' AND pathway = 'business'),
@@ -1552,7 +1557,7 @@ export async function getAdminOverview(limitCases = 12, limitDocs = 10, limitUse
 
         COALESCE((
           SELECT json_agg(x) FROM (
-            SELECT c.id, c.title, c.status, c.pathway, c.country, c.updated_at,
+            SELECT c.id, c.title, c.status, c.pathway, c.country, c.updated_at, c.client_id,
                    u.name AS client_name, a.name AS advisor_name
             FROM cases c
             JOIN users u ON u.id = c.client_id
@@ -1588,6 +1593,7 @@ export async function getAdminOverview(limitCases = 12, limitDocs = 10, limitUse
         pathway: String(c.pathway),
         country: c.country ? String(c.country) : null,
         clientName: String(c.client_name),
+        clientId: String(c.client_id),
         advisorName: c.advisor_name ? String(c.advisor_name) : null,
         updatedAt: iso(c.updated_at)!,
       })),
