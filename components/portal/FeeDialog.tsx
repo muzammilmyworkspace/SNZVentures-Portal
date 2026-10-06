@@ -59,12 +59,16 @@ const EMPTY: Facts = {
 export function FeeDialog({
   studentName,
   studentEmail,
+  known,
+  storageOn = true,
   open,
   onClose,
   rejectionNote,
 }: {
   studentName: string;
   studentEmail: string;
+  known?: { phone: string; city: string; nationality: string };
+  storageOn?: boolean;
   open: boolean;
   onClose: () => void;
   rejectionNote?: string | null;
@@ -79,7 +83,15 @@ export function FeeDialog({
     heading that says "as on passport" invites a mismatch between the two. They
     can still correct either; the passport is what the declaration must match.
   */
-  const [f, setF] = useState<Facts>({ ...EMPTY, name: studentName, email: studentEmail });
+  const start: Facts = {
+    ...EMPTY,
+    name: studentName,
+    email: studentEmail,
+    phone: known?.phone ?? "",
+    city: known?.city ?? "",
+    nationality: known?.nationality ?? "",
+  };
+  const [f, setF] = useState<Facts>(start);
   const set: SetFact = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
   const [receipt, setReceipt] = useState<File | null>(null);
@@ -256,6 +268,12 @@ export function FeeDialog({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-6">
+          {!storageOn && (
+            <p role="alert" className="mb-5 rounded-[var(--radius-sm)] border border-amber-300/45 bg-amber-300/[0.08] px-4 py-3 text-[0.9rem] leading-relaxed text-warn">
+              <strong>Receipts cannot be accepted right now.</strong> Our upload service is unavailable, so this
+              form cannot be sent today. Please message us or try again later; nothing you type here is lost.
+            </p>
+          )}
           {rejectionNote && idx === 0 && (
             <p className="mb-5 rounded-[var(--radius-sm)] border border-red-500/45 bg-red-500/10 px-4 py-3 text-[0.9rem] leading-relaxed text-danger">
               <strong>Your last submission was returned.</strong> {rejectionNote}
@@ -272,7 +290,7 @@ export function FeeDialog({
                 type="button"
                 onClick={() => {
                   clearDraft();
-                  setF({ ...EMPTY, name: studentName, email: studentEmail });
+                  setF(start);
                   setAgreed(false);
                   setSignature(null);
                   setReceipt(null);

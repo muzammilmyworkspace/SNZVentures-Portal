@@ -3,6 +3,8 @@ import { ClientDashboard } from "@/components/portal/ClientDashboard";
 import { FeeGate } from "@/components/portal/FeeGate";
 import { studentStage } from "@/lib/portal/stage";
 import { isDatabaseConfigured } from "@/lib/db/client";
+import { isStorageConfigured } from "@/lib/storage";
+import { getProfile } from "@/lib/db/repos/profiles";
 
 /**
  * Student dashboard.
@@ -23,6 +25,13 @@ export default async function Page({
 }) {
   const { session } = await requireRole(["student"], "/portal/student");
   const { locked, fee } = await searchParams;
+  // What registration already told us, so the fee form does not ask again.
+  const profile = isDatabaseConfigured() ? await getProfile(session.userId, session.role) : {};
+  const known = {
+    phone: profile.phone ?? "",
+    city: [profile.city, profile.country].filter(Boolean).join(", "),
+    nationality: profile.nationality ?? "",
+  };
 
   const { stage, rejectionNote } = isDatabaseConfigured()
     ? await studentStage(session.userId)
@@ -35,6 +44,8 @@ export default async function Page({
         rejectionNote={rejectionNote}
         studentName={session.name}
         studentEmail={session.email}
+        known={known}
+        storageOn={isStorageConfigured()}
         lockedPath={locked ?? null}
         justSubmitted={fee === "submitted"}
       />

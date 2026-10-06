@@ -256,7 +256,7 @@ export function ConsultantList({
       <DataTable
         columns={["#", employee ? "ID" : "Code", "Name", "Email", employee ? "Access" : "Students", "Active", ""]}
         caption={employee ? "Employees" : "Consultants"}
-        minWidth={900}
+        minWidth={860}
       >
         {consultants.map((c, idx) => (
           <Row key={c.id}>

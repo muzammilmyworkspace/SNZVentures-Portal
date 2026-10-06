@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * THE STATUS OF ONE APPLICATION, AS A CONTROL.
@@ -34,6 +34,12 @@ export function StageSelect({ intakeId, status, studentName }: { intakeId: strin
   const [value, setValue] = useState(initial);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // The row's status can change elsewhere (the review window); follow it.
+  useEffect(() => {
+    setValue(initial);
+    setNote("");
+    setBusy(false);
+  }, [initial]);
   const [error, setError] = useState<string | null>(null);
   const dirty = value !== initial;
   const tone = OPTIONS.find((o) => o.value === value)?.tone ?? "work";

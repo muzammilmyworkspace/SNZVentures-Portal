@@ -595,7 +595,7 @@ export function RegisterForm({
             value={password}
             onChange={setPassword}
             autoComplete="new-password"
-            hint="At least 4 characters."
+            hint="At least 8 characters."
           />
           <Field
             id="confirm"
@@ -757,7 +757,7 @@ export function ResetForm({ token }: { token: string }) {
         value={password}
         onChange={setPassword}
         autoComplete="new-password"
-        hint="At least 4 characters."
+        hint="At least 8 characters."
       />
       <Field
         id="confirm"

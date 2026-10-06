@@ -103,7 +103,8 @@ export async function verifyPassword(
  * small change.
  */
 export function validatePassword(password: string): string | null {
-  if (password.length < 4) return "Use at least 4 characters.";
+  // New passwords only: existing ones keep working until they are changed.
+  if (password.length < 8) return "Use at least 8 characters.";
   if (password.length > 200) return "That password is too long.";
   return null;
 }

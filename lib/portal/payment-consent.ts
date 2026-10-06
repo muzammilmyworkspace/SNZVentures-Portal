@@ -16,7 +16,10 @@
  * none of it.
  */
 
-export const PAYMENT_CONSENT_VERSION = "2026-08-payment-v1";
+// v2 (Oct 2026): nationality is stated as "nationality: X", which reads
+// correctly whether the student wrote "Pakistani" or "Pakistan"; v1 produced
+// "a national of Pakistani".
+export const PAYMENT_CONSENT_VERSION = "2026-10-payment-v2";
 export const PAYMENT_CONSENT_KIND = "payment_authorization";
 export const PAYMENT_CONSENT_TITLE = "Payment Authorization & Declaration";
 
@@ -65,7 +68,7 @@ export function paymentDeclarationBody(f: PaymentDeclarationFacts): string[] {
     institution matches a transfer against.
   */
   out.push(
-    `I, ${f.name}, holder of passport ${f.passport}, a national of ${f.nationality} residing at ${f.city}, confirm that I have applied for admission to ${f.university}` +
+    `I, ${f.name}, holder of passport ${f.passport}, nationality: ${f.nationality}, residing at ${f.city}, confirm that I have applied for admission to ${f.university}` +
       (f.programme ? ` for the programme ${f.programme}` : "") +
       "."
   );
@@ -168,6 +171,7 @@ export function dobError(value: string): string | null {
   if (Number.isNaN(d.getTime())) return "That is not a real date.";
   if (d.toISOString().slice(0, 10) !== v) return "That is not a real date.";
 
+  if (d.getTime() > Date.now()) return "That date is in the future.";
   const years = (Date.now() - d.getTime()) / 31_557_600_000;
   if (years < 16) return "Please check that date — it makes you under 16.";
   if (years > 100) return "Please check that date.";

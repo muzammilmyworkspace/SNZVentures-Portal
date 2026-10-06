@@ -23,6 +23,8 @@ export function FeeGate({
   rejectionNote,
   studentName,
   studentEmail,
+  known,
+  storageOn = true,
   lockedPath,
   justSubmitted,
 }: {
@@ -30,6 +32,10 @@ export function FeeGate({
   rejectionNote: string | null;
   studentName: string;
   studentEmail: string;
+  /** Details from registration, filled into the fee form. */
+  known?: { phone: string; city: string; nationality: string };
+  /** False when uploads cannot be accepted; the form says so before step one. */
+  storageOn?: boolean;
   lockedPath: string | null;
   justSubmitted: boolean;
 }) {
@@ -139,6 +145,8 @@ export function FeeGate({
       <FeeDialog
         studentName={studentName}
         studentEmail={studentEmail}
+        known={known}
+        storageOn={storageOn}
         open={open}
         onClose={() => setOpen(false)}
         rejectionNote={stage === "fee_rejected" ? rejectionNote : null}

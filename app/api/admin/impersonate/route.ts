@@ -168,8 +168,10 @@ export async function DELETE(request: Request) {
     })
   );
 
+  // Back to where a person like that is managed: a consultant to
+  // Consultants, anyone else to their own file.
   return NextResponse.json({
     ok: true,
-    redirectTo: `/portal/admin/users/${session.userId}`,
+    redirectTo: session.role === "advisor" ? "/portal/admin/staff" : `/portal/admin/users/${session.userId}`,
   });
 }
