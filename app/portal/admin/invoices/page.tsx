@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireSuperAdmin } from "@/lib/auth/guard";
+import { requireRole } from "@/lib/auth/guard";
+import { InvoiceRowActions } from "@/components/portal/InvoiceActions";
 import * as invoices from "@/lib/db/repos/invoices";
 import { formatMoney, type InvoiceStatus } from "@/lib/invoices/model";
 import { PortalHeading, Panel } from "@/components/portal/Pieces";
@@ -30,7 +31,8 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
-  await requireSuperAdmin();
+  const { session } = await requireRole(["super_admin", "advisor"]);
+  const isConsultant = session.role === "advisor";
   const sp = await searchParams;
   const { status, q } = sp;
 
@@ -38,7 +40,7 @@ export default async function InvoicesPage({
     ? (status as InvoiceStatus)
     : "all";
 
-  const { rows, totalsByCurrency } = await invoices.list({ status: filter, q });
+  const { rows, totalsByCurrency } = await invoices.list({ status: filter, q, createdBy: isConsultant ? session.userId : null });
   const pg = paginate(rows, pageFrom(sp.page));
 
   return (
@@ -135,7 +137,7 @@ export default async function InvoicesPage({
                           <span>
                             <span className="block text-[0.85rem] text-fg">{inv.createdByName}</span>
                             <span data-group="employee" className="group-id text-[0.7rem] font-semibold">
-                              {inv.createdByRole === "super_admin" ? "Super admin" : "Employee"}
+                              {inv.createdByRole === "super_admin" ? "Super admin" : inv.createdByRole === "advisor" ? "Consultant" : "Employee"}
                             </span>
                           </span>
                         </span>
@@ -144,17 +146,7 @@ export default async function InvoicesPage({
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/portal/admin/invoices/${inv.id}`}
-                        aria-label={`Open invoice ${inv.number}`}
-                        data-tip="View invoice"
-                        className="tip tip-end icon-btn"
-                      >
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
-                          <circle cx="8" cy="8" r="2" />
-                        </svg>
-                      </Link>
+                      <InvoiceRowActions id={inv.id} number={inv.number} status={inv.status} />
                     </td>
                   </tr>
                 ))}

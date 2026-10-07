@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { apiRequireSuperAdmin } from "@/lib/auth/guard";
+import { apiRequireRole } from "@/lib/auth/guard";
+import type { Session } from "@/lib/auth/types";
 import * as invoices from "@/lib/db/repos/invoices";
 import { validateDraft, STATUSES, type InvoiceStatus } from "@/lib/invoices/model";
 import { audit } from "@/lib/db/repos/audit";
@@ -9,15 +10,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * RAISING AND MOVING AN INVOICE — SUPER ADMIN ONLY.
+ * RAISING, MOVING AND DELETING AN INVOICE — super admin and consultants.
  *
- * Deliberately narrower than the rest of the admin area, which admins share.
- * An invoice is the firm speaking about money in its own name; who may issue
- * one is a smaller question than who may review a document.
+ * Still narrower than the admin area, which admins share: an invoice is
+ * somebody speaking about money. A consultant raises their own and can touch
+ * only those; the super admin sees and moves all of them. Only a draft can be
+ * deleted; an issued one is voided.
  */
 
+const ROLES = ["super_admin", "advisor"] as const;
+
+/** The invoice, if this person may act on it. */
+async function mine(session: Session, id: string) {
+  const inv = await invoices.getById(id);
+  if (!inv) return null;
+  if (session.role === "super_admin") return inv;
+  return inv.createdById === session.userId ? inv : null;
+}
+
 export async function POST(request: Request) {
-  const guard = await apiRequireSuperAdmin();
+  const guard = await apiRequireRole([...ROLES]);
   if (!guard.ok) return guard.response;
   const { session } = guard;
 
@@ -94,7 +106,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const guard = await apiRequireSuperAdmin();
+  const guard = await apiRequireRole([...ROLES]);
   if (!guard.ok) return guard.response;
   const { session } = guard;
 
@@ -110,6 +122,9 @@ export async function PATCH(request: Request) {
   if (!id) return NextResponse.json({ ok: false, error: "Which invoice?" }, { status: 400 });
   if (!STATUSES.includes(status)) {
     return NextResponse.json({ ok: false, error: "That is not a status." }, { status: 400 });
+  }
+  if (!(await mine(session, id))) {
+    return NextResponse.json({ ok: false, error: "Invoice not found." }, { status: 404 });
   }
 
   const updated = await invoices.setStatus(id, status);
@@ -134,4 +149,34 @@ export async function PATCH(request: Request) {
   });
 
   return NextResponse.json({ ok: true, invoice: updated });
+}
+
+export async function DELETE(request: Request) {
+  const guard = await apiRequireRole([...ROLES]);
+  if (!guard.ok) return guard.response;
+  const { session } = guard;
+
+  const id = new URL(request.url).searchParams.get("id") ?? "";
+  const inv = id ? await mine(session, id) : null;
+  if (!inv) return NextResponse.json({ ok: false, error: "Invoice not found." }, { status: 404 });
+  if (inv.status !== "draft") {
+    return NextResponse.json(
+      { ok: false, error: `${inv.number} has been issued, so it is kept. Void it instead.` },
+      { status: 409 }
+    );
+  }
+  if (!(await invoices.deleteDraft(id))) {
+    return NextResponse.json({ ok: false, error: "That invoice could not be deleted." }, { status: 409 });
+  }
+
+  await audit({
+    action: "invoice.status_changed",
+    actorId: session.userId,
+    actorEmail: session.email,
+    entity: "invoice",
+    entityId: id,
+    meta: { number: inv.number, deleted: true },
+    ip: clientIp(request),
+  });
+  return NextResponse.json({ ok: true });
 }

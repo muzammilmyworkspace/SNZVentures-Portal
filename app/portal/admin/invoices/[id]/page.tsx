@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { requireSuperAdmin } from "@/lib/auth/guard";
+import { requireRole } from "@/lib/auth/guard";
+import { AutoPrint } from "@/components/portal/InvoiceActions";
 import * as invoices from "@/lib/db/repos/invoices";
 import { company } from "@/lib/invoices/company";
 import { CURRENCIES, formatMoney } from "@/lib/invoices/model";
@@ -23,18 +24,28 @@ export const dynamic = "force-dynamic";
  * Everything outside `.invoice-paper` carries `print:hidden`, so what comes
  * out of the printer is the invoice and nothing else.
  */
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireSuperAdmin();
+export default async function InvoicePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ print?: string }>;
+}) {
+  const { session } = await requireRole(["super_admin", "advisor"]);
   const { id } = await params;
+  const { print } = await searchParams;
 
   const invoice = await invoices.getById(id);
-  if (!invoice) notFound();
+  // A consultant opens only the invoices they raised.
+  if (!invoice || (session.role === "advisor" && invoice.createdById !== session.userId)) notFound();
 
   const co = company();
   const currencyName = CURRENCIES[invoice.currency]?.name ?? invoice.currency;
 
   return (
     <>
+      {/* The download icon on the list opens this with ?print=1. */}
+      {print === "1" && <AutoPrint />}
       <div className="print:hidden">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">

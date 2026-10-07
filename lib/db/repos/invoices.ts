@@ -78,12 +78,14 @@ const COLUMNS = `i.id, i.number, i.status, i.issued_on, i.due_on, i.bill_to_name
   u.name AS created_by_name, u.role::text AS created_by_role, u.id AS created_by_id`;
 
 export async function list(
-  filter: { status?: InvoiceStatus | "all"; q?: string; limit?: number } = {}
+  filter: { status?: InvoiceStatus | "all"; q?: string; limit?: number; createdBy?: string | null } = {}
 ): Promise<{ rows: InvoiceRow[]; totalsByCurrency: { currency: CurrencyCode; cents: number }[] }> {
   const limit = Math.min(Math.max(filter.limit ?? 100, 1), 300);
   const status = filter.status && filter.status !== "all" ? filter.status : null;
   const q = filter.q?.trim() || null;
   const like = q ? `%${q}%` : null;
+  // A consultant sees, and is totalled on, only the invoices they raised.
+  const by = filter.createdBy ?? null;
 
   return safeQuery(async () => {
     /*
@@ -103,6 +105,7 @@ export async function list(
             FROM invoices i
             LEFT JOIN users u ON u.id = i.created_by
            WHERE (${status}::text IS NULL OR i.status = ${status})
+             AND (${by}::uuid IS NULL OR i.created_by = ${by})
              AND (${like}::text IS NULL
                   OR i.bill_to_name ILIKE ${like}
                   OR i.number ILIKE ${like}
@@ -113,7 +116,7 @@ export async function list(
 
         COALESCE((SELECT json_agg(t) FROM (
           SELECT currency, sum(total_cents)::bigint AS cents
-            FROM invoices WHERE status <> 'void'
+            FROM invoices WHERE status <> 'void' AND (${by}::uuid IS NULL OR created_by = ${by})
            GROUP BY currency ORDER BY currency
         ) t), '[]'::json) AS totals
     `;
@@ -227,4 +230,15 @@ export async function forClient(clientId: string): Promise<InvoiceRow[]> {
     `;
     return rows.map(map);
   }, []);
+}
+
+/**
+ * Deletes a DRAFT, which nobody has been sent. Issued invoices are voided
+ * instead (the database refuses to delete them, see migration 036).
+ */
+export async function deleteDraft(id: string): Promise<boolean> {
+  return safeQuery(async () => {
+    const rows = await db()`DELETE FROM invoices WHERE id = ${id} AND status = 'draft' RETURNING id`;
+    return rows.length > 0;
+  }, false);
 }

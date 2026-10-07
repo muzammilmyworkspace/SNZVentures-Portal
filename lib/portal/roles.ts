@@ -320,7 +320,7 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         // Super admin only. Raising an invoice is the firm speaking about
         // money in its own name — a smaller circle than the rest of the
         // admin area, which advisors and admins share.
-        { href: "/portal/admin/invoices", label: "Invoices", icon: "requests", roles: ["super_admin"] },
+        { href: "/portal/admin/invoices", label: "Invoices", icon: "requests", roles: ["super_admin", "advisor"] },
       ],
     },
     {

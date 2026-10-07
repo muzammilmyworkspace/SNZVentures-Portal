@@ -42,6 +42,9 @@ const ADVISOR_SAFE = {
   cases: "getCasesForAdvisor joins staff_assignments; only an admin gets getAllCases.",
   "my-students": "getAssignedClients and getCasesForAdvisor, both scoped to the session user.",
   "users/[id]": "An advisor is 404'd for a client not assigned to them, resolved in SQL.",
+  invoices: "invoices.list is filtered to created_by = the session user for a consultant.",
+  "invoices/[id]": "A consultant gets notFound() for an invoice they did not raise.",
+  "invoices/new": "Only a form; what it creates belongs to the session user.",
   "forms/consent": "An advisor sees only the consent text in use (activeConsent); no client data, and the editing parts are super admin only.",
 };
 
