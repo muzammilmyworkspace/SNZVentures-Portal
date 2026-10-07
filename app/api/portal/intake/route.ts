@@ -380,9 +380,10 @@ export async function POST(request: Request) {
   after(
     repo.notifyStaff({
       area: "applications",
-      title: `${session.name} submitted their application`,
-      body: "Signed and complete — ready to review.",
-      href: `/portal/admin/users/${session.userId}`,
+      // The category is in the title: a student, a job seeker or a business.
+      title: `${session.name} (${pathway === "study" ? "Student" : pathway === "career" ? "Job Seeker" : "Business"}) submitted their ${pathway === "study" ? "application" : pathway === "career" ? "career profile" : "company profile"}`,
+      body: pathway === "study" ? "Signed and complete — ready to review." : "Complete — ready to review.",
+      href: `/portal/admin/requests?review=${form.id}`,
       kind: "status",
       aboutUserId: session.userId,
       actorId: session.userId,

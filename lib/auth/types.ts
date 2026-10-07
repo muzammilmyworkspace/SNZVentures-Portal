@@ -11,7 +11,12 @@ export type Role =
   | "business"
   | "advisor"
   | "admin"
-  | "super_admin";
+  | "super_admin"
+  /**
+   * Signed up as a consultant and waiting for approval (migration 037). Can
+   * open nothing but their own application; becomes `advisor` once approved.
+   */
+  | "applicant";
 
 /** Client-facing roles, i.e. everything that gets a journey dashboard. */
 export const CLIENT_ROLES: Role[] = ["student", "professional", "business"];
@@ -39,6 +44,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   advisor: "Consultant",
   admin: "Administrator",
   super_admin: "Super Administrator",
+  applicant: "Consultant applicant",
 };
 
 /** Maps the registration question to a role. */
@@ -46,6 +52,8 @@ export const PATHWAY_TO_ROLE = {
   study: "student",
   career: "professional",
   business: "business",
+  // Applies to become a consultant; approved by the super admin.
+  consultant: "applicant",
 } as const satisfies Record<string, Role>;
 
 export type User = {

@@ -17,7 +17,7 @@ import type { Role } from "@/lib/auth/types";
  * server, against the database.
  */
 
-export type PortalRole = "student" | "job-seeker" | "business" | "admin";
+export type PortalRole = "student" | "job-seeker" | "business" | "admin" | "applicant";
 
 /** Session role (database value) to URL segment. */
 export function portalRoleFor(role: Role): PortalRole {
@@ -28,6 +28,9 @@ export function portalRoleFor(role: Role): PortalRole {
       return "job-seeker";
     case "business":
       return "business";
+    // Never falls through to the staff side: an applicant is not staff yet.
+    case "applicant":
+      return "applicant";
     default:
       // advisor, admin and super_admin all work the operational side.
       return "admin";
@@ -39,7 +42,7 @@ export const homeFor = (role: Role) => `/portal/${portalRoleFor(role)}`;
 
 export type BadgeKey =
   | "documents" | "messages" | "notifications" | "tasks" | "requests"
-  | "enquiries" | "fees" | "review" | "ready";
+  | "enquiries" | "fees" | "review" | "ready" | "partners";
 
 export type IconKey =
   | "dashboard" | "journey" | "applications" | "universities" | "documents"
@@ -71,6 +74,11 @@ export type NavItem = {
  * item that opens an invented page is worse than one that is absent.
  */
 export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> = {
+  // Waiting to be approved as a consultant: their application, and nothing else.
+  applicant: [
+    { group: "Application", items: [{ href: "/portal/applicant", label: "My application", icon: "applications" }] },
+    { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
+  ],
   student: [
     {
       group: "Journey",
@@ -294,6 +302,14 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       items: [
         { href: "/portal/admin/users", label: "Users", icon: "users", roles: ["admin", "super_admin"] },
         { href: "/portal/admin/staff", label: "Consultants", icon: "profile", roles: ["admin", "super_admin"] },
+        // People who signed up to become consultants, waiting for review.
+        {
+          href: "/portal/admin/consultant-applications",
+          label: "Consultant requests",
+          icon: "requests",
+          roles: ["super_admin"],
+          badgeKey: "partners",
+        },
         { href: "/portal/admin/employees", label: "Employees", icon: "profile", roles: ["admin", "super_admin"] },
       ],
     },
@@ -367,5 +383,9 @@ export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> 
   admin: {
     eyebrow: "Operations",
     lead: "Here's what the platform needs from you today.",
+  },
+  applicant: {
+    eyebrow: "Consultant application",
+    lead: "Your application to work with SnZ Ventures as a consultant.",
   },
 };

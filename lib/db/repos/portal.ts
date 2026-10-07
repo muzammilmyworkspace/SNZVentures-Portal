@@ -858,6 +858,8 @@ export async function getSidebarBadges(
 ): Promise<{
   messages: number; notifications: number; documents: number; tasks: number;
   enquiries: number; fees: number; review: number; ready: number;
+  /** Consultant requests waiting on the super admin (037). */
+  partners: number;
   avatarV: number | null;
   /** Employee access (030): null means unrestricted. */
   permissions: string[] | null;
@@ -918,7 +920,9 @@ export async function getSidebarBadges(
         CASE WHEN ${staffWide}::boolean THEN
           (SELECT count(*)::int FROM intake_forms WHERE status IN ('submitted', 'under_review')) ELSE 0 END AS q_review,
         CASE WHEN ${staffWide}::boolean THEN
-          (SELECT count(*)::int FROM intake_forms WHERE status = 'accepted') ELSE 0 END AS q_ready
+          (SELECT count(*)::int FROM intake_forms WHERE status = 'accepted') ELSE 0 END AS q_ready,
+        CASE WHEN ${role === "super_admin"}::boolean THEN
+          (SELECT count(*)::int FROM consultant_applications WHERE status IN ('submitted', 'consent_signed')) ELSE 0 END AS q_partners
     `;
     return {
       messages: Number(r?.messages ?? 0),
@@ -929,10 +933,11 @@ export async function getSidebarBadges(
       fees: Number(r?.q_fees ?? 0),
       review: Number(r?.q_review ?? 0),
       ready: Number(r?.q_ready ?? 0),
+      partners: Number(r?.q_partners ?? 0),
       avatarV: r?.avatar_v == null ? null : Number(r.avatar_v),
       permissions: (r?.permissions as string[] | null) ?? null,
     };
-  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, enquiries: 0, fees: 0, review: 0, ready: 0, avatarV: null, permissions: null });
+  }, { messages: 0, notifications: 0, documents: 0, tasks: 0, enquiries: 0, fees: 0, review: 0, ready: 0, partners: 0, avatarV: null, permissions: null });
 }
 
 /** Unread count for the sidebar badge. */

@@ -100,7 +100,8 @@ export async function POST(request: Request) {
     Ignored on an invite link, which already names the consultant.
   */
   const code =
-    typeof consultantCode === "string" && consultantCode.trim() && !(typeof invite === "string" && invite)
+    typeof consultantCode === "string" && consultantCode.trim() && !(typeof invite === "string" && invite) &&
+    pathway !== "consultant"
       ? consultantCode.trim().toUpperCase()
       : null;
   if (code && !(await invitesRepo.consultantForCode(code))) {
@@ -207,7 +208,8 @@ export async function POST(request: Request) {
     fact that a string was supplied.
   */
   let enrolledWith: string | null = null;
-  if (typeof invite === "string" && invite) {
+  // A consultant applicant is never enrolled as somebody's student.
+  if (typeof invite === "string" && invite && role !== "applicant") {
     const claim = await invitesRepo.claimInvite(invite, user.id);
     if (claim.ok) {
       enrolledWith = claim.consultantName;

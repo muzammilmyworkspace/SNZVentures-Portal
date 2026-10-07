@@ -337,6 +337,7 @@ const PATHWAYS = [
   { key: "study", icon: "🎓", title: "Study abroad", blurb: "Education that leads to work" },
   { key: "career", icon: "💼", title: "Global career", blurb: "Roles with European employers" },
   { key: "business", icon: "🏢", title: "Business setup", blurb: "EU entity, licensing, relocation" },
+  { key: "consultant", icon: "🤝", title: "Become a consultant", blurb: "Bring students, work with SnZ" },
 ];
 
 /**
@@ -443,7 +444,8 @@ export function RegisterForm({
       <div>
         <p className="field-label mb-4">What brings you to SnZ Ventures?</p>
         <div className="grid gap-2.5">
-          {PATHWAYS.map((p) => (
+          {/* A student's invite link is not the way to apply as a consultant. */}
+          {PATHWAYS.filter((p) => !(invite && p.key === "consultant")).map((p) => (
             <button
               key={p.key}
               type="button"
@@ -551,8 +553,9 @@ export function RegisterForm({
             />
           </div>
 
-          {/* Not on an invite link: the link already says who the consultant is. */}
-          {!invite && (
+          {/* Not on an invite link: the link already says who the consultant is.
+              Not for a consultant applicant: the code links students to consultants. */}
+          {!invite && pathway !== "consultant" && (
             <Field
               id="consultant-code"
               label="Consultant code (optional)"

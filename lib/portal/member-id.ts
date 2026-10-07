@@ -5,11 +5,11 @@
  */
 export function memberId(role: string, memberNo: number | null): string {
   if (memberNo == null) return "—";
-  const prefix = role === "advisor" ? "CON" : role === "admin" || role === "super_admin" ? "EMP" : "STU";
+  const prefix = role === "advisor" || role === "applicant" ? "CON" : role === "admin" || role === "super_admin" ? "EMP" : "STU";
   return `${prefix}-${String(memberNo).padStart(4, "0")}`;
 }
 
 /** Which colour group a role belongs to (see [data-group] in boarding.css). */
 export function groupOf(role: string): "student" | "consultant" | "employee" {
-  return role === "advisor" ? "consultant" : role === "admin" || role === "super_admin" ? "employee" : "student";
+  return role === "advisor" || role === "applicant" ? "consultant" : role === "admin" || role === "super_admin" ? "employee" : "student";
 }

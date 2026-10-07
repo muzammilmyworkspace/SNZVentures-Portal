@@ -150,7 +150,12 @@ export type AuditAction =
   | "form.consent_published"
   | "form.consent_current"
   | "form.application_saved"
-  | "form.application_reset";
+  | "form.application_reset"
+  // Consultants who apply themselves (037).
+  | "consultant.applied"
+  | "consultant.consent_sent"
+  | "consultant.approved"
+  | "consultant.rejected";
 
 export async function audit(entry: {
   action: AuditAction;
