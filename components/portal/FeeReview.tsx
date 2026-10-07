@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useState } from "react";
 import { Avatar } from "./Avatar";
-import { BroughtByTag, DateTag, SlipButton } from "./FeeBits";
+import { DateTag, SlipButton } from "./FeeBits";
 import { memberId } from "@/lib/portal/member-id";
 import { NewMessageButton } from "./NewMessage";
 
@@ -131,7 +131,6 @@ export function FeeReview(props: {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <BroughtByTag name={props.consultantName} />
           <DateTag iso={props.submittedAt} label="Sent" />
           {props.status === "verified" ? (
             <span className="pill pill-ok">✓ Verified</span>
