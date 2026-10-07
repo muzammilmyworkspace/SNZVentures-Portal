@@ -19,6 +19,8 @@ export type FeeSubmission = {
   userId: string;
   studentName: string;
   avatarV: number | null;
+  /** STU-0000 number (users.member_no), given at registration. */
+  memberNo: number | null;
   /** Their consultant, or null when they came to the portal directly. */
   consultantName?: string | null;
   studentEmail: string;
@@ -51,6 +53,7 @@ const map = (r: Record<string, unknown>): FeeSubmission => ({
   userId: String(r.user_id),
   studentName: r.student_name ? String(r.student_name) : "",
   avatarV: r.avatar_v == null ? null : Number(r.avatar_v),
+  memberNo: r.member_no == null ? null : Number(r.member_no),
   consultantName: r.consultant_name ? String(r.consultant_name) : null,
   studentEmail: r.student_email ? String(r.student_email) : "",
   university: String(r.university),
@@ -166,7 +169,7 @@ export async function liveFeeFor(userId: string): Promise<FeeSubmission | null> 
   return safeQuery(async () => {
     const rows = await db()`
       SELECT f.*, u.name AS student_name, u.email AS student_email,
-                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
+                 u.member_no, CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.user_id = ${userId} AND f.status IN ('submitted','verified')
       LIMIT 1
@@ -188,7 +191,7 @@ export async function feeHistoryFor(userId: string): Promise<FeeSubmission[]> {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT f.*, u.name AS student_name, u.email AS student_email,
-                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
+                 u.member_no, CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.user_id = ${userId}
       ORDER BY f.created_at DESC
@@ -213,7 +216,7 @@ export async function listFeeSubmissions(
       SELECT
         COALESCE((SELECT json_agg(x) FROM (
           SELECT f.*, u.name AS student_name, u.email AS student_email,
-                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
+                 u.member_no, CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
                  cons.name AS consultant_name
           FROM fee_submissions f JOIN users u ON u.id = f.user_id
           -- Who brought them. LIMIT 1: several advisors on one client would
@@ -239,7 +242,7 @@ export async function getFeeSubmission(id: string): Promise<FeeSubmission | null
   return safeQuery(async () => {
     const rows = await db()`
       SELECT f.*, u.name AS student_name, u.email AS student_email,
-                 CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
+                 u.member_no, CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v
       FROM fee_submissions f JOIN users u ON u.id = f.user_id
       WHERE f.id = ${id} LIMIT 1
     `;

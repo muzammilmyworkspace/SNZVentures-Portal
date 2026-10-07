@@ -42,11 +42,14 @@ const plusIcon = (
 export function NewMessageButton({
   preset = null,
   studentsOnly = false,
+  tip,
 }: {
   /** Write to this person, from a row's message icon. Drawn as an icon button. */
   preset?: Person | null;
   /** The student desk can only write to students. */
   studentsOnly?: boolean;
+  /** Tooltip and window title for the icon form, e.g. "Send a comment". */
+  tip?: string;
 } = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -109,8 +112,8 @@ export function NewMessageButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label={`Message ${preset.name}`}
-          data-tip="Message"
+          aria-label={`${tip ?? "Message"}: ${preset.name}`}
+          data-tip={tip ?? "Message"}
           className="tip icon-btn"
         >
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
@@ -128,7 +131,7 @@ export function NewMessageButton({
         </button>
       )}
       {open && (
-        <Window title="New message" onClose={close}>
+        <Window title={tip ?? "New message"} onClose={close}>
           <label htmlFor="nm-to" className="field-label">To</label>
           {to ? (
             <div className="mt-1.5 flex items-center justify-between gap-3 rounded-[12px] border border-line p-3">

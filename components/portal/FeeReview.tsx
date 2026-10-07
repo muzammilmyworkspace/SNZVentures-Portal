@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Avatar } from "./Avatar";
 import { BroughtByTag, DateTag, SlipButton } from "./FeeBits";
+import { memberId } from "@/lib/portal/member-id";
+import { NewMessageButton } from "./NewMessage";
 
 /**
  * One student's payment declaration, and the two buttons that decide it.
@@ -39,7 +41,13 @@ export function FeeReview(props: {
   receiptDocumentId: string | null;
   /** Their consultant, or null for a student who came directly. */
   consultantName?: string | null;
+  /** STU- number, given when they registered. */
+  memberNo?: number | null;
+  /** Already decided: shown read-only, with what was decided. */
+  status?: "submitted" | "verified" | "rejected" | "withdrawn";
+  reviewNote?: string | null;
 }) {
+  const decided = props.status !== undefined && props.status !== "submitted";
   const router = useRouter();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<null | "verify" | "reject">(null);
@@ -111,14 +119,40 @@ export function FeeReview(props: {
         <div className="flex min-w-0 items-center gap-3">
           <Avatar id={props.userId ?? props.id} name={props.student} photo={props.avatarV != null} v={props.avatarV} size="md" />
           <div className="min-w-0">
-            <p className="text-[1rem] font-semibold text-fg">{props.student}</p>
+            <p className="flex flex-wrap items-center gap-2 text-[1rem] font-semibold text-fg">
+              {props.student}
+              {props.memberNo != null && (
+                <span data-group="student" className="group-id font-mono text-[0.72rem] font-semibold">
+                  {memberId("student", props.memberNo)}
+                </span>
+              )}
+            </p>
             <p className="truncate text-[0.82rem] text-faint">{props.email}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <BroughtByTag name={props.consultantName} />
           <DateTag iso={props.submittedAt} label="Sent" />
-          <span className="pill pill-warn">Unverified</span>
+          {props.status === "verified" ? (
+            <span className="pill pill-ok">✓ Verified</span>
+          ) : props.status === "rejected" ? (
+            <span className="pill pill-danger">↩ Returned</span>
+          ) : (
+            <span className="pill pill-warn">Unverified</span>
+          )}
+          {props.userId && (
+            <NewMessageButton
+              tip="Send a comment"
+              preset={{
+                id: props.userId,
+                name: props.student,
+                email: props.email,
+                role: "student",
+                memberNo: props.memberNo ?? null,
+                avatarV: props.avatarV ?? null,
+              }}
+            />
+          )}
           <SlipButton documentId={props.receiptDocumentId} end />
         </div>
       </div>
@@ -149,6 +183,14 @@ export function FeeReview(props: {
         </p>
       )}
 
+      {decided ? (
+        props.status === "rejected" && props.reviewNote ? (
+          <p className="mt-5 border-t border-line pt-4 text-[0.88rem] leading-relaxed text-muted">
+            <span className="field-label block">Note sent to the student</span>
+            {props.reviewNote}
+          </p>
+        ) : null
+      ) : (
       <div className="mt-5 border-t border-line pt-4">
         <label className="field-label" htmlFor={`note-${props.id}`}>
           Note to the student{" "}
@@ -190,6 +232,7 @@ export function FeeReview(props: {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }
