@@ -105,7 +105,7 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
       {open && createPortal(
         <div className="fixed inset-0 z-[80] grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-staff-title">
           <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(4_8_20/0.72)] backdrop-blur-[3px]" />
-          <div className="relative w-full max-w-lg rounded-[18px] border border-line bg-[var(--panel-solid,#1B2645)] p-6 shadow-2xl">
+          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-[var(--panel-solid,#1B2645)] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <h2 id="add-staff-title" className="text-[1.15rem] font-semibold text-fg-strong">
                 Add {label}

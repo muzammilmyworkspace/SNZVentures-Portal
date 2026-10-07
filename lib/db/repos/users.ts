@@ -262,7 +262,7 @@ export type UserSort = "recent" | "oldest" | "name" | "last_active";
 export async function getUsersPageData(
   filter: UserFilter & { sort?: UserSort } = {}
 ): Promise<{
-  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null })[];
+  rows: (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null; consultantCode: string | null })[];
   total: number;
   page: number;
   pages: number;
@@ -283,7 +283,7 @@ export async function getUsersPageData(
   const sort: UserSort = filter.sort ?? "recent";
 
   const empty = {
-    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null })[],
+    rows: [] as (DbUser & { profileFields: number; advisorId: string | null; advisorName: string | null; avatarV: number | null; memberNo: number | null; consultantCode: string | null })[],
     total: 0,
     page: 1,
     pages: 1,
@@ -298,7 +298,7 @@ export async function getUsersPageData(
         COALESCE((
           SELECT json_agg(x) FROM (
             SELECT u.id, u.email, u.name, u.role, u.status, u.email_verified,
-                   u.last_login_at, u.created_at, u.member_no,
+                   u.last_login_at, u.created_at, u.member_no, u.consultant_code,
                    CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
                    (
                      SELECT count(*)::int FROM (
@@ -385,6 +385,7 @@ export async function getUsersPageData(
         advisorName: u.advisor_name ? String(u.advisor_name) : null,
         avatarV: u.avatar_v == null ? null : Number(u.avatar_v),
         memberNo: u.member_no == null ? null : Number(u.member_no),
+        consultantCode: u.consultant_code ? String(u.consultant_code) : null,
       })),
       total,
       page: Math.floor(offset / limit) + 1,

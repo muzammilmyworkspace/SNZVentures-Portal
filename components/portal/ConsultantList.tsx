@@ -254,7 +254,7 @@ export function ConsultantList({
       )}
 
       <DataTable
-        columns={["#", employee ? "ID" : "Code", "Name", "Email", employee ? "Access" : "Students", "Active", ""]}
+        columns={["#", employee ? "ID" : "ID / Code", "Name", "Email", employee ? "Access" : "Students", "Active", ""]}
         caption={employee ? "Employees" : "Consultants"}
         minWidth={860}
       >
@@ -266,8 +266,13 @@ export function ConsultantList({
                 data-group={employee ? "employee" : "consultant"}
                 className="group-id whitespace-nowrap font-mono text-[0.82rem] font-semibold"
               >
-                {employee ? memberId(c.role, c.memberNo ?? null) : c.consultantCode ?? "—"}
+                {memberId(c.role, c.memberNo ?? null)}
               </span>
+              {!employee && c.consultantCode && (
+                <span className="mt-0.5 block whitespace-nowrap text-[0.7rem] font-medium text-faint" title="The code students type when they sign up">
+                  Code: <span className="font-mono text-fg">{c.consultantCode}</span>
+                </span>
+              )}
             </Cell>
             <Cell>
               <span className="flex items-center gap-3 whitespace-nowrap">

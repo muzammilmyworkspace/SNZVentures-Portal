@@ -26,6 +26,8 @@ type Row = {
   avatarV?: number | null;
   /** The person's number, shown as STU-0012 / CON-0003 / EMP-0001. */
   memberNo?: number | null;
+  /** Consultants: the code students type at sign-up. */
+  consultantCode?: string | null;
 };
 
 /**
@@ -217,6 +219,11 @@ export function UserTable({
 
                   <td data-group={groupOf(u.role)} className="group-id whitespace-nowrap px-5 py-3 font-mono text-[0.8rem] font-semibold">
                     {memberId(u.role, u.memberNo ?? null)}
+                    {u.role === "advisor" && u.consultantCode && (
+                      <span className="mt-0.5 block font-sans text-[0.7rem] font-medium text-faint" title="The code students type when they sign up">
+                        Code: <span className="font-mono text-fg">{u.consultantCode}</span>
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-5 py-3">
