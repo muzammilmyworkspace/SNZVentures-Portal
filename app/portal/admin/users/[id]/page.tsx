@@ -463,7 +463,11 @@ export default async function AdminUserPage({
                     <p className="text-[0.9rem] font-medium text-fg-strong">
                       {c.kind === "student_undertaking"
                         ? "Student Consent & Undertaking"
-                        : c.kind.replace(/_/g, " ")}
+                        : c.kind === "consultant_student"
+                          ? "Consultant's consent"
+                          : c.kind === "consultant_agreement"
+                            ? "Consultant agreement"
+                            : c.kind.replace(/_/g, " ")}
                     </p>
                     <p className="mt-1.5 text-[0.85rem] text-muted">
                       Signed <span className="text-fg">{c.signedName}</span>

@@ -1,7 +1,13 @@
 import { intakeFor } from "@/lib/portal/intake";
 import type { IntakeDefinition, IntakeField, IntakeStep, FieldType } from "@/lib/application/types";
-import { getFormOverride, currentConsentTemplate, templateVersion } from "@/lib/db/repos/forms";
-import { CONSENT_VERSION, CONSENT_TITLE } from "@/lib/portal/consent";
+import { getFormOverride } from "@/lib/db/repos/forms";
+import {
+  currentTemplate,
+  consultantOf,
+  templateVersion,
+  type ConsentTemplate,
+} from "@/lib/db/repos/consent-templates";
+import { CONSENT_VERSION, CONSENT_TITLE, CONSENT_PARTY } from "@/lib/portal/consent";
 import { LOCKED_KEYS } from "@/lib/portal/form-rules";
 
 /**
@@ -20,12 +26,15 @@ export async function loadIntake(pathway: Pathway): Promise<IntakeDefinition> {
   return saved?.definition?.steps?.length ? saved.definition : intakeFor(pathway);
 }
 
-/** The consent a student is shown and signs. */
+/** A consent document as it is shown to the person who signs it. */
 export type ConsentView = {
+  id: string | null;
   title: string;
+  /** Who the reader is agreeing with, for "Between you and …". */
+  party: string;
   /** Stored against each signature. */
   version: string;
-  /** Typed text; null means the built-in wording, or a document only. */
+  /** Typed (or extracted) text; null with custom=false means the built-in wording. */
   body: string | null;
   fileUrl: string | null;
   fileName: string | null;
@@ -33,13 +42,12 @@ export type ConsentView = {
   custom: boolean;
 };
 
-export async function activeConsent(): Promise<ConsentView> {
-  const t = await currentConsentTemplate();
-  if (!t) {
-    return { title: CONSENT_TITLE, version: CONSENT_VERSION, body: null, fileUrl: null, fileName: null, logoUrl: null, custom: false };
-  }
+/** Any stored version as a view: used for signing, and for previews of drafts. */
+export function viewOf(t: ConsentTemplate, party: string): ConsentView {
   return {
+    id: t.id,
     title: t.title,
+    party,
     version: templateVersion(t),
     body: t.body,
     fileUrl: t.fileKey ? `/api/portal/consent-file/${t.id}` : null,
@@ -47,6 +55,37 @@ export async function activeConsent(): Promise<ConsentView> {
     logoUrl: t.hasLogo ? `/api/portal/consent-logo/${t.id}` : null,
     custom: true,
   };
+}
+
+/** SnZ Ventures <-> student: the one in use, or the built-in wording. */
+export async function activeConsent(): Promise<ConsentView> {
+  const t = await currentTemplate("student", null);
+  if (t) return viewOf(t, CONSENT_PARTY);
+  return {
+    id: null,
+    title: CONSENT_TITLE,
+    party: CONSENT_PARTY,
+    version: CONSENT_VERSION,
+    body: null,
+    fileUrl: null,
+    fileName: null,
+    logoUrl: null,
+    custom: false,
+  };
+}
+
+/** SnZ Ventures <-> consultant, if one is in use. Consultants sign it at sign-in. */
+export async function consultantAgreement(): Promise<ConsentView | null> {
+  const t = await currentTemplate("consultant", null);
+  return t ? viewOf(t, CONSENT_PARTY) : null;
+}
+
+/** The student's consultant's own consent, if they have one in use. */
+export async function partnerConsentFor(studentId: string): Promise<(ConsentView & { consultantId: string }) | null> {
+  const consultant = await consultantOf(studentId);
+  if (!consultant) return null;
+  const t = await currentTemplate("consultant_student", consultant.id);
+  return t ? { ...viewOf(t, consultant.name), consultantId: consultant.id } : null;
 }
 
 /* --------------------------------------------------------- form checking */

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
-import { getConsentLogo } from "@/lib/db/repos/forms";
+import { getConsentLogo } from "@/lib/db/repos/consent-templates";
 
 /**
- * The logo at the head of a consent version, for anyone signed in. A version
- * never changes once published, so the image can be cached.
+ * The logo at the head of a consent version, for anyone signed in. Not
+ * cached: a draft's logo can change while it is being edited.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await apiRequireUser();
@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new NextResponse(new Uint8Array(logo.data), {
     headers: {
       "Content-Type": logo.type,
-      "Cache-Control": "private, max-age=86400, immutable",
+      "Cache-Control": "private, no-cache",
       "X-Content-Type-Options": "nosniff",
     },
   });

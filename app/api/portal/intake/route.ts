@@ -1,4 +1,4 @@
-import { loadIntake, activeConsent } from "@/lib/portal/forms";
+import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
 import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as ops from "@/lib/db/repos/operations";
@@ -302,6 +302,38 @@ export async function POST(request: Request) {
       meta: { kind: "student_undertaking", version: consentVersion, at: "application_submit" },
       ip: clientIp(request),
     });
+
+    /*
+      THE CONSULTANT'S OWN CONSENT, when the student came through one who has
+      one in use. Shown on the same step and signed by the same tick and name;
+      recorded before the submit for the same reason as SnZ's.
+    */
+    const partner = await partnerConsentFor(session.userId);
+    if (partner) {
+      const partnerRecorded = await recordConsent({
+        userId: session.userId,
+        kind: "consultant_student",
+        version: partner.version,
+        signedName: signature,
+        ip: clientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      });
+      if (!partnerRecorded) {
+        return NextResponse.json(
+          { ok: false, error: "We could not record your signature just now, so nothing was submitted. Please try again." },
+          { status: 503 }
+        );
+      }
+      await audit({
+        action: "consent.accepted",
+        actorId: session.userId,
+        actorEmail: session.email,
+        entity: "user",
+        entityId: session.userId,
+        meta: { kind: "consultant_student", version: partner.version, consultant: partner.consultantId, at: "application_submit" },
+        ip: clientIp(request),
+      });
+    }
   }
 
   const form = await ops.submitIntake({

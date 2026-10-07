@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
-import { getConsentTemplate } from "@/lib/db/repos/forms";
+import { getTemplate } from "@/lib/db/repos/consent-templates";
 import { getSignedUrl } from "@/lib/storage";
 
 /**
@@ -11,8 +11,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
   const { id } = await params;
-  const t = await getConsentTemplate(id);
+  const t = await getTemplate(id);
   if (!t?.fileKey) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+  // A draft is seen only by whoever manages it.
+  const { session } = guard;
+  if (t.status === "draft" && !(session.role === "super_admin" || (t.ownerId && t.ownerId === session.userId))) {
+    return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+  }
   try {
     const url = await getSignedUrl(t.fileKey, 300, t.fileProvider as never);
     return NextResponse.redirect(url, { status: 302 });

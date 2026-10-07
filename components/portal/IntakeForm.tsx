@@ -368,6 +368,7 @@ export function IntakeForm({
   status,
   returnNote = null,
   consent = null,
+  partnerConsent = null,
 }: {
   definition: IntakeDefinition;
   initialAnswers: Answers;
@@ -382,6 +383,8 @@ export function IntakeForm({
   returnNote?: { note: string; at: string } | null;
   /** The consent in force, when the super admin has replaced the built-in one. */
   consent?: ConsentView | null;
+  /** The student's consultant's own consent, signed with the same tick. */
+  partnerConsent?: ConsentView | null;
 }) {
   const router = useRouter();
   const steps = definition.steps;
@@ -748,7 +751,7 @@ export function IntakeForm({
                       initialTicks={checklistTicks}
                     />
                   ) : f.type === "consent" ? (
-                    <UndertakingDoc consent={consent} />
+                    <UndertakingDoc consent={consent} partner={partnerConsent} />
                   ) : f.type === "review" ? (
                     <ReviewSummary definition={definition} answers={answers} onEdit={setIndex} />
                   ) : f.type === "derived" ? (

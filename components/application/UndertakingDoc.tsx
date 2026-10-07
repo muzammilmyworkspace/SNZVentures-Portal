@@ -62,7 +62,8 @@ function Clause({ text, emphasis }: { text: string; emphasis: string[] }) {
   );
 }
 
-export function UndertakingDoc({ consent }: { consent?: ConsentView | null }) {
+/** One consent document, scrolling in its own box. */
+export function ConsentDoc({ consent }: { consent?: ConsentView | null }) {
   const [readToEnd, setReadToEnd] = useState(false);
   const box = useRef<HTMLDivElement | null>(null);
   // Written or uploaded by the super admin; otherwise the built-in wording.
@@ -79,7 +80,7 @@ export function UndertakingDoc({ consent }: { consent?: ConsentView | null }) {
           {custom ? custom.title : CONSENT_TITLE}
         </h3>
         <p className="mt-1 text-[0.82rem] text-muted">
-          Between you and {CONSENT_PARTY}
+          Between you and {consent?.party ?? CONSENT_PARTY}
         </p>
         {custom?.fileUrl && (
           <a
@@ -155,6 +156,31 @@ export function UndertakingDoc({ consent }: { consent?: ConsentView | null }) {
           {readToEnd ? "Read to the end" : "Scroll to the end"}
         </span>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * The consent step of the application: SnZ Ventures' consent, and below it
+ * the student's consultant's own, when they have one. The one tick and typed
+ * name under them sign both, and both are recorded.
+ */
+export function UndertakingDoc({
+  consent,
+  partner = null,
+}: {
+  consent?: ConsentView | null;
+  partner?: ConsentView | null;
+}) {
+  if (!partner) return <ConsentDoc consent={consent} />;
+  return (
+    <div className="space-y-4">
+      <ConsentDoc consent={consent} />
+      <ConsentDoc consent={partner} />
+      <p className="rounded-[var(--radius-md)] border border-line px-4 py-3 text-[0.85rem] leading-relaxed text-fg">
+        Ticking the box and typing your name below means you agree to <strong className="font-semibold">both</strong>{" "}
+        documents above: SnZ Ventures&apos; and {partner.party}&apos;s.
+      </p>
     </div>
   );
 }

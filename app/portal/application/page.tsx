@@ -1,4 +1,4 @@
-import { loadIntake, activeConsent } from "@/lib/portal/forms";
+import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
 import type { Metadata } from "next";
 import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
@@ -92,6 +92,7 @@ export default async function ApplicationPage() {
           status={form?.status ?? "draft"}
           returnNote={returnNote}
           consent={pathway === "study" ? await activeConsent() : null}
+          partnerConsent={pathway === "study" ? await partnerConsentFor(session.userId) : null}
         />
       </Panel>
     </>

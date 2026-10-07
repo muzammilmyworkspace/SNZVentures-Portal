@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { mustOnboard } from "@/lib/db/repos/student-desk";
+import { currentTemplate, hasSigned } from "@/lib/db/repos/consent-templates";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
 import { SessionKeepalive } from "@/components/portal/SessionKeepalive";
@@ -56,6 +57,11 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session) redirect("/api/auth/expired?next=/portal");
   // An Admin's first sign-in: photo, details and their own password first.
   if (session.role === "admin" && !session.impersonator && (await mustOnboard(session.userId))) redirect("/welcome");
+  // A consultant signs SnZ Ventures' consultant agreement (each new version) first.
+  if (session.role === "advisor" && !session.impersonator) {
+    const agreement = await currentTemplate("consultant", null);
+    if (agreement && !(await hasSigned(session.userId, agreement))) redirect("/agreement");
+  }
 
   /*
     Sidebar counts, computed here so every page shows the same numbers rather
