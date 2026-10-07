@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireArea } from "@/lib/auth/permissions";
+import { requireArea, onStudentDesk } from "@/lib/auth/permissions";
+import { HistoryDrawer } from "@/components/portal/HistoryDrawer";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { deskStudents, mustOnboard, type DeskStudent } from "@/lib/db/repos/student-desk";
 import { PortalHeading, Panel, EmptyState, StatCard, StatusPill, Tabs } from "@/components/portal/Pieces";
@@ -45,7 +46,7 @@ const day = (iso: string | null) =>
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; user?: string; page?: string; review?: string; docs?: string; preview?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; user?: string; page?: string; review?: string; docs?: string; preview?: string; history?: string }>;
 }) {
   const { session } = await requireArea("students");
   // First sign-in: photo, details and their own password come first.
@@ -62,6 +63,14 @@ export default async function StudentsPage({
   }
 
   const all = await deskStudents();
+  /*
+    BROUGHT BY. Everyone here sees whether a student is SnZ Ventures' own or
+    came through a consultant. Only the student desk (the Admin role) is not
+    told WHICH consultant; it sees "Consultant".
+  */
+  const desk = await onStudentDesk(session);
+  // History only for a student on this list: the desk may not read anyone else's.
+  const historyId = params.history && all.some((s) => s.userId === params.history) ? params.history : null;
   const tab = TABS.find((t) => t.key === params.tab) ?? TABS[0];
   const q = (params.q ?? "").trim().toLowerCase();
   const rows = all.filter(
@@ -75,7 +84,7 @@ export default async function StudentsPage({
   );
   const pg = paginate(rows, pageFrom(params.page));
 
-  const href = (next: { tab?: string; page?: string | null; review?: string | null; docs?: string | null }) => {
+  const href = (next: { tab?: string; page?: string | null; review?: string | null; docs?: string | null; history?: string | null }) => {
     const u = new URLSearchParams();
     const t = next.tab ?? tab.key;
     if (t !== "all") u.set("tab", t);
@@ -85,6 +94,7 @@ export default async function StudentsPage({
     if (page) u.set("page", page);
     if (next.review) u.set("review", next.review);
     if (next.docs) u.set("docs", next.docs);
+    if (next.history) u.set("history", next.history);
     const s = u.toString();
     return s ? `/portal/admin/students?${s}` : "/portal/admin/students";
   };
@@ -100,6 +110,7 @@ export default async function StudentsPage({
         lead="Every student whose fee is verified, through to the finished application. Open an application with the eye, their documents with the folder."
       />
       {params.review && <ApplicationReview intakeId={params.review} closeHref={href({})} limited />}
+      {historyId && <HistoryDrawer userId={historyId} closeHref={href({})} hideConsultants={desk} />}
       {params.docs && (
         <DocumentsDrawer
           userId={params.docs}
@@ -155,8 +166,8 @@ export default async function StudentsPage({
               <caption className="sr-only">Students</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["#", "ID", "Student", "Phone", "Fee verified", "Application", "Documents", ""].map((h, i) => (
-                    <th key={h || i} scope="col" className="label px-4 py-3 text-faint">
+                  {["#", "ID", "Student", "Brought by", "Fee verified", "Application", "Documents", ""].map((h, i) => (
+                    <th key={h || i} scope="col" className="label px-3 py-3 text-faint">
                       {h || <span className="sr-only">Actions</span>}
                     </th>
                   ))}
@@ -165,37 +176,60 @@ export default async function StudentsPage({
               <tbody>
                 {pg.rows.map((s, i) => (
                   <tr key={s.userId} className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
-                    <td className="px-4 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + i + 1}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + i + 1}</td>
+                    <td className="px-3 py-3">
                       <span data-group="student" className="group-id whitespace-nowrap font-mono text-[0.75rem] font-semibold">
                         {memberId("student", s.memberNo)}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <span className="flex items-center gap-3">
                         <Avatar id={s.userId} name={s.name} photo={s.avatarV != null} v={s.avatarV} size="md" />
                         <span className="min-w-0">
                           <span className="block text-[0.9rem] font-medium text-fg">{s.name}</span>
                           <span className="block text-[0.78rem] text-faint">{s.email}</span>
+                          {s.phone && <span className="block text-[0.78rem] text-faint">{s.phone}</span>}
                         </span>
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[0.84rem] text-muted">{s.phone ?? "—"}</td>
-                    <td className="px-4 py-3 text-[0.82rem] text-faint">{day(s.feeVerifiedAt)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
+                      {s.consultantName ? (
+                        <span
+                          data-group="consultant"
+                          className="group-tag inline-flex max-w-[12rem] items-center gap-1.5 truncate"
+                          title={desk ? "Came through a consultant" : `Consultant: ${s.consultantName}`}
+                        >
+                          {desk ? "Consultant" : s.consultantName}
+                        </span>
+                      ) : (
+                        <span data-group="employee" className="group-tag whitespace-nowrap" title="Came to SnZ Ventures directly">
+                          SnZ Ventures
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-[0.82rem] text-faint">{day(s.feeVerifiedAt)}</td>
+                    <td className="px-3 py-3">
                       {s.intakeId && s.status && s.status !== "draft" ? (
                         <StageSelect intakeId={s.intakeId} status={s.status} studentName={s.name} />
                       ) : (
                         <StatusPill status="draft" label={s.status === "draft" ? "Filling in" : "Not started"} />
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[0.84rem]">
-                      <span className="text-fg">{s.docs}</span>
-                      <span className="text-faint"> uploaded</span>
-                      {s.docsWaiting > 0 && <span className="ml-1.5 text-warn">· {s.docsWaiting} to check</span>}
+                    <td className="px-3 py-3 text-[0.84rem]">
+                      <span className="whitespace-nowrap">
+                        <span className="text-fg">{s.docs}</span>
+                        <span className="text-faint"> uploaded</span>
+                      </span>
+                      {s.docsWaiting > 0 && <span className="block whitespace-nowrap text-warn">{s.docsWaiting} to check</span>}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-3 py-3 text-right">
                       <span className="inline-flex items-center gap-2">
+                        <Link href={href({ history: s.userId })} scroll={false} aria-label={`History of ${s.name}`} data-tip="History" className="tip icon-btn">
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <circle cx="8" cy="8" r="6" />
+                            <path d="M8 4.5V8l2.5 1.5" />
+                          </svg>
+                        </Link>
                         <NewMessageButton
                           preset={{ id: s.userId, name: s.name, email: s.email, role: "student", memberNo: s.memberNo, avatarV: s.avatarV }}
                           studentsOnly

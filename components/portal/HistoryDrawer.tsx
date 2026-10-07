@@ -131,7 +131,16 @@ function describe(e: HistoryEvent): { what: string; detail?: string[] } {
   }
 }
 
-export async function HistoryDrawer({ userId, closeHref }: { userId: string; closeHref: string }) {
+export async function HistoryDrawer({
+  userId,
+  closeHref,
+  hideConsultants = false,
+}: {
+  userId: string;
+  closeHref: string;
+  /** The student desk: a consultant's actions read as "Consultant", never their name. */
+  hideConsultants?: boolean;
+}) {
   const [user, events] = [await findById(userId), await studentHistory(userId)];
 
   // Group by calendar day (UTC), newest first, as the query returns them.
@@ -178,11 +187,12 @@ export async function HistoryDrawer({ userId, closeHref }: { userId: string; clo
                     {d.items.map((e, i) => {
                       const { what, detail } = describe(e);
                       const isStudent = e.actorId === userId;
-                      const who = e.actorName ?? "System";
+                      const masked = hideConsultants && e.actorRole === "advisor";
+                      const who = masked ? "Consultant" : e.actorName ?? "System";
                       return (
                         <li key={`${e.at}-${i}`} className="relative flex gap-3 rounded-[10px] px-1 py-2 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
                           <span className="relative z-[1] mt-0.5">
-                            {e.actorId ? (
+                            {e.actorId && !masked ? (
                               <Avatar id={e.actorId} name={who} size="sm" />
                             ) : (
                               <span className="grid h-8 w-8 place-items-center rounded-full border border-line bg-[var(--panel-solid)] text-[0.6rem] text-faint">SYS</span>

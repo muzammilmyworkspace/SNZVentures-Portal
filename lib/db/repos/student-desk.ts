@@ -4,8 +4,9 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  * THE STUDENT DESK: every student whose fee is verified, with where their
  * application stands and how their documents are going.
  *
- * Deliberately missing: the consultant who brought them and where they came
- * from. The desk works the file, not the relationship.
+ * `consultantName` is the consultant (an advisor account) the student came
+ * through, or null when they came to SnZ Ventures directly. The page decides
+ * how much of that each viewer sees.
  */
 
 export type DeskStudent = {
@@ -25,6 +26,8 @@ export type DeskStudent = {
   docs: number;
   docsApproved: number;
   docsWaiting: number;
+  /** Their consultant, or null: they came to SnZ Ventures directly. */
+  consultantName: string | null;
 };
 
 export async function deskStudents(): Promise<DeskStudent[]> {
@@ -38,7 +41,8 @@ export async function deskStudents(): Promise<DeskStudent[]> {
              f.id AS intake_id, f.status::text AS intake_status, f.submitted_at,
              GREATEST(u.updated_at, COALESCE(f.updated_at, u.updated_at)) AS updated_at,
              COALESCE(d.total, 0) AS docs, COALESCE(d.approved, 0) AS docs_approved,
-             COALESCE(d.waiting, 0) AS docs_waiting
+             COALESCE(d.waiting, 0) AS docs_waiting,
+             adv.name AS consultant_name
         FROM users u
         LEFT JOIN profiles p ON p.user_id = u.id
         LEFT JOIN LATERAL (
@@ -47,6 +51,12 @@ export async function deskStudents(): Promise<DeskStudent[]> {
            ORDER BY fs.reviewed_at DESC NULLS LAST LIMIT 1
         ) fee ON TRUE
         LEFT JOIN intake_forms f ON f.user_id = u.id AND f.pathway = 'study'
+        -- Consultants only: a student linked to a staff account came to us directly.
+        LEFT JOIN LATERAL (
+          SELECT a.name FROM staff_assignments sa JOIN users a ON a.id = sa.advisor_id
+           WHERE sa.client_id = u.id AND a.role = 'advisor'
+           ORDER BY sa.created_at ASC LIMIT 1
+        ) adv ON TRUE
         LEFT JOIN LATERAL (
           SELECT count(*) FILTER (WHERE storage_key IS NOT NULL)::int AS total,
                  count(*) FILTER (WHERE status = 'approved')::int AS approved,
@@ -76,6 +86,7 @@ export async function deskStudents(): Promise<DeskStudent[]> {
       docs: Number(r.docs),
       docsApproved: Number(r.docs_approved),
       docsWaiting: Number(r.docs_waiting),
+      consultantName: r.consultant_name ? String(r.consultant_name) : null,
     }));
   }, []);
 }
