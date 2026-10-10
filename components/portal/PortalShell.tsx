@@ -187,8 +187,8 @@ export function PortalShell({
   const reduce = useReduced();
 
   /*
-    FOLDING SECTIONS. All folded to begin with, except the one you are in;
-    the ones you open are remembered in this browser (localStorage, read after
+    FOLDING SECTIONS. All folded to begin with, except the one you are in
+    (which you can still fold); the ones you open are remembered in this browser (localStorage, read after
     the first render so the server and the browser draw the same thing).
   */
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
@@ -198,16 +198,26 @@ export function PortalShell({
       if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String)));
     } catch {}
   }, []);
-  const toggleGroup = (name: string) =>
+  // The section you are in, folded by hand; forgotten when you go to another page.
+  const [shut, setShut] = useState<Set<string>>(() => new Set());
+  useEffect(() => setShut(new Set()), [pathname]);
+  const toggleGroup = (name: string, open: boolean) => {
+    setShut((cur) => {
+      const next = new Set(cur);
+      if (open) next.add(name);
+      else next.delete(name);
+      return next;
+    });
     setOpenGroups((cur) => {
       const next = new Set(cur);
-      if (next.has(name)) next.delete(name);
+      if (open) next.delete(name);
       else next.add(name);
       try {
         localStorage.setItem("portal-nav-open", JSON.stringify([...next]));
       } catch {}
       return next;
     });
+  };
 
   // Only the closest match is lit: Finance > Reports, not Finance > Dashboard as well.
   const isActive = (href: string) =>
@@ -216,16 +226,15 @@ export function PortalShell({
   const Nav = (
     <nav aria-label="Portal" className="flex flex-col gap-1.5">
       {groups.map((g) => {
-        // The section you are in is always open; the others open when you choose.
+        // The section you are in opens by itself; every section folds and opens on a click.
         const here = g.items.some((i) => isActive(i.href));
-        const single = g.items.length === 1;
-        const open = here || single || openGroups.has(g.group);
+        const open = openGroups.has(g.group) || (here && !shut.has(g.group));
         const waiting = g.items.reduce((n, i) => n + (i.badgeKey ? badges[i.badgeKey] ?? 0 : 0), 0);
         return (
         <div key={g.group}>
           <button
             type="button"
-            onClick={() => !single && toggleGroup(g.group)}
+            onClick={() => toggleGroup(g.group, open)}
             aria-expanded={open}
             className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
           >
