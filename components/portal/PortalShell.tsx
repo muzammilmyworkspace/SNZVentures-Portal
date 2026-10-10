@@ -191,10 +191,13 @@ export function PortalShell({
     (which you can still fold); the ones you open are remembered in this browser (localStorage, read after
     the first render so the server and the browser draw the same thing).
   */
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
+  // The first time, only the first section (Overview) is open.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups[0] ? [groups[0].group] : []));
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("portal-nav-open") ?? "[]");
+      const raw = localStorage.getItem("portal-nav-open");
+      if (raw === null) return;
+      const saved = JSON.parse(raw);
       if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String)));
     } catch {}
   }, []);
@@ -236,12 +239,28 @@ export function PortalShell({
             type="button"
             onClick={() => toggleGroup(g.group, open)}
             aria-expanded={open}
-            className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors",
+              open
+                ? "border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+                : "border-transparent hover:bg-[color-mix(in_srgb,var(--fg)_6%,transparent)]",
+            )}
           >
-            <svg viewBox="0 0 12 12" aria-hidden className={cn("h-2.5 w-2.5 shrink-0 text-faint transition-transform", open && "rotate-90")}>
-              <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 12 12"
+              aria-hidden
+              className={cn("h-3 w-3 shrink-0 transition-transform", open ? "rotate-90 text-[var(--accent)]" : "text-muted")}
+            >
+              <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className={cn("label flex-1 text-[0.72rem]", here ? "text-fg" : "text-faint")}>{g.group}</span>
+            <span
+              className={cn(
+                "label flex-1 text-[0.8rem] font-semibold",
+                here ? "text-[var(--accent)]" : open ? "text-fg" : "text-muted",
+              )}
+            >
+              {g.group}
+            </span>
             {!open && waiting > 0 && (
               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.68rem] font-bold text-[#070B1A]">
                 {waiting}
@@ -249,7 +268,7 @@ export function PortalShell({
             )}
           </button>
           {open && (
-          <ul className="mb-2 flex flex-col gap-0.5">
+          <ul className="mb-2 mt-1 flex flex-col gap-0.5">
             {g.items.map((item) => {
               const on = isActive(item.href);
               const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
