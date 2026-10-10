@@ -152,11 +152,12 @@ export function PortalShell({
     link. A header that repeats your own name back at you is a header doing
     nothing; the one thing it can always say is where you are.
   */
-  const here =
+  const best =
     groups
       .flatMap((g) => g.items)
       .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
-      .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? null;
+      .sort((a, b) => b.href.length - a.href.length)[0] ?? null;
+  const here = best?.label ?? null;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -185,8 +186,9 @@ export function PortalShell({
 
   const reduce = useReduced();
 
+  // Only the closest match is lit: Finance > Reports, not Finance > Dashboard as well.
   const isActive = (href: string) =>
-    href === home ? pathname === home : pathname === href || pathname.startsWith(`${href}/`);
+    href === home ? pathname === home : (pathname === href || pathname.startsWith(`${href}/`)) && best?.href === href;
 
   const Nav = (
     <nav aria-label="Portal" className="flex flex-col gap-6">
