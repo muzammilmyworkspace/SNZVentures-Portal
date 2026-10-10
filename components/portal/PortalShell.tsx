@@ -186,16 +186,61 @@ export function PortalShell({
 
   const reduce = useReduced();
 
+  /*
+    FOLDING SECTIONS. All folded to begin with, except the one you are in;
+    the ones you open are remembered in this browser (localStorage, read after
+    the first render so the server and the browser draw the same thing).
+  */
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("portal-nav-open") ?? "[]");
+      if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String)));
+    } catch {}
+  }, []);
+  const toggleGroup = (name: string) =>
+    setOpenGroups((cur) => {
+      const next = new Set(cur);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      try {
+        localStorage.setItem("portal-nav-open", JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+
   // Only the closest match is lit: Finance > Reports, not Finance > Dashboard as well.
   const isActive = (href: string) =>
     href === home ? pathname === home : (pathname === href || pathname.startsWith(`${href}/`)) && best?.href === href;
 
   const Nav = (
-    <nav aria-label="Portal" className="flex flex-col gap-6">
-      {groups.map((g) => (
+    <nav aria-label="Portal" className="flex flex-col gap-1.5">
+      {groups.map((g) => {
+        // The section you are in is always open; the others open when you choose.
+        const here = g.items.some((i) => isActive(i.href));
+        const single = g.items.length === 1;
+        const open = here || single || openGroups.has(g.group);
+        const waiting = g.items.reduce((n, i) => n + (i.badgeKey ? badges[i.badgeKey] ?? 0 : 0), 0);
+        return (
         <div key={g.group}>
-          <p className="label px-3 pb-2 text-[0.72rem] text-faint">{g.group}</p>
-          <ul className="flex flex-col gap-0.5">
+          <button
+            type="button"
+            onClick={() => !single && toggleGroup(g.group)}
+            aria-expanded={open}
+            className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]"
+          >
+            <svg viewBox="0 0 12 12" aria-hidden className={cn("h-2.5 w-2.5 shrink-0 text-faint transition-transform", open && "rotate-90")}>
+              <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className={cn("label flex-1 text-[0.72rem]", here ? "text-fg" : "text-faint")}>{g.group}</span>
+            {!open && waiting > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.68rem] font-bold text-[#070B1A]">
+                {waiting}
+              </span>
+            )}
+          </button>
+          {open && (
+          <ul className="mb-2 flex flex-col gap-0.5">
             {g.items.map((item) => {
               const on = isActive(item.href);
               const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
@@ -284,8 +329,10 @@ export function PortalShell({
               );
             })}
           </ul>
+          )}
         </div>
-      ))}
+        );
+      })}
     </nav>
   );
 
