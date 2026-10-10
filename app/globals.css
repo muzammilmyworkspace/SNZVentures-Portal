@@ -1442,8 +1442,10 @@ select.field {
 
 /* The opaque list. --raised is a real colour in every tone, not a mix. */
 select.field option {
-  background: var(--raised);
-  color: var(--fg);
+  /* --raised is not set everywhere; the system colours of the control's own
+     colour-scheme are the safe fallback (dark list, light ink in dark). */
+  background: var(--raised, Canvas);
+  color: var(--raised-fg, CanvasText);
 }
 
 /* ═══════════════════════════════════════════════════════ AUTOFILLED ═

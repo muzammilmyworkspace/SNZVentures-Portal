@@ -612,6 +612,16 @@ html::-webkit-scrollbar-thumb:hover {
    be a stroke). */
 .portal-shell { --panel-solid: #1B2645; }
 [data-theme="light"] .portal-shell { --panel-solid: #FFFFFF; }
+/* Every dropdown's open list, in every portal form and window: an opaque card
+   colour with the theme's ink. The list is drawn by the system; left
+   transparent it came out white with white text in the dark theme. */
+.portal-shell select { color-scheme: dark; }
+[data-theme="light"] .portal-shell select { color-scheme: light; }
+:root .portal-shell select option,
+:root .portal-shell select optgroup {
+  background-color: var(--panel-solid);
+  color: var(--fg);
+}
 /* Admin dashboard charts: line chart wide, pathway bars beside it, the case
    pipeline across the full width underneath. */
 @media (min-width: 1024px) {

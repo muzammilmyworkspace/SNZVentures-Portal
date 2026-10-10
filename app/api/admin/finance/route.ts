@@ -32,11 +32,13 @@ import {
   allRates,
   materializeRecurring,
   materializePayouts,
+  refreshRatesIfStale,
+  universityByName,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
 } from "@/lib/db/repos/finance";
 import { CURRENCIES } from "@/lib/invoices/model";
-import { totals, lastDay } from "@/lib/portal/finance-view";
+import { partnerTotals, shareOf, lastDay } from "@/lib/portal/finance-view";
 import { putObject, buildKey, validateUpload, isStorageConfigured, deleteObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -116,7 +118,10 @@ export async function POST(request: Request) {
       status,
       receipt,
       createdBy: session.userId,
+      partnerCost: kind === "income" || form.get("partnerCost") !== "0",
     });
+    // An amount in another currency gets that day's market rate now.
+    if (id && currency !== "EUR") await refreshRatesIfStale(true);
     return id ? NextResponse.json({ ok: true, id }) : bad("That didn't save.", 503);
   }
 
@@ -168,6 +173,7 @@ export async function POST(request: Request) {
         notes: text("notes", 500) || null,
         createdBy: session.userId,
         bill,
+        partnerCost: form.get("partnerCost") !== "0",
       });
       return ok ? NextResponse.json({ ok: true }) : bad("That didn't save.", 503);
     }
@@ -183,6 +189,7 @@ export async function POST(request: Request) {
       ...(form.get("day") ? { dayOfMonth } : {}),
       ...(form.get("autoPaid") != null ? { autoPaid: form.get("autoPaid") === "1" } : {}),
       ...(form.get("active") != null ? { active: form.get("active") === "1" } : {}),
+      ...(form.get("partnerCost") != null ? { partnerCost: form.get("partnerCost") === "1" } : {}),
     });
     return ok ? NextResponse.json({ ok: true }) : bad("Not found.", 404);
   }
@@ -231,17 +238,62 @@ export async function POST(request: Request) {
   }
 
   if (action === "add_payout") {
+    // WHO: a consultant on the portal (their student chosen), or anyone else (names typed in).
+    const referrerKind = form.get("referrerKind") === "referral" ? "referral" : "consultant";
     const consultantId = text("consultantId", 40);
-    if (!UUID.test(consultantId)) return bad("Choose the consultant.");
-    const amount = cents(form.get("amount"));
-    if (!amount) return bad("Enter the amount.");
+    const referrerName = text("referrerName", 160);
+    const studentId = UUID.test(text("studentId", 40)) ? text("studentId", 40) : null;
+    const studentName = text("studentName", 160);
+    if (referrerKind === "consultant") {
+      if (!UUID.test(consultantId)) return bad("Choose the consultant.");
+      if (!studentId && studentName.length < 2) return bad("Choose the student.");
+    } else {
+      if (referrerName.length < 2) return bad("Enter the name of who referred the student.");
+      if (studentName.length < 2) return bad("Enter the student's name.");
+    }
+    // THE SHARE RULE: a percentage of an amount, or a fixed amount. Worked out here.
+    const ruleKind = form.get("ruleKind") === "percent" ? "percent" : "fixed";
+    const ruleValue = parseFloat(text("ruleValue", 20).replace(/,/g, ""));
+    if (!Number.isFinite(ruleValue) || ruleValue <= 0 || (ruleKind === "percent" && ruleValue > 100)) {
+      return bad(ruleKind === "percent" ? "Enter the percentage, between 0 and 100." : "Enter the amount.");
+    }
+    let base: number | null = null;
+    let amount: number;
+    if (ruleKind === "percent") {
+      base = cents(form.get("base"));
+      if (!base) return bad("Enter the amount the percentage is of (e.g. the student's fee).");
+      amount = Math.round((base * ruleValue) / 100);
+      if (amount <= 0) return bad("That works out to nothing.");
+    } else {
+      amount = Math.round(ruleValue * 100);
+    }
     const currency = text("currency", 3);
     if (!CURRENCY.includes(currency)) return bad("Choose the currency.");
+    const createdOn = text("date", 10) || today();
+    if (!ISO.test(createdOn)) return bad("Choose the date.");
     const description = text("description", 300);
     if (description.length < 2) return bad("Say what it is for.");
-    const studentId = UUID.test(text("studentId", 40)) ? text("studentId", 40) : null;
-    const ok = await addPayout({ consultantId, studentId, description, amountCents: amount, currency, createdBy: session.userId });
-    return ok ? NextResponse.json({ ok: true }) : bad("That didn't save.", 503);
+    const ok = await addPayout({
+      referrerKind,
+      consultantId: referrerKind === "consultant" ? consultantId : null,
+      referrerName: referrerKind === "referral" ? referrerName : null,
+      studentId: referrerKind === "consultant" ? studentId : null,
+      studentName: studentId && referrerKind === "consultant" ? null : studentName,
+      description,
+      amountCents: amount,
+      currency,
+      createdOn,
+      ruleKind,
+      ruleValue,
+      baseCents: base,
+      createdBy: session.userId,
+    });
+    if (!ok) return bad("That didn't save.", 503);
+    // "Use this rule for this consultant's next students too": their verified fees then add a referral by themselves.
+    if (referrerKind === "consultant" && form.get("keepRule") === "1") {
+      await setTerms({ consultantId, kind: ruleKind, value: ruleValue, currency, startsOn: today() });
+    }
+    return NextResponse.json({ ok: true, amount });
   }
 
   if (action === "payout_paid" || action === "payout_unpaid") {
@@ -274,8 +326,13 @@ export async function POST(request: Request) {
   }
 
   if (action === "add_commission") {
-    const universityId = text("universityId", 40);
-    if (!UUID.test(universityId)) return bad("Choose the university.");
+    let universityId = text("universityId", 40);
+    if (!UUID.test(universityId)) {
+      const name = text("universityName", 160);
+      if (name.length < 2) return bad("Choose or type the university.");
+      universityId = (await universityByName(name)) ?? "";
+      if (!universityId) return bad("That didn't save.", 503);
+    }
     const studentId = UUID.test(text("studentId", 40)) ? text("studentId", 40) : null;
     const studentName = text("studentName", 160);
     if (studentName.length < 2) return bad("Choose or type the student.");
@@ -329,7 +386,9 @@ export async function POST(request: Request) {
       currency,
       occurredOn,
       status: form.get("status") === "due" ? "due" : "paid",
+      partnerCost: kind === "income" || form.get("partnerCost") !== "0",
     });
+    if (ok && currency !== "EUR") await refreshRatesIfStale(true);
     return ok ? NextResponse.json({ ok: true }) : bad("Only entries added by hand can be edited here.", 409);
   }
 
@@ -377,8 +436,8 @@ export async function POST(request: Request) {
     await materializeRecurring();
     await materializePayouts();
     const [lines, rates] = await Promise.all([linesBetween(`${month}-01`, lastDay(month)), allRates()]);
-    const profit = totals(lines, rates).profit;
-    const amount = Math.max(0, Math.round((profit * holder.sharePct) / 100));
+    // Partners share the profit after partner costs only (see partnerTotals).
+    const amount = shareOf(partnerTotals(lines, rates).base, holder.sharePct);
     const paidOn = text("date", 10) || today();
     const ok = await recordDistribution({ stakeholderId, month, amountCents: amount, paidOn: ISO.test(paidOn) ? paidOn : today(), by: session.userId });
     return ok ? NextResponse.json({ ok: true, amount }) : bad("That didn't save.", 503);

@@ -17,7 +17,7 @@ import {
 import { PortalHeading, Panel, EmptyState } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { FinanceHeader, MissingRates, MonthsChart, Bars, MiniStat, INCOME_COLOR, EXPENSE_COLOR } from "@/components/portal/FinanceParts";
-import { eur, money, pickMonth, shiftMonth, lastDay, shortMonth, shortDate, totals, breakdown, sumEur } from "@/lib/portal/finance-view";
+import { eur, money, pickMonth, shiftMonth, lastDay, shortMonth, shortDate, totals, breakdown, sumEur, partnerTotals, shareOf } from "@/lib/portal/finance-view";
 
 export const metadata: Metadata = { title: "Finance", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -65,7 +65,7 @@ export default async function FinanceDashboard({ searchParams }: { searchParams:
   const pendingEur = sumEur(pending.map((p) => ({ ...p, date: p.sentOn })), rates);
   const stakeDue = holders
     .filter((h) => h.active && !h.isCompany && !dists.some((d) => d.stakeholderId === h.id))
-    .reduce((n, h) => n + Math.max(0, Math.round((t.profit * h.sharePct) / 100)), 0);
+    .reduce((n, h) => n + shareOf(partnerTotals(month, rates).base, h.sharePct), 0);
 
   return (
     <>

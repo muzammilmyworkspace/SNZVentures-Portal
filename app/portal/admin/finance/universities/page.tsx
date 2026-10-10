@@ -4,7 +4,7 @@ import { requireSuperAdmin } from "@/lib/auth/guard";
 import { listUniversities, listCommissions, allRates, studentsForPicker } from "@/lib/db/repos/finance";
 import { Panel, EmptyState } from "@/components/portal/Pieces";
 import { FinanceHeader, MissingRates, MiniStat } from "@/components/portal/FinanceParts";
-import { UniversityForm, CommissionForm, CommissionActions, DeleteUniversity, ModalButton } from "@/components/portal/FinanceForms";
+import { CommissionForm, CommissionActions, DeleteUniversity, ModalButton } from "@/components/portal/FinanceForms";
 import { eur, money, shortDate, sumEur, thisMonth } from "@/lib/portal/finance-view";
 
 export const metadata: Metadata = { title: "University commissions", robots: { index: false, follow: false } };
@@ -75,39 +75,16 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
 
       <Panel
         title="Commissions"
+        className="mb-6"
         padded={rows.length === 0}
         action={
-          <span className="flex flex-wrap gap-2">
-            <ModalButton label="Universities" title="Universities that pay a commission" variant="ghost" wide>
-              {universities.length > 0 && (
-                <ul className="mb-5 divide-y divide-[var(--line)] rounded-[var(--radius-md)] border border-line">
-                  {universities.map((u) => (
-                    <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                      <span>
-                        <span className="block text-[0.9rem] font-medium text-fg">{u.name}</span>
-                        <span className="block text-[0.74rem] text-faint">
-                          {u.value ? (u.kind === "percent" ? `${u.value}% of tuition` : `${money(Math.round(u.value * 100), u.currency)} per student`) : "Commission not set"}
-                        </span>
-                      </span>
-                      <DeleteUniversity id={u.id} name={u.name} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <UniversityForm />
-            </ModalButton>
-            <ModalButton label="+ Add student" title="Add a student sent to a university">
-              {universities.length === 0 ? (
-                <p className="text-[0.9rem] text-muted">Add the university first, with Universities.</p>
-              ) : (
-                <CommissionForm universities={universities} students={students} />
-              )}
-            </ModalButton>
-          </span>
+          <ModalButton label="+ Add student" title="Add a student sent to a university">
+            <CommissionForm universities={universities} students={students} />
+          </ModalButton>
         }
       >
         {rows.length === 0 ? (
-          <EmptyState icon="search" title="Nothing here yet" body="Add each student sent to a commission-paying university, with the commission expected." />
+          <EmptyState icon="search" title="Nothing here yet" body="Add each student sent to a commission-paying university, with the commission expected. A new university is added as you type it." />
         ) : (
           <div className="rail overflow-x-auto">
             <table className="w-full min-w-[860px] text-left">
@@ -151,6 +128,43 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
           </div>
         )}
       </Panel>
+      {universities.length > 0 && (
+        <Panel title="By university" padded={false}>
+          <div className="rail overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left">
+              <thead>
+                <tr className="border-b border-line">
+                  {["University", "Students", "Still to receive", "Received", ""].map((h, i) => (
+                    <th key={`${h}${i}`} className={`label px-4 py-3 text-faint ${h === "Still to receive" || h === "Received" ? "text-right" : ""}`}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {universities.map((u) => {
+                  const mine = dated.filter((c) => c.universityId === u.id);
+                  const toGet = sumEur(mine.filter((c) => c.status === "expected"), rates).cents;
+                  const got = sumEur(mine.filter((c) => c.status === "received"), rates).cents;
+                  return (
+                    <tr key={u.id} className="border-b border-line last:border-0">
+                      <td className="px-4 py-3">
+                        <Link href={`/portal/admin/finance/universities?u=${u.id}`} className="text-[0.9rem] font-medium text-fg underline-offset-4 hover:text-accent hover:underline">
+                          {u.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-[0.86rem] text-muted">{mine.length}</td>
+                      <td className={`whitespace-nowrap px-4 py-3 text-right tabular-nums ${toGet ? "font-semibold text-warn" : "text-muted"}`}>{eur(toGet)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted">{eur(got)}</td>
+                      <td className="px-4 py-3 text-right">{mine.every((c) => c.status === "expected") && <DeleteUniversity id={u.id} name={u.name} />}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
     </>
   );
 }

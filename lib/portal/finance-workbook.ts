@@ -12,19 +12,20 @@ import {
   listDistributions,
 } from "@/lib/db/repos/finance";
 import { buildXlsx, type Sheet } from "@/lib/xlsx";
-import { totals, SOURCE_LABEL, lastDay, monthName } from "@/lib/portal/finance-view";
+import { totals, partnerTotals, shareOf, SOURCE_LABEL, lastDay, monthName } from "@/lib/portal/finance-view";
+import { rangeText } from "@/lib/portal/finance-range";
 
 /**
- * THE ACCOUNTANT'S WORKBOOK for a period (a month, or a year): one Excel file
+ * THE ACCOUNTANT'S WORKBOOK for any two dates (a month, a year, a custom range): one Excel file
  * with a sheet each for the summary, every transaction, month by month with
  * each stakeholder's share, consultant shares, university commissions and
  * fixed costs.
  */
-export async function financeWorkbook(fromMonth: string, toMonth: string): Promise<Buffer> {
+export async function financeWorkbook(from: string, to: string): Promise<Buffer> {
   await materializeRecurring();
   await materializePayouts();
-  const from = `${fromMonth}-01`;
-  const to = lastDay(toMonth);
+  const fromMonth = from.slice(0, 7);
+  const toMonth = to.slice(0, 7);
   const [lines, rates, payouts, commissions, recurring, holders, dists] = await Promise.all([
     linesBetween(from, to),
     allRates(),
@@ -42,6 +43,7 @@ export async function financeWorkbook(fromMonth: string, toMonth: string): Promi
     m = new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 7);
   }
   const t = totals(lines, rates);
+  const pt = partnerTotals(lines, rates);
   const inPeriod = (d: string | null) => !!d && d >= from && d <= to;
   const active = holders.filter((h) => h.active);
 
@@ -50,7 +52,7 @@ export async function financeWorkbook(fromMonth: string, toMonth: string): Promi
     widths: [34, 18],
     money: [1],
     rows: [
-      ["SnZ Ventures — finance", fromMonth === toMonth ? monthName(fromMonth) : `${monthName(fromMonth)} to ${monthName(toMonth)}`],
+      ["SnZ Ventures — finance", from === `${fromMonth}-01` && to === lastDay(toMonth) && fromMonth === toMonth ? monthName(fromMonth) : rangeText(from, to)],
       ["Earned (EUR)", eur(t.income)],
       ["Spent (EUR)", eur(t.expense)],
       [t.profit >= 0 ? "Profit (EUR)" : "Loss (EUR)", eur(t.profit)],
@@ -59,7 +61,9 @@ export async function financeWorkbook(fromMonth: string, toMonth: string): Promi
       ["Expected from universities now (EUR)", eur(commissions.filter((c) => c.status === "expected").reduce((n, c) => n + (inEur({ ...c, date: c.expectedOn ?? from }, rates) ?? 0), 0))],
       [],
       ["Profit share", "EUR"],
-      ...active.map((h) => [`${h.name} (${h.sharePct}%)`, eur(Math.max(0, Math.round((t.profit * h.sharePct) / 100)))] as (string | number | null)[]),
+      ["Profit the partners share (EUR)", eur(pt.base)],
+      ["Costs SnZ Ventures carries alone (EUR)", eur(pt.ownCost)],
+      ...active.map((h) => [`${h.name} (${h.sharePct}%)`, eur(shareOf(pt.base, h.sharePct))] as (string | number | null)[]),
       ...(t.missing.length ? [[], [`Not in the euro totals (no exchange rate set): ${t.missing.join(", ")}`]] : []),
     ],
   };
@@ -95,7 +99,9 @@ export async function financeWorkbook(fromMonth: string, toMonth: string): Promi
     rows: [
       ["Month", "Earned (EUR)", "Spent (EUR)", "Profit (EUR)", ...active.flatMap((h) => [`${h.name} share (EUR)`, `${h.name} paid (EUR)`])],
       ...months.map((m) => {
-        const x = totals(lines.filter((l) => l.date.startsWith(m)), rates);
+        const ml = lines.filter((l) => l.date.startsWith(m));
+        const x = totals(ml, rates);
+        const base = partnerTotals(ml, rates).base;
         return [
           monthName(m),
           eur(x.income),
@@ -103,7 +109,7 @@ export async function financeWorkbook(fromMonth: string, toMonth: string): Promi
           eur(x.profit),
           ...active.flatMap((h) => {
             const paid = dists.find((d) => d.stakeholderId === h.id && d.month === m);
-            return [eur(Math.max(0, Math.round((x.profit * h.sharePct) / 100))), paid ? eur(paid.amountCents) : null];
+            return [eur(shareOf(base, h.sharePct)), paid ? eur(paid.amountCents) : null];
           }),
         ];
       }),

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, FINANCE_CURRENCIES } from "@/lib/portal/finance-categories";
 
 /**
  * "+ Add amount": one button for any money in or out. Choose Income or
@@ -11,21 +12,9 @@ import { cn } from "@/lib/utils";
  * category, and a photo of the receipt.
  */
 
-const INCOME = ["Student fees", "University commission", "Invoices", "Consultancy", "Other income"];
-const EXPENSE = [
-  "Rent",
-  "Salaries",
-  "Software & subscriptions",
-  "Marketing & ads",
-  "Utilities & internet",
-  "Travel",
-  "Office & supplies",
-  "Bank & payment fees",
-  "Taxes",
-  "Commission",
-  "Other",
-];
-const CURRENCIES = ["EUR", "PKR", "USD", "GBP"];
+const INCOME = INCOME_CATEGORIES;
+const EXPENSE = EXPENSE_CATEGORIES;
+const CURRENCIES = FINANCE_CURRENCIES;
 
 export function AddAmount({ students }: { students: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -40,6 +29,8 @@ export function AddAmount({ students }: { students: { id: string; name: string }
     const f = new FormData(e.currentTarget);
     f.set("action", "add_entry");
     f.set("kind", kind);
+    // An unticked box sends nothing: say "no" out loud.
+    if (kind === "expense" && !f.get("partnerCost")) f.set("partnerCost", "0");
     // The student list is a convenience: picking one fills "from" when it is empty.
     const sid = String(f.get("studentId") ?? "");
     if (sid && !String(f.get("party") ?? "").trim()) f.set("party", students.find((s) => s.id === sid)?.name ?? "");
@@ -169,6 +160,15 @@ export function AddAmount({ students }: { students: { id: string; name: string }
                       <option value="paid">Paid</option>
                       <option value="due">Due (not paid yet)</option>
                     </select>
+                  </label>
+                )}
+                {kind === "expense" && (
+                  <label className="flex items-start gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
+                    <input name="partnerCost" type="checkbox" value="1" defaultChecked className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+                    <span>
+                      The partners share this cost
+                      <span className="block text-[0.76rem] text-faint">Untick for costs SnZ Ventures carries alone, like office rent, internet or phone.</span>
+                    </span>
                   </label>
                 )}
                 <label className={kind === "expense" ? "block" : "block sm:col-span-2"}>

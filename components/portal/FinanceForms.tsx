@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, FINANCE_CURRENCIES } from "@/lib/portal/finance-categories";
 
 /**
  * The forms and row buttons of the Finance section (super admin). All post
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const PRIMARY =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-moss-400 px-5 text-[0.9rem] font-semibold text-[#070B1A] transition-colors hover:bg-moss-300 disabled:opacity-50";
-const CURRENCIES = ["EUR", "PKR", "USD", "GBP"];
+const CURRENCIES = FINANCE_CURRENCIES;
 
 async function post(fields: Record<string, string | File | null | undefined>) {
   const form = new FormData();
@@ -287,6 +288,7 @@ export function RecurringForm({ categories, thisMonth }: { categories: readonly 
       day: String(f.get("day") ?? "1"),
       starts: String(f.get("starts") ?? thisMonth),
       autoPaid: f.get("autoPaid") ? "1" : "0",
+      partnerCost: f.get("partnerCost") ? "1" : "0",
       bill: (f.get("bill") as File | null) ?? null,
     });
     setBusy(false);
@@ -337,6 +339,15 @@ export function RecurringForm({ categories, thisMonth }: { categories: readonly 
       <label className="flex items-center gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
         <input name="autoPaid" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
         Mark paid automatically on its day (e.g. a direct debit)
+      </label>
+      <label className="flex items-start gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
+        <input name="partnerCost" type="checkbox" defaultChecked={true} className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+        <span>
+          The partners share this cost
+          <span className="block text-[0.76rem] text-faint">
+            Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+          </span>
+        </span>
       </label>
       <div className="flex items-end sm:col-span-2">
         <button type="submit" disabled={busy} className={PRIMARY}>
@@ -486,69 +497,66 @@ export function PrintButton() {
 
 /* ------------------------------------------------- consultant shares */
 
-/** A consultant's share of each verified fee of their students: a % or a fixed amount, from a date. */
-export function TermsForm({
-  consultantId,
-  current,
+/**
+ * ADD A REFERRAL. First who referred the student: a consultant on the portal
+ * (their students are listed by themselves) or anyone else (their name and
+ * the student's name typed in). Then the date, what it is for, and the share
+ * rule: a percentage of an amount, or a fixed amount. What is owed is worked
+ * out as you type.
+ */
+export function ReferralForm({
+  consultants,
+  studentsOf,
 }: {
-  consultantId: string;
-  current: { kind: "percent" | "fixed"; value: number; currency: string; startsOn: string } | null;
+  consultants: { id: string; name: string; terms: { kind: "percent" | "fixed"; value: number; currency: string } | null }[];
+  studentsOf: Record<string, { id: string; name: string; feeCents: number | null; feeCurrency: string | null }[]>;
 }) {
   const router = useRouter();
-  const [kind, setKind] = useState<"percent" | "fixed">(current?.kind ?? "percent");
-  const [value, setValue] = useState(current ? String(current.value) : "");
-  const [currency, setCurrency] = useState(current?.currency ?? "EUR");
-  const [startsOn, setStartsOn] = useState(current?.startsOn ?? new Date().toISOString().slice(0, 10));
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  async function save(remove = false) {
-    if (remove && !window.confirm("Remove this consultant's share? Shares already written stay.")) return;
-    setBusy(true);
-    setMsg(null);
-    const r = await post(remove ? { action: "set_terms", consultantId, remove: "1" } : { action: "set_terms", consultantId, kind, value, currency, startsOn });
-    setBusy(false);
-    setMsg(r.ok ? "Saved." : r.error ?? "That didn't save.");
-    if (r.ok) router.refresh();
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select value={kind} onChange={(e) => setKind(e.target.value as "percent" | "fixed")} aria-label="Kind of share" className="h-9 rounded-[10px] border border-line bg-[var(--panel-solid)] px-2.5 text-[0.85rem] text-fg">
-        <option value="percent">% of each fee</option>
-        <option value="fixed">Fixed per fee</option>
-      </select>
-      <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" aria-label="Share" placeholder={kind === "percent" ? "40" : "200"} className="h-9 w-20 rounded-[10px] border border-line bg-[var(--panel-solid)] px-2.5 text-[0.85rem] text-fg" />
-      {kind === "fixed" && (
-        <select value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label="Currency" className="h-9 rounded-[10px] border border-line bg-[var(--panel-solid)] px-2.5 text-[0.85rem] text-fg">
-          {CURRENCIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      )}
-      <label className="flex items-center gap-1.5 text-[0.78rem] text-faint">
-        from
-        <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} className="h-9 rounded-[10px] border border-line bg-[var(--panel-solid)] px-2.5 text-[0.85rem] text-fg" />
-      </label>
-      <button type="button" onClick={() => save()} disabled={busy || !value} className="inline-flex min-h-9 items-center rounded-full bg-moss-400 px-4 text-[0.82rem] font-semibold text-[#070B1A] disabled:opacity-50">
-        Save
-      </button>
-      {current && (
-        <button type="button" onClick={() => save(true)} disabled={busy} className="text-[0.78rem] text-muted underline underline-offset-4 hover:text-danger">
-          Remove
-        </button>
-      )}
-      {msg && <span className="text-[0.75rem] text-muted">{msg}</span>}
-    </div>
-  );
-}
-
-export function PayoutForm({ consultants, students }: { consultants: { id: string; name: string }[]; students: { id: string; name: string }[] }) {
-  const router = useRouter();
   const close = useCloseModal();
-  const formRef = useRef<HTMLFormElement | null>(null);
+  const [who, setWho] = useState<"consultant" | "referral">("consultant");
+  const [consultantId, setConsultantId] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [ruleKind, setRuleKind] = useState<"percent" | "fixed">("percent");
+  const [ruleValue, setRuleValue] = useState("");
+  const [base, setBase] = useState("");
+  const [currency, setCurrency] = useState("EUR");
+  const [keepRule, setKeepRule] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const today = new Date().toISOString().slice(0, 10);
+  const students = consultantId ? studentsOf[consultantId] ?? [] : [];
+
+  const num = (v: string) => parseFloat(v.replace(/,/g, ""));
+  const owed =
+    ruleKind === "percent"
+      ? Number.isFinite(num(ruleValue)) && Number.isFinite(num(base))
+        ? (num(base) * num(ruleValue)) / 100
+        : null
+      : Number.isFinite(num(ruleValue))
+        ? num(ruleValue)
+        : null;
+
+  function chooseConsultant(id: string) {
+    setConsultantId(id);
+    setStudentId("");
+    // Their standing rule, if they have one, fills the rule in.
+    const t = consultants.find((c) => c.id === id)?.terms;
+    if (t) {
+      setRuleKind(t.kind);
+      setRuleValue(String(t.value));
+      if (t.kind === "fixed") setCurrency(t.currency);
+    }
+  }
+
+  function chooseStudent(id: string) {
+    setStudentId(id);
+    // A percentage is usually of the student's fee: fill in their latest verified one.
+    const s = students.find((x) => x.id === id);
+    if (s?.feeCents) {
+      setBase((s.feeCents / 100).toFixed(2));
+      if (s.feeCurrency) setCurrency(s.feeCurrency);
+    }
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -557,68 +565,198 @@ export function PayoutForm({ consultants, students }: { consultants: { id: strin
     setError(null);
     const r = await post({
       action: "add_payout",
-      consultantId: String(f.get("consultantId") ?? ""),
-      studentId: String(f.get("studentId") ?? ""),
-      amount: String(f.get("amount") ?? ""),
-      currency: String(f.get("currency") ?? "EUR"),
+      referrerKind: who,
+      consultantId: who === "consultant" ? consultantId : "",
+      referrerName: who === "referral" ? String(f.get("referrerName") ?? "") : "",
+      studentId: who === "consultant" && studentId !== "other" ? studentId : "",
+      studentName: String(f.get("studentName") ?? ""),
+      date: String(f.get("date") ?? today),
       description: String(f.get("description") ?? ""),
+      ruleKind,
+      ruleValue,
+      base: ruleKind === "percent" ? base : "",
+      currency,
+      keepRule: who === "consultant" && keepRule ? "1" : "0",
     });
     setBusy(false);
     if (!r.ok) return setError(r.error ?? "That didn't save.");
-    formRef.current?.reset();
     router.refresh();
     close();
   }
 
+  const seg = (on: boolean) =>
+    cn(
+      "rounded-[12px] border p-3 text-left transition-colors",
+      on ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-line hover:border-[var(--line-strong)]"
+    );
+
   return (
-    <form ref={formRef} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-      <label className="block sm:col-span-2">
-        <span className="field-label">Consultant</span>
-        <select name="consultantId" required className="field" defaultValue="">
-          <option value="" disabled>
-            Choose…
-          </option>
-          {consultants.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block sm:col-span-2">
-        <span className="field-label">Student (optional)</span>
-        <select name="studentId" className="field" defaultValue="">
-          <option value="">—</option>
-          {students.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:col-span-2" role="radiogroup" aria-label="Who referred the student">
+        {(
+          [
+            ["consultant", "Consultant", "One of your consultants on the portal"],
+            ["referral", "Referral", "Anyone else who sent a student"],
+          ] as const
+        ).map(([k, label, hint]) => (
+          <button key={k} type="button" role="radio" aria-checked={who === k} onClick={() => setWho(k)} className={seg(who === k)}>
+            <span className="block text-[0.95rem] font-semibold text-fg">{label}</span>
+            <span className="block text-[0.78rem] text-faint">{hint}</span>
+          </button>
+        ))}
+      </div>
+
+      {who === "consultant" ? (
+        <>
+          <label className="block sm:col-span-2">
+            <span className="field-label">Consultant</span>
+            <select required value={consultantId} onChange={(e) => chooseConsultant(e.target.value)} className="field">
+              <option value="" disabled>
+                Choose the consultant…
+              </option>
+              {consultants.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="field-label">Their student</span>
+            <select required value={studentId} onChange={(e) => chooseStudent(e.target.value)} disabled={!consultantId} className="field">
+              <option value="" disabled>
+                {!consultantId ? "Choose the consultant first" : students.length ? "Choose the student…" : "No students linked to this consultant yet"}
+              </option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+              {consultantId && <option value="other">Someone not on the list (type the name)</option>}
+            </select>
+          </label>
+          {studentId === "other" && (
+            <label className="block sm:col-span-2">
+              <span className="field-label">Student&apos;s name</span>
+              <input name="studentName" required maxLength={160} className="field" placeholder="e.g. Ali Khan" />
+            </label>
+          )}
+        </>
+      ) : (
+        <>
+          <label className="block">
+            <span className="field-label">Referrer&apos;s name</span>
+            <input name="referrerName" required maxLength={160} className="field" placeholder="Enter the referrer's name" />
+          </label>
+          <label className="block">
+            <span className="field-label">Student they referred</span>
+            <input name="studentName" required maxLength={160} className="field" placeholder="Enter the student's name" />
+          </label>
+        </>
+      )}
+
+      <label className="block">
+        <span className="field-label">Date</span>
+        <input name="date" type="date" required defaultValue={today} className="field" />
       </label>
       <label className="block">
-        <span className="field-label">Amount</span>
-        <input name="amount" required inputMode="decimal" className="field" placeholder="200" />
-      </label>
-      <label className="block">
-        <span className="field-label">Currency</span>
-        <select name="currency" className="field" defaultValue="EUR">
-          {CURRENCIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      </label>
-      <label className="block sm:col-span-2">
         <span className="field-label">What for</span>
-        <input name="description" required maxLength={300} className="field" placeholder="e.g. Share of the application fee for Ali Khan" />
+        <input name="description" required maxLength={300} className="field" placeholder="e.g. Referral for the application fee" />
       </label>
+
+      <fieldset className="rounded-[14px] border border-line p-4 sm:col-span-2">
+        <legend className="px-1.5 text-[0.82rem] font-semibold text-fg">Share rule</legend>
+        <div className="mb-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Kind of share">
+          {(
+            [
+              ["percent", "Percentage", "A % of an amount, e.g. the fee"],
+              ["fixed", "Fixed amount", "The same amount each time"],
+            ] as const
+          ).map(([k, label, hint]) => (
+            <button key={k} type="button" role="radio" aria-checked={ruleKind === k} onClick={() => setRuleKind(k)} className={seg(ruleKind === k)}>
+              <span className="block text-[0.9rem] font-semibold text-fg">{label}</span>
+              <span className="block text-[0.76rem] text-faint">{hint}</span>
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {ruleKind === "percent" ? (
+            <>
+              <label className="block">
+                <span className="field-label">Percentage (%)</span>
+                <input value={ruleValue} onChange={(e) => setRuleValue(e.target.value)} required inputMode="decimal" className="field" placeholder="e.g. 20" />
+              </label>
+              <label className="block">
+                <span className="field-label">Of amount</span>
+                <input value={base} onChange={(e) => setBase(e.target.value)} required inputMode="decimal" className="field" placeholder="e.g. 2500" />
+              </label>
+            </>
+          ) : (
+            <label className="block sm:col-span-2">
+              <span className="field-label">Amount</span>
+              <input value={ruleValue} onChange={(e) => setRuleValue(e.target.value)} required inputMode="decimal" className="field" placeholder="e.g. 200" />
+            </label>
+          )}
+          <label className="block">
+            <span className="field-label">Currency</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="field">
+              {CURRENCIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="mt-3 text-[0.9rem] text-muted">
+          To pay:{" "}
+          <span className="font-semibold tabular-nums text-fg">
+            {owed != null && owed > 0 ? `${owed.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}` : "—"}
+          </span>
+        </p>
+        {who === "consultant" && (
+          <label className="mt-3 flex items-start gap-2.5 text-[0.85rem] text-fg">
+            <input type="checkbox" checked={keepRule} onChange={(e) => setKeepRule(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+            <span>
+              Use this rule for this consultant&apos;s next students too
+              <span className="block text-[0.76rem] text-faint">A referral is then added by itself whenever their student&apos;s fee is verified.</span>
+            </span>
+          </label>
+        )}
+      </fieldset>
+
       <div className="flex items-end sm:col-span-2">
         <button type="submit" disabled={busy} className={PRIMARY}>
-          {busy ? "Saving…" : "Add amount owed"}
+          {busy ? "Saving…" : "Add referral"}
         </button>
       </div>
-      {error && <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">{error}</p>}
+      {error && (
+        <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">
+          {error}
+        </p>
+      )}
     </form>
+  );
+}
+
+/** Stop a consultant's standing share rule. Referrals already added stay. */
+export function RemoveRule({ consultantId, name }: { consultantId: string; name: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span className="inline-flex flex-col items-end">
+      <button
+        type="button"
+        onClick={async () => {
+          if (!window.confirm(`Stop ${name}'s automatic share? Referrals already added stay.`)) return;
+          const r = await post({ action: "set_terms", consultantId, remove: "1" });
+          if (!r.ok) setError(r.error ?? "That didn't work.");
+          else router.refresh();
+        }}
+        className="text-[0.78rem] text-muted underline underline-offset-4 hover:text-danger"
+      >
+        Stop automatic
+      </button>
+      {error && <span className="text-[0.72rem] text-danger">{error}</span>}
+    </span>
   );
 }
 
@@ -660,65 +798,11 @@ export function PayoutActions({ id, status }: { id: string; status: "owed" | "pa
 
 /* --------------------------------------------- university commissions */
 
-export function UniversityForm() {
-  const router = useRouter();
-  const close = useCloseModal();
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    setBusy(true);
-    setError(null);
-    const r = await post({
-      action: "add_university",
-      name: String(f.get("name") ?? ""),
-      kind: String(f.get("kind") ?? "fixed"),
-      value: String(f.get("value") ?? ""),
-      currency: String(f.get("currency") ?? "EUR"),
-    });
-    setBusy(false);
-    if (!r.ok) return setError(r.error ?? "That didn't save.");
-    formRef.current?.reset();
-    router.refresh();
-    close();
-  }
-  return (
-    <form ref={formRef} onSubmit={submit} className="grid gap-4 sm:grid-cols-3">
-      <label className="block sm:col-span-3">
-        <span className="field-label">University</span>
-        <input name="name" required maxLength={160} className="field" placeholder="e.g. Vilnius University" />
-      </label>
-      <label className="block">
-        <span className="field-label">Commission</span>
-        <select name="kind" className="field" defaultValue="fixed">
-          <option value="fixed">Fixed per student</option>
-          <option value="percent">% of tuition</option>
-        </select>
-      </label>
-      <label className="block">
-        <span className="field-label">Amount / %</span>
-        <input name="value" inputMode="decimal" className="field" placeholder="500" />
-      </label>
-      <label className="block">
-        <span className="field-label">Currency</span>
-        <select name="currency" className="field" defaultValue="EUR">
-          {CURRENCIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      </label>
-      <div className="flex items-end sm:col-span-3">
-        <button type="submit" disabled={busy} className={PRIMARY}>
-          {busy ? "Saving…" : "Add university"}
-        </button>
-      </div>
-      {error && <p role="alert" className="text-[0.85rem] text-danger sm:col-span-3">{error}</p>}
-    </form>
-  );
-}
-
+/**
+ * ADD A STUDENT SENT TO A UNIVERSITY. The university is chosen from those
+ * already used, or typed in (it is added by itself); a fixed commission it
+ * had before fills the amount in.
+ */
 export function CommissionForm({
   universities,
   students,
@@ -728,12 +812,21 @@ export function CommissionForm({
 }) {
   const router = useRouter();
   const close = useCloseModal();
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const [uni, setUni] = useState("");
+  const [uniName, setUniName] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const known = universities.find((u) => u.name.toLowerCase() === uniName.trim().toLowerCase()) ?? null;
+
+  function typeUniversity(v: string) {
+    setUniName(v);
+    const u = universities.find((x) => x.name.toLowerCase() === v.trim().toLowerCase());
+    if (u?.kind === "fixed" && u.value && !amount) {
+      setAmount(String(u.value));
+      setCurrency(u.currency);
+    }
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -743,7 +836,8 @@ export function CommissionForm({
     setError(null);
     const r = await post({
       action: "add_commission",
-      universityId: uni,
+      universityId: known?.id ?? "",
+      universityName: uniName.trim(),
       studentId: sid,
       studentName: String(f.get("studentName") ?? "") || students.find((s) => s.id === sid)?.name || "",
       intake: String(f.get("intake") ?? ""),
@@ -753,45 +847,37 @@ export function CommissionForm({
     });
     setBusy(false);
     if (!r.ok) return setError(r.error ?? "That didn't save.");
-    formRef.current?.reset();
-    setUni("");
-    setAmount("");
     router.refresh();
     close();
   }
 
   return (
-    <form ref={formRef} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
       <label className="block sm:col-span-2">
         <span className="field-label">University</span>
-        <select
+        <input
+          value={uniName}
+          onChange={(e) => typeUniversity(e.target.value)}
+          list="finance-universities"
           required
-          value={uni}
-          onChange={(e) => {
-            setUni(e.target.value);
-            // A fixed commission fills itself in.
-            const u = universities.find((x) => x.id === e.target.value);
-            if (u?.kind === "fixed" && u.value) {
-              setAmount(String(u.value));
-              setCurrency(u.currency);
-            }
-          }}
+          maxLength={160}
+          autoComplete="off"
           className="field"
-        >
-          <option value="" disabled>
-            Choose…
-          </option>
+          placeholder="Choose one, or type a new university"
+        />
+        <datalist id="finance-universities">
           {universities.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
+            <option key={u.id} value={u.name} />
           ))}
-        </select>
+        </datalist>
+        {uniName.trim().length > 1 && (
+          <span className="mt-1 block text-[0.76rem] text-faint">{known ? "Already in your list." : "New: it is added to your list."}</span>
+        )}
       </label>
       <label className="block sm:col-span-2">
         <span className="field-label">Student</span>
         <select name="studentId" className="field" defaultValue="">
-          <option value="">— Type the name instead —</option>
+          <option value="">— Type the name below instead —</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -824,7 +910,7 @@ export function CommissionForm({
         <input name="expectedOn" type="date" className="field" />
       </label>
       <div className="flex items-end sm:col-span-2">
-        <button type="submit" disabled={busy || !uni} className={PRIMARY}>
+        <button type="submit" disabled={busy || uniName.trim().length < 2} className={PRIMARY}>
           {busy ? "Saving…" : "Add expected commission"}
         </button>
       </div>
@@ -919,7 +1005,7 @@ export function RecurringEdit({
   r,
   categories,
 }: {
-  r: { id: string; name: string; category: string; amount: string; currency: string; dayOfMonth: number; autoPaid: boolean };
+  r: { id: string; name: string; category: string; amount: string; currency: string; dayOfMonth: number; autoPaid: boolean; partnerCost: boolean };
   categories: readonly string[];
 }) {
   const router = useRouter();
@@ -941,6 +1027,7 @@ export function RecurringEdit({
       currency: String(f.get("currency") ?? "EUR"),
       day: String(f.get("day") ?? "1"),
       autoPaid: f.get("autoPaid") ? "1" : "0",
+      partnerCost: f.get("partnerCost") ? "1" : "0",
       bill: (f.get("bill") as File | null) ?? null,
     });
     setBusy(false);
@@ -993,6 +1080,15 @@ export function RecurringEdit({
               <input name="autoPaid" type="checkbox" defaultChecked={r.autoPaid} className="h-4 w-4 accent-[var(--accent)]" />
               Mark paid automatically on its day
             </label>
+            <label className="flex items-start gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
+              <input name="partnerCost" type="checkbox" defaultChecked={r.partnerCost} className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+              <span>
+                The partners share this cost
+                <span className="block text-[0.76rem] text-faint">
+                  Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+                </span>
+              </span>
+            </label>
             <p className="text-[0.78rem] text-faint sm:col-span-2">Changes apply from the next month written; months already in the books keep what they said.</p>
             {error && <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">{error}</p>}
             <div className="flex justify-end gap-3 sm:col-span-2">
@@ -1012,13 +1108,24 @@ export function RecurringEdit({
 
 /* ------------------------------------------ an entry added by hand */
 
-const INCOME_CATS = ["Student fees", "University commission", "Invoices", "Consultancy", "Other income"];
-const EXPENSE_CATS = ["Rent", "Salaries", "Software & subscriptions", "Marketing & ads", "Utilities & internet", "Travel", "Office & supplies", "Bank & payment fees", "Taxes", "Commission", "Other"];
+const INCOME_CATS = INCOME_CATEGORIES;
+const EXPENSE_CATS = EXPENSE_CATEGORIES;
 
 export function EntryEdit({
   e,
 }: {
-  e: { id: string; kind: "income" | "expense"; category: string; description: string; party: string | null; amount: string; currency: string; date: string; status: "paid" | "due" };
+  e: {
+    id: string;
+    kind: "income" | "expense";
+    category: string;
+    description: string;
+    party: string | null;
+    amount: string;
+    currency: string;
+    date: string;
+    status: "paid" | "due";
+    partnerCost: boolean;
+  };
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -1041,6 +1148,7 @@ export function EntryEdit({
       currency: String(f.get("currency") ?? "EUR"),
       date: String(f.get("date") ?? ""),
       status: String(f.get("status") ?? "paid"),
+      partnerCost: f.get("partnerCost") ? "1" : "0",
     });
     setBusy(false);
     if (!res.ok) return setError(res.error ?? "That didn't save.");
@@ -1097,6 +1205,16 @@ export function EntryEdit({
                 </select>
               </label>
             )}
+            {e.kind === "expense" &&
+            (<label className="flex items-start gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
+              <input name="partnerCost" type="checkbox" defaultChecked={e.partnerCost} className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+              <span>
+                The partners share this cost
+                <span className="block text-[0.76rem] text-faint">
+                  Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+                </span>
+              </span>
+            </label>)}
             {error && <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">{error}</p>}
             <div className="flex justify-end gap-3 sm:col-span-2">
               <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[0.88rem] text-muted hover:text-fg">

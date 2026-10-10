@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeading, EmptyState } from "@/components/portal/Pieces";
-import { EntryRowActions, EntryEdit, PrintButton } from "@/components/portal/FinanceForms";
-import { inEur, type FinanceLine, type Rates } from "@/lib/db/repos/finance";
+import { EntryRowActions, EntryEdit } from "@/components/portal/FinanceForms";
+import { inEur, rateFor, type FinanceLine, type Rates } from "@/lib/db/repos/finance";
 import { eur, money, monthName, shortMonth, shortDate, shiftMonth, thisMonth, SOURCE_LABEL } from "@/lib/portal/finance-view";
 
 /**
@@ -61,9 +61,6 @@ export function FinanceHeader({
               This month
             </Link>
           )}
-          <span className="ml-auto print:hidden">
-            <PrintButton />
-          </span>
         </div>
       )}
     </>
@@ -246,7 +243,14 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
                 <td className="whitespace-nowrap px-4 py-3 text-[0.82rem] text-faint">{shortDate(l.date)}</td>
                 <td className="px-4 py-3 text-[0.9rem] font-medium text-fg">{l.party ?? "—"}</td>
                 <td className="min-w-[13rem] px-4 py-3 text-[0.86rem] text-muted">{l.description}</td>
-                <td className="px-4 py-3 text-[0.84rem] text-muted">{l.category}</td>
+                <td className="px-4 py-3 text-[0.84rem] text-muted">
+                  {l.category}
+                  {l.kind === "expense" && !l.partnerCost && (
+                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="SnZ Ventures carries this alone: it does not lower the partners' profit">
+                      SnZ only
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <span className={`pill ${TONE[l.source]}`}>{SOURCE_LABEL[l.source]}</span>
                 </td>
@@ -254,7 +258,12 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
                   {l.kind === "income" ? "+" : "−"}
                   {money(l.amountCents, l.currency)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted">{e == null ? "no rate" : eur(e)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted">
+                  {e == null ? "no rate" : eur(e)}
+                  {e != null && l.currency !== "EUR" && (
+                    <span className="block text-[0.7rem] text-faint">at {rateFor(rates, l.currency, l.date)?.toLocaleString("en-GB", { maximumFractionDigits: 2 })} per €</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {compact ? null : l.status === "due" ? <span className="pill pill-warn">Due</span> : <span className="pill pill-ok">Paid</span>}
                 </td>
@@ -273,6 +282,7 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
                           currency: l.currency,
                           date: l.date,
                           status: l.status,
+                          partnerCost: l.partnerCost,
                         }}
                       />
                     )}

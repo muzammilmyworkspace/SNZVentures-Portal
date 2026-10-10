@@ -11,7 +11,7 @@ import {
 import { Panel, EmptyState } from "@/components/portal/Pieces";
 import { FinanceHeader, MissingRates, MiniStat } from "@/components/portal/FinanceParts";
 import { StakeholderForm, StakeholderRowActions, DistributeButton } from "@/components/portal/FinanceForms";
-import { eur, pickMonth, shiftMonth, lastDay, monthName, shortDate, totals } from "@/lib/portal/finance-view";
+import { eur, pickMonth, shiftMonth, lastDay, monthName, shortDate, partnerTotals, shareOf } from "@/lib/portal/finance-view";
 
 export const metadata: Metadata = { title: "Stakeholders", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -20,6 +20,10 @@ export const dynamic = "force-dynamic";
  * STAKEHOLDERS — who shares the monthly profit, what each one's part is this
  * month, and whether it has been paid. SnZ Ventures' own share stays in the
  * business. A profit share is not an expense.
+ *
+ * The partners share in the profit only: income less the costs marked as
+ * shared. Costs SnZ Ventures carries alone (office rent, internet, phone)
+ * do not lower their part.
  */
 export default async function StakeholdersPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   await requireSuperAdmin();
@@ -35,11 +39,12 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
   ]);
   const active = holders.filter((h) => h.active);
   const totalPct = active.reduce((n, h) => n + h.sharePct, 0);
-  const month = totals(lines.filter((l) => l.date.startsWith(ym)), rates);
-  const share = (profit: number, pct: number) => Math.max(0, Math.round((profit * pct) / 100));
+  const month = partnerTotals(lines.filter((l) => l.date.startsWith(ym)), rates);
+  const profit = month.base;
+  const share = shareOf;
   const paidFor = (id: string, m: string) => dists.find((d) => d.stakeholderId === id && d.month === m) ?? null;
   const partners = active.filter((h) => !h.isCompany);
-  const toPay = partners.filter((h) => !paidFor(h.id, ym)).reduce((n, h) => n + share(month.profit, h.sharePct), 0);
+  const toPay = partners.filter((h) => !paidFor(h.id, ym)).reduce((n, h) => n + share(profit, h.sharePct), 0);
   const paid = partners.reduce((n, h) => n + (paidFor(h.id, ym)?.amountCents ?? 0), 0);
   const months = Array.from({ length: 12 }, (_, i) => shiftMonth(ym, -i));
 
@@ -47,7 +52,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
     <>
       <FinanceHeader
         title="Stakeholders"
-        lead="Who shares the profit. Each month everyone's part is worked out from that month's profit; mark it paid when you pay them."
+        lead="Who shares the profit. Each month everyone's part is worked out from that month's profit, after the shared costs only; mark it paid when you pay them."
         path="/portal/admin/finance/stakeholders"
         ym={ym}
       />
@@ -57,10 +62,15 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
       )}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MiniStat label={`Profit · ${monthName(ym)}`} value={eur(month.profit)} tone={month.profit < 0 ? "warn" : undefined} hint={month.profit <= 0 ? "Nothing to share" : undefined} />
+        <MiniStat
+          label={`Profit to share · ${monthName(ym)}`}
+          value={eur(profit)}
+          tone={profit < 0 ? "warn" : undefined}
+          hint={profit <= 0 ? "Nothing to share" : `Earned ${eur(month.income)} − shared costs ${eur(month.sharedCost)}`}
+        />
         <MiniStat label="To pay stakeholders" value={eur(toPay)} tone={toPay ? "warn" : undefined} hint="Not counting SnZ Ventures' own share" />
-        <MiniStat label="Paid this month" value={eur(paid)} tone="in" />
-        <MiniStat label="Stakeholders" value={active.length} hint={`${totalPct}% of the profit shared`} />
+        <MiniStat label="SnZ Ventures carries alone" value={eur(month.ownCost)} hint="Rent, internet, phone… not in the partners' profit" />
+        <MiniStat label="Paid this month" value={eur(paid)} tone="in" hint={`${active.length} stakeholders · ${totalPct}% shared`} />
       </div>
 
       <Panel title={`Shares · ${monthName(ym)}`} className="mb-5" padded={holders.length === 0} action={<StakeholderForm label="+ Add stakeholder" />}>
@@ -91,13 +101,13 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
                         {h.notes && <span className="block text-[0.76rem] text-faint">{h.notes}</span>}
                       </td>
                       <td className="px-4 py-3 text-[0.9rem] text-muted">{h.sharePct}%</td>
-                      <td className="px-4 py-3 text-[0.98rem] font-semibold tabular-nums text-fg">{h.active ? eur(p ? p.amountCents : share(month.profit, h.sharePct)) : "—"}</td>
+                      <td className="px-4 py-3 text-[0.98rem] font-semibold tabular-nums text-fg">{h.active ? eur(p ? p.amountCents : share(profit, h.sharePct)) : "—"}</td>
                       <td className="px-4 py-3">
                         {!h.active ? null : h.isCompany ? (
                           <span className="pill pill-info">Stays in the business</span>
                         ) : p ? (
                           <span className="pill pill-ok">Paid {shortDate(p.paidOn)}</span>
-                        ) : month.profit > 0 ? (
+                        ) : profit > 0 ? (
                           <span className="pill pill-warn">To pay</span>
                         ) : (
                           <span className="pill pill-neutral">Nothing this month</span>
@@ -105,7 +115,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-start gap-1.5">
-                          {h.active && !h.isCompany && (p || month.profit > 0) && (
+                          {h.active && !h.isCompany && (p || profit > 0) && (
                             <DistributeButton stakeholderId={h.id} month={ym} paid={Boolean(p)} label={`${h.name}'s share`} />
                           )}
                           <StakeholderForm label="Edit" initial={h} />
@@ -128,7 +138,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
               <thead>
                 <tr className="border-b border-line">
                   <th className="label px-4 py-3 text-faint">Month</th>
-                  <th className="label px-4 py-3 text-right text-faint">Profit</th>
+                  <th className="label px-4 py-3 text-right text-faint">Profit to share</th>
                   {active.map((h) => (
                     <th key={h.id} className="label px-4 py-3 text-right text-faint">
                       {h.name} ({h.sharePct}%)
@@ -138,7 +148,7 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
               </thead>
               <tbody>
                 {months.map((m) => {
-                  const x = totals(lines.filter((l) => l.date.startsWith(m)), rates);
+                  const x = { profit: partnerTotals(lines.filter((l) => l.date.startsWith(m)), rates).base };
                   return (
                     <tr key={m} className={`border-b border-line last:border-0 ${m === ym ? "font-semibold" : ""}`}>
                       <td className="px-4 py-2 text-fg">{monthName(m)}</td>

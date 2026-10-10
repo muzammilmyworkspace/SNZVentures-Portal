@@ -82,3 +82,24 @@ export const SOURCE_LABEL: Record<FinanceLine["source"], string> = {
   payout: "Consultant share",
   commission: "University commission",
 };
+
+/**
+ * THE PROFIT THE PARTNERS SHARE. Income, less only the expenses marked as
+ * partner costs. Costs SnZ Ventures carries alone (office rent, internet,
+ * phone: the partners work remotely and use none of it) do not lower it.
+ */
+export function partnerTotals(lines: FinanceLine[], rates: Rates) {
+  const inc = sumEur(lines.filter((l) => l.kind === "income"), rates);
+  const shared = sumEur(lines.filter((l) => l.kind === "expense" && l.partnerCost), rates);
+  const own = sumEur(lines.filter((l) => l.kind === "expense" && !l.partnerCost), rates);
+  return {
+    income: inc.cents,
+    sharedCost: shared.cents,
+    ownCost: own.cents,
+    base: inc.cents - shared.cents,
+    missing: [...new Set([...inc.missing, ...shared.missing, ...own.missing])],
+  };
+}
+
+/** A stakeholder's part of a profit: never below zero. */
+export const shareOf = (base: number, pct: number) => Math.max(0, Math.round((base * pct) / 100));

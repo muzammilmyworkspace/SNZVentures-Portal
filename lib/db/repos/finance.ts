@@ -8,21 +8,7 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  * costs, which `materializeRecurring` writes into each month once.
  */
 
-export const EXPENSE_CATEGORIES = [
-  "Rent",
-  "Salaries",
-  "Software & subscriptions",
-  "Marketing & ads",
-  "Utilities & internet",
-  "Travel",
-  "Office & supplies",
-  "Bank & payment fees",
-  "Taxes",
-  "Commission",
-  "Other",
-] as const;
-
-export const INCOME_CATEGORIES = ["Student fees", "University commission", "Invoices", "Consultancy", "Other income"] as const;
+export { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/lib/portal/finance-categories";
 
 export type FinanceLine = {
   id: string;
@@ -40,6 +26,8 @@ export type FinanceLine = {
   party: string | null;
   /** Where the receipt opens, when there is one. */
   receiptHref: string | null;
+  /** An expense the profit-sharing partners carry too (false: SnZ Ventures' own, e.g. office rent). */
+  partnerCost: boolean;
 };
 
 export type Recurring = {
@@ -54,6 +42,8 @@ export type Recurring = {
   startsOn: string;
   notes: string | null;
   hasBill: boolean;
+  /** Counts against the profit the partners share (false: SnZ Ventures carries it alone). */
+  partnerCost: boolean;
 };
 
 const day = (v: unknown) => {
@@ -102,12 +92,12 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
              round(f.amount * 100)::bigint AS amount_cents, f.currency,
              COALESCE(f.reviewed_at, f.updated_at)::date AS date, 'paid' AS status,
              NULL::uuid AS recurring_id, (f.receipt_document_id IS NOT NULL) AS has_receipt,
-             u.name AS party, f.receipt_document_id::text AS receipt_doc
+             u.name AS party, f.receipt_document_id::text AS receipt_doc, TRUE AS partner_cost
         FROM fee_submissions f JOIN users u ON u.id = f.user_id
        WHERE f.status = 'verified' AND COALESCE(f.reviewed_at, f.updated_at)::date BETWEEN ${from} AND ${to}
       UNION ALL
       SELECT i.id::text, 'invoice', 'income', 'Invoices', i.number,
-             i.total_cents, i.currency, i.updated_at::date, 'paid', NULL::uuid, FALSE, i.bill_to_name, NULL
+             i.total_cents, i.currency, i.updated_at::date, 'paid', NULL::uuid, FALSE, i.bill_to_name, NULL, TRUE
         FROM invoices i
        WHERE i.status = 'paid' AND i.updated_at::date BETWEEN ${from} AND ${to}
       UNION ALL
@@ -118,8 +108,8 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
                   ELSE 'manual' END,
              e.kind, e.category,
              e.description, e.amount_cents, e.currency, e.occurred_on, e.status, e.recurring_id,
-             (e.receipt_key IS NOT NULL), e.party, NULL
-        FROM finance_entries e
+             (e.receipt_key IS NOT NULL), e.party, NULL, COALESCE(fr.partner_cost, e.partner_cost)
+        FROM finance_entries e LEFT JOIN finance_recurring fr ON fr.id = e.recurring_id
        WHERE e.occurred_on BETWEEN ${from} AND ${to}
       ORDER BY date DESC
     `;
@@ -144,6 +134,7 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
           : r.has_receipt === true
             ? `/api/admin/finance/receipt/${r.id}`
             : null,
+      partnerCost: r.partner_cost !== false,
     }));
   }, []);
 }
@@ -171,62 +162,111 @@ export async function pendingFees(): Promise<
 
 /* ---------------------------------------------------------- rates */
 
-export type Rates = { month: string; currency: string; perEur: number; source: "manual" | "auto"; updatedAt: string }[];
+/**
+ * Exchange rates: units of a currency per euro. Month rows (finance_rates) and
+ * day rows (finance_rates_daily, `day` set). See `rateFor` for which one a
+ * date uses.
+ */
+export type Rate = { month: string; currency: string; perEur: number; source: "manual" | "auto"; updatedAt: string; day?: string };
+export type Rates = Rate[];
 
 /** The currencies kept up to date by themselves. */
 export const AUTO_CURRENCIES = ["PKR", "USD", "GBP"] as const;
 
-/** Today's rates (units per euro), from a free exchange-rate service, with a second one if the first fails. */
+async function ratesFrom(url: string, pick: (data: unknown) => Record<string, number> | null): Promise<Record<string, number> | null> {
+  try {
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    return pick(await res.json());
+  } catch {
+    return null;
+  }
+}
+const pickEur = (data: unknown) => {
+  const eur = (data as { eur?: Record<string, number> }).eur;
+  return eur ? Object.fromEntries(Object.entries(eur).map(([k, v]) => [k.toUpperCase(), v])) : null;
+};
+
+/** Today's market rates (units per euro), from a free exchange-rate service, with a second one if the first fails. */
 async function fetchTodaysRates(): Promise<Record<string, number> | null> {
-  try {
-    const res = await fetch("https://open.er-api.com/v6/latest/EUR", { cache: "no-store", signal: AbortSignal.timeout(5000) });
-    const data = (await res.json()) as { result?: string; rates?: Record<string, number> };
-    if (data.result === "success" && data.rates) return data.rates;
-  } catch {}
-  try {
-    const res = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json", {
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    });
-    const data = (await res.json()) as { eur?: Record<string, number> };
-    if (data.eur) return Object.fromEntries(Object.entries(data.eur).map(([k, v]) => [k.toUpperCase(), v]));
-  } catch {}
-  return null;
+  return (
+    (await ratesFrom("https://open.er-api.com/v6/latest/EUR", (d) => {
+      const x = d as { result?: string; rates?: Record<string, number> };
+      return x.result === "success" && x.rates ? x.rates : null;
+    })) ?? (await ratesFrom("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json", pickEur))
+  );
+}
+
+/** The market rates of a past day (YYYY-MM-DD). */
+async function fetchRatesOn(day: string): Promise<Record<string, number> | null> {
+  return (
+    (await ratesFrom(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${day}/v1/currencies/eur.json`, pickEur)) ??
+    (await ratesFrom(`https://${day}.currency-api.pages.dev/v1/currencies/eur.json`, pickEur))
+  );
+}
+
+async function writeDay(on: string, rates: Record<string, number>) {
+  for (const c of AUTO_CURRENCIES) {
+    const v = Number(rates[c]);
+    if (!Number.isFinite(v) || v <= 0) continue;
+    await db()`
+      INSERT INTO finance_rates_daily (day, currency, per_eur) VALUES (${on}, ${c}, ${v})
+      ON CONFLICT (day, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, updated_at = now()`;
+  }
 }
 
 // Checked at most every half hour per server, so a busy page does not hit the database for it each time.
 let lastCheck = 0;
 
 /**
- * Keeps this month's rates current: when one is missing or more than twelve
- * hours old, today's rates are fetched and written. A rate typed in by the
- * super admin ('manual') is never overwritten. Failure is silent: the latest
- * rate already stored keeps being used.
+ * Keeps the rates current, by itself:
+ *  - today's rate of each currency is fetched when missing or more than twelve
+ *    hours old, and kept as today's day rate (and as this month's latest);
+ *  - any past day with an amount in a foreign currency but no day rate yet
+ *    gets that day's rate (a few days per check, newest first).
+ * A month rate typed in by the super admin ('manual') is never overwritten.
+ * Failure is silent: the rates already stored keep being used.
  */
 export async function refreshRatesIfStale(force = false): Promise<void> {
   if (!isDatabaseConfigured()) return;
   if (!force && Date.now() - lastCheck < 30 * 60_000) return;
   lastCheck = Date.now();
   await safeQuery(async () => {
-    const rows = await db()`
-      SELECT currency, source, updated_at FROM finance_rates WHERE month = date_trunc('month', current_date)::date`;
-    const stale = AUTO_CURRENCIES.filter((c) => {
-      const r = rows.find((x) => x.currency === c);
-      if (!r) return true;
-      if (r.source === "manual") return false;
-      return Date.now() - new Date(r.updated_at as string).getTime() > 12 * 60 * 60_000;
+    const sql = db();
+    const today = await sql`SELECT currency, updated_at FROM finance_rates_daily WHERE day = current_date`;
+    const stale = AUTO_CURRENCIES.some((c) => {
+      const r = today.find((x) => x.currency === c);
+      return !r || Date.now() - new Date(r.updated_at as string).getTime() > 12 * 60 * 60_000;
     });
-    if (!stale.length) return true;
-    const rates = await fetchTodaysRates();
-    if (!rates) return false;
-    for (const c of stale) {
-      const v = Number(rates[c]);
-      if (!Number.isFinite(v) || v <= 0) continue;
-      await db()`
-        INSERT INTO finance_rates (month, currency, per_eur, source)
-        VALUES (date_trunc('month', current_date)::date, ${c}, ${v}, 'auto')
-        ON CONFLICT (month, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, updated_at = now()
-         WHERE finance_rates.source = 'auto'`;
+    if (stale) {
+      const rates = await fetchTodaysRates();
+      if (rates) {
+        const [{ d }] = await sql`SELECT current_date::text AS d`;
+        await writeDay(String(d), rates);
+        for (const c of AUTO_CURRENCIES) {
+          const v = Number(rates[c]);
+          if (!Number.isFinite(v) || v <= 0) continue;
+          await sql`
+            INSERT INTO finance_rates (month, currency, per_eur, source)
+            VALUES (date_trunc('month', current_date)::date, ${c}, ${v}, 'auto')
+            ON CONFLICT (month, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, updated_at = now()
+             WHERE finance_rates.source = 'auto'`;
+        }
+      }
+    }
+    // Past days that have foreign-currency amounts but no rate of their own yet.
+    const missing = await sql`
+      SELECT DISTINCT x.d::text AS day FROM (
+        SELECT occurred_on AS d, currency FROM finance_entries
+        UNION ALL SELECT COALESCE(reviewed_at, updated_at)::date, currency FROM fee_submissions WHERE status = 'verified'
+        UNION ALL SELECT updated_at::date, currency FROM invoices WHERE status = 'paid'
+      ) x
+       WHERE x.currency = ANY(${[...AUTO_CURRENCIES]}) AND x.d < current_date AND x.d >= current_date - 730
+         AND NOT EXISTS (SELECT 1 FROM finance_rates_daily r WHERE r.day = x.d AND r.currency = x.currency)
+       ORDER BY 1 DESC LIMIT 6`;
+    for (const m of missing) {
+      const rates = await fetchRatesOn(String(m.day));
+      if (rates) await writeDay(String(m.day), rates);
     }
     return true;
   }, false);
@@ -236,16 +276,36 @@ export async function allRates(): Promise<Rates> {
   if (!isDatabaseConfigured()) return [];
   await refreshRatesIfStale();
   return safeQuery(async () => {
-    const rows = await db()`SELECT month, currency, per_eur, source, updated_at FROM finance_rates ORDER BY month DESC`;
-    return rows.map((r) => ({
-      month: day(r.month),
-      currency: String(r.currency),
-      perEur: Number(r.per_eur),
-      source: r.source === "auto" ? "auto" : "manual",
-      updatedAt: new Date(r.updated_at as string).toISOString(),
-    }));
+    const [months, days] = await Promise.all([
+      db()`SELECT month, currency, per_eur, source, updated_at FROM finance_rates ORDER BY month DESC`,
+      db()`SELECT day, currency, per_eur, updated_at FROM finance_rates_daily ORDER BY day DESC`,
+    ]);
+    return [
+      ...months.map((r) => ({
+        month: day(r.month),
+        currency: String(r.currency),
+        perEur: Number(r.per_eur),
+        source: (r.source === "auto" ? "auto" : "manual") as Rate["source"],
+        updatedAt: new Date(r.updated_at as string).toISOString(),
+      })),
+      ...days.map((r) => ({
+        month: `${day(r.day).slice(0, 7)}-01`,
+        currency: String(r.currency),
+        perEur: Number(r.per_eur),
+        source: "auto" as const,
+        updatedAt: new Date(r.updated_at as string).toISOString(),
+        day: day(r.day),
+      })),
+    ];
   }, []);
 }
+
+/** A month's own rate row (not a day row), for the Rates panel. */
+export const monthRate = (rates: Rates, currency: string, ym: string) =>
+  rates.find((r) => !r.day && r.currency === currency && r.month === `${ym}-01`) ?? null;
+
+/** The latest day rate of a currency: "today's rate". */
+export const latestDayRate = (rates: Rates, currency: string) => rates.find((r) => r.day && r.currency === currency) ?? null;
 
 /** Drop a typed-in rate so the month goes back to the automatic one. */
 export async function clearManualRate(month: string, currency: string): Promise<boolean> {
@@ -259,15 +319,25 @@ export async function clearManualRate(month: string, currency: string): Promise<
 }
 
 /**
- * How many units of `currency` make one euro, for the month of `date`: that
- * month's rate, else the latest earlier one, else the latest of any. Null
- * when none has ever been set.
+ * How many units of `currency` make one euro on `date`:
+ *  1. a rate the super admin fixed for that month, if any;
+ *  2. else that day's market rate, or the nearest earlier day's;
+ *  3. else that month's rate, or the latest earlier month's;
+ *  4. else the oldest rate known.
+ * Null when none has ever been set.
  */
 export function rateFor(rates: Rates, currency: string, date: string): number | null {
   if (currency === "EUR") return 1;
-  const m = `${date.slice(0, 7)}-01`;
+  const d = date.slice(0, 10);
+  const m = `${d.slice(0, 7)}-01`;
   const mine = rates.filter((r) => r.currency === currency);
-  return (mine.find((r) => r.month <= m) ?? mine[mine.length - 1] ?? mine[0])?.perEur ?? null;
+  const fixed = mine.find((r) => !r.day && r.source === "manual" && r.month === m);
+  if (fixed) return fixed.perEur;
+  const days = mine.filter((r) => r.day);
+  const onDay = days.find((r) => (r.day as string) <= d);
+  if (onDay) return onDay.perEur;
+  const months = mine.filter((r) => !r.day);
+  return (months.find((r) => r.month <= m) ?? days[days.length - 1] ?? months[months.length - 1])?.perEur ?? null;
 }
 
 /** A line's amount in euro cents, or null when its currency has no rate. */
@@ -302,16 +372,19 @@ export async function addEntry(e: {
   status: "paid" | "due";
   receipt: { key: string; name: string; type: string; provider: string } | null;
   createdBy: string;
+  /** An expense the profit-sharing partners carry too (default yes). */
+  partnerCost?: boolean;
 }): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {
     const [r] = await db()`
       INSERT INTO finance_entries (kind, category, description, amount_cents, currency, occurred_on, status,
                                    receipt_key, receipt_name, receipt_type, receipt_provider, created_by,
-                                   party, student_id, consultant_id, university)
+                                   party, student_id, consultant_id, university, partner_cost)
       VALUES (${e.kind}, ${e.category}, ${e.description}, ${e.amountCents}, ${e.currency}, ${e.occurredOn}, ${e.status},
               ${e.receipt?.key ?? null}, ${e.receipt?.name ?? null}, ${e.receipt?.type ?? null}, ${e.receipt?.provider ?? null},
-              ${e.createdBy}, ${e.party ?? null}, ${e.studentId ?? null}, ${e.consultantId ?? null}, ${e.university ?? null})
+              ${e.createdBy}, ${e.party ?? null}, ${e.studentId ?? null}, ${e.consultantId ?? null}, ${e.university ?? null},
+              ${e.partnerCost ?? true})
       RETURNING id`;
     return String(r.id);
   }, null);
@@ -372,6 +445,7 @@ export async function listRecurring(): Promise<Recurring[]> {
       startsOn: day(r.starts_on),
       notes: r.notes ? String(r.notes) : null,
       hasBill: r.receipt_key != null,
+      partnerCost: r.partner_cost !== false,
     }));
   }, []);
 }
@@ -383,9 +457,9 @@ export async function addRecurring(r: Omit<Recurring, "id" | "active" | "hasBill
   return safeQuery(async () => {
     await db()`
       INSERT INTO finance_recurring (name, category, amount_cents, currency, day_of_month, auto_paid, starts_on, notes, created_by,
-                                     receipt_key, receipt_name, receipt_type, receipt_provider)
+                                     receipt_key, receipt_name, receipt_type, receipt_provider, partner_cost)
       VALUES (${r.name}, ${r.category}, ${r.amountCents}, ${r.currency}, ${r.dayOfMonth}, ${r.autoPaid}, ${r.startsOn}, ${r.notes}, ${r.createdBy},
-              ${r.bill?.key ?? null}, ${r.bill?.name ?? null}, ${r.bill?.type ?? null}, ${r.bill?.provider ?? null})`;
+              ${r.bill?.key ?? null}, ${r.bill?.name ?? null}, ${r.bill?.type ?? null}, ${r.bill?.provider ?? null}, ${r.partnerCost})`;
     return true;
   }, false);
 }
@@ -397,7 +471,16 @@ export async function addRecurring(r: Omit<Recurring, "id" | "active" | "hasBill
  */
 export async function updateRecurring(
   id: string,
-  p: { name?: string; category?: string; amountCents?: number; currency?: string; dayOfMonth?: number; autoPaid?: boolean; active?: boolean }
+  p: {
+    name?: string;
+    category?: string;
+    amountCents?: number;
+    currency?: string;
+    dayOfMonth?: number;
+    autoPaid?: boolean;
+    active?: boolean;
+    partnerCost?: boolean;
+  }
 ): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
   return safeQuery(async () => {
@@ -409,6 +492,7 @@ export async function updateRecurring(
         currency = COALESCE(${p.currency ?? null}, currency),
         day_of_month = COALESCE(${p.dayOfMonth ?? null}::smallint, day_of_month),
         auto_paid = COALESCE(${p.autoPaid ?? null}::boolean, auto_paid),
+        partner_cost = COALESCE(${p.partnerCost ?? null}::boolean, partner_cost),
         starts_on = CASE WHEN ${p.active === true} AND NOT active THEN date_trunc('month', current_date)::date ELSE starts_on END,
         active = COALESCE(${p.active ?? null}::boolean, active),
         updated_at = now()
@@ -472,6 +556,35 @@ export async function consultantsForFinance(): Promise<ConsultantSummary[]> {
   }, []);
 }
 
+export type ConsultantStudent = { id: string; name: string; feeCents: number | null; feeCurrency: string | null };
+
+/** Each consultant's students, with the amount of the student's latest verified fee (for a percentage share). */
+export async function studentsByConsultant(): Promise<Record<string, ConsultantStudent[]>> {
+  if (!isDatabaseConfigured()) return {};
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT sa.advisor_id, s.id, s.name, f.amount, f.currency
+        FROM staff_assignments sa
+        JOIN users a ON a.id = sa.advisor_id AND a.role = 'advisor'
+        JOIN users s ON s.id = sa.client_id
+        LEFT JOIN LATERAL (
+          SELECT amount, currency FROM fee_submissions
+           WHERE user_id = s.id AND status = 'verified' ORDER BY COALESCE(reviewed_at, updated_at) DESC LIMIT 1
+        ) f ON TRUE
+       ORDER BY s.name`;
+    const out: Record<string, ConsultantStudent[]> = {};
+    for (const r of rows) {
+      (out[String(r.advisor_id)] ??= []).push({
+        id: String(r.id),
+        name: String(r.name),
+        feeCents: r.amount == null ? null : Math.round(Number(r.amount) * 100),
+        feeCurrency: r.currency ? String(r.currency) : null,
+      });
+    }
+    return out;
+  }, {});
+}
+
 export async function setTerms(t: ConsultantTerms | { consultantId: string; remove: true }): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
   return safeQuery(async () => {
@@ -498,12 +611,14 @@ export async function materializePayouts(): Promise<void> {
   if (!isDatabaseConfigured()) return;
   await safeQuery(async () => {
     await db()`
-      INSERT INTO finance_payouts (consultant_id, student_id, fee_id, description, amount_cents, currency, status, created_on)
+      INSERT INTO finance_payouts (consultant_id, student_id, fee_id, description, amount_cents, currency, status, created_on,
+                                   rule_kind, rule_value, base_cents)
       SELECT t.consultant_id, f.user_id, f.id,
              concat('Share of ', lower(f.fee_type), ': ', u.name),
              CASE WHEN t.kind = 'percent' THEN round(f.amount * t.value)::bigint ELSE round(t.value * 100)::bigint END,
              CASE WHEN t.kind = 'percent' THEN f.currency ELSE t.currency END,
-             'owed', COALESCE(f.reviewed_at, f.updated_at)::date
+             'owed', COALESCE(f.reviewed_at, f.updated_at)::date,
+             t.kind, t.value, round(f.amount * 100)::bigint
         FROM fee_submissions f
         JOIN users u ON u.id = f.user_id
         JOIN LATERAL (
@@ -519,7 +634,10 @@ export async function materializePayouts(): Promise<void> {
 
 export type Payout = {
   id: string;
-  consultantId: string;
+  /** A consultant on the portal, or anyone else who referred a student. */
+  referrerKind: "consultant" | "referral";
+  consultantId: string | null;
+  /** The consultant's name, or the referrer's name as typed. */
   consultantName: string;
   studentName: string | null;
   description: string;
@@ -529,20 +647,25 @@ export type Payout = {
   createdOn: string;
   paidOn: string | null;
   automatic: boolean;
+  /** The share rule it was worked out with, when known. */
+  ruleKind: "percent" | "fixed" | null;
+  ruleValue: number | null;
+  baseCents: number | null;
 };
 
 export async function listPayouts(): Promise<Payout[]> {
   if (!isDatabaseConfigured()) return [];
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT p.*, c.name AS consultant_name, s.name AS student_name
-        FROM finance_payouts p JOIN users c ON c.id = p.consultant_id LEFT JOIN users s ON s.id = p.student_id
-       ORDER BY (p.status = 'paid'), p.created_on DESC LIMIT 1000`;
+      SELECT p.*, COALESCE(c.name, p.referrer_name) AS consultant_name, COALESCE(s.name, p.student_name) AS student_label
+        FROM finance_payouts p LEFT JOIN users c ON c.id = p.consultant_id LEFT JOIN users s ON s.id = p.student_id
+       ORDER BY (p.status = 'paid'), p.created_on DESC, p.created_at DESC LIMIT 1000`;
     return rows.map((r) => ({
       id: String(r.id),
-      consultantId: String(r.consultant_id),
-      consultantName: String(r.consultant_name),
-      studentName: r.student_name ? String(r.student_name) : null,
+      referrerKind: r.referrer_kind === "referral" ? "referral" : "consultant",
+      consultantId: r.consultant_id ? String(r.consultant_id) : null,
+      consultantName: String(r.consultant_name ?? "—"),
+      studentName: r.student_label ? String(r.student_label) : null,
       description: String(r.description),
       amountCents: Number(r.amount_cents),
       currency: String(r.currency),
@@ -550,23 +673,39 @@ export async function listPayouts(): Promise<Payout[]> {
       createdOn: day(r.created_on),
       paidOn: r.paid_on ? day(r.paid_on) : null,
       automatic: r.fee_id != null,
+      ruleKind: r.rule_kind === "percent" || r.rule_kind === "fixed" ? r.rule_kind : null,
+      ruleValue: r.rule_value == null ? null : Number(r.rule_value),
+      baseCents: r.base_cents == null ? null : Number(r.base_cents),
     }));
   }, []);
 }
 
+/**
+ * A referral added by hand: for a consultant (their student chosen from the
+ * portal) or for anyone else (their name and the student's name typed in).
+ */
 export async function addPayout(p: {
-  consultantId: string;
+  referrerKind: "consultant" | "referral";
+  consultantId: string | null;
+  referrerName: string | null;
   studentId: string | null;
+  studentName: string | null;
   description: string;
   amountCents: number;
   currency: string;
+  createdOn: string;
+  ruleKind: "percent" | "fixed";
+  ruleValue: number;
+  baseCents: number | null;
   createdBy: string;
 }): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
   return safeQuery(async () => {
     await db()`
-      INSERT INTO finance_payouts (consultant_id, student_id, description, amount_cents, currency, created_by)
-      VALUES (${p.consultantId}, ${p.studentId}, ${p.description}, ${p.amountCents}, ${p.currency}, ${p.createdBy})`;
+      INSERT INTO finance_payouts (referrer_kind, consultant_id, referrer_name, student_id, student_name, description,
+                                   amount_cents, currency, created_on, rule_kind, rule_value, base_cents, created_by)
+      VALUES (${p.referrerKind}, ${p.consultantId}, ${p.referrerName}, ${p.studentId}, ${p.studentName}, ${p.description},
+              ${p.amountCents}, ${p.currency}, ${p.createdOn}, ${p.ruleKind}, ${p.ruleValue}, ${p.baseCents}, ${p.createdBy})`;
     return true;
   }, false);
 }
@@ -577,8 +716,8 @@ export async function setPayoutPaid(id: string, paid: boolean, on: string, by: s
   return safeQuery(async () => {
     return db().begin(async (sql) => {
       const [p] = await sql`
-        SELECT p.*, c.name AS consultant_name, s.name AS student_name
-          FROM finance_payouts p JOIN users c ON c.id = p.consultant_id LEFT JOIN users s ON s.id = p.student_id
+        SELECT p.*, COALESCE(c.name, p.referrer_name) AS consultant_name
+          FROM finance_payouts p LEFT JOIN users c ON c.id = p.consultant_id
          WHERE p.id = ${id} FOR UPDATE OF p`;
       if (!p) return false;
       if (paid && p.status === "owed") {
@@ -654,6 +793,26 @@ export async function addUniversity(u: Omit<University, "id">): Promise<boolean>
       VALUES (${u.name}, ${u.kind}, ${u.value}, ${u.currency}, ${u.notes})`;
     return true;
   }, false);
+}
+
+/**
+ * The university of that name (any case), or a new one. A commission rule
+ * given with a new university is kept with it, to fill the next one in.
+ */
+export async function universityByName(
+  name: string,
+  rule?: { kind: "percent" | "fixed"; value: number | null; currency: string }
+): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null;
+  return safeQuery(async () => {
+    const [found] = await db()`SELECT id FROM finance_universities WHERE lower(name) = lower(${name}) LIMIT 1`;
+    if (found) return String(found.id);
+    const [made] = await db()`
+      INSERT INTO finance_universities (name, kind, value, currency)
+      VALUES (${name}, ${rule?.kind ?? "fixed"}, ${rule?.value ?? null}, ${rule?.currency ?? "EUR"})
+      RETURNING id`;
+    return String(made.id);
+  }, null);
 }
 
 export async function deleteUniversity(id: string): Promise<boolean> {
@@ -855,14 +1014,23 @@ export async function undoDistribution(stakeholderId: string, month: string): Pr
 /** Change a typed-in entry (not a fixed cost's month, a consultant share or a commission). */
 export async function updateEntry(
   id: string,
-  e: { category: string; description: string; party: string | null; amountCents: number; currency: string; occurredOn: string; status: "paid" | "due" }
+  e: {
+    category: string;
+    description: string;
+    party: string | null;
+    amountCents: number;
+    currency: string;
+    occurredOn: string;
+    status: "paid" | "due";
+    partnerCost: boolean;
+  }
 ): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
   return safeQuery(async () => {
     const rows = await db()`
       UPDATE finance_entries e SET category = ${e.category}, description = ${e.description}, party = ${e.party},
              amount_cents = ${e.amountCents}, currency = ${e.currency}, occurred_on = ${e.occurredOn}, status = ${e.status},
-             updated_at = now()
+             partner_cost = ${e.partnerCost}, updated_at = now()
        WHERE e.id = ${id} AND e.recurring_id IS NULL
          AND NOT EXISTS (SELECT 1 FROM finance_payouts p WHERE p.entry_id = e.id)
          AND NOT EXISTS (SELECT 1 FROM finance_commissions c WHERE c.entry_id = e.id)
