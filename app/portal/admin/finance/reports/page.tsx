@@ -209,17 +209,26 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <div id="rates" className="mt-6 scroll-mt-24 print:hidden">
         <Panel title={`Exchange rates · ${monthName(ym)}`}>
           <p className="mb-5 text-[0.88rem] text-muted">
-            Totals are in euros. For each other currency, say how many make one euro this month. A month without its own rate
-            uses the latest one set before it.
+            Totals are in euros. Rupee, dollar and pound rates update by themselves from a free exchange-rate service, at
+            most twice a day. Type a rate only if you want a fixed one for the month; you can go back to automatic.
           </p>
           <ul className="space-y-3">
             {currencies.map((c) => {
-              const own = rates.find((r) => r.currency === c && r.month === `${ym}-01`)?.perEur ?? null;
+              const row = rates.find((r) => r.currency === c && r.month === `${ym}-01`) ?? null;
               const used = rateFor(rates, c, `${ym}-01`);
+              const when = row ? new Date(row.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
               return (
                 <li key={c} className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line p-4">
-                  <RateForm key={`${c}-${ym}-${own}`} month={ym} currency={c} current={own} />
-                  <span className="text-[0.8rem] text-faint">{own ? "Set for this month" : used ? `Using ${used} (latest earlier rate)` : "No rate yet"}</span>
+                  <RateForm key={`${c}-${ym}-${row?.perEur}-${row?.source}`} month={ym} currency={c} current={row?.perEur ?? null} manual={row?.source === "manual"} />
+                  <span className="text-[0.8rem] text-faint">
+                    {row
+                      ? row.source === "auto"
+                        ? `Automatic · updated ${when}`
+                        : `Fixed by you for this month · ${when}`
+                      : used
+                        ? `Using ${used} (latest earlier rate)`
+                        : "No rate yet"}
+                  </span>
                 </li>
               );
             })}

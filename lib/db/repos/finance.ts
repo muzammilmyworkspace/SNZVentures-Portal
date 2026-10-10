@@ -171,14 +171,91 @@ export async function pendingFees(): Promise<
 
 /* ---------------------------------------------------------- rates */
 
-export type Rates = { month: string; currency: string; perEur: number }[];
+export type Rates = { month: string; currency: string; perEur: number; source: "manual" | "auto"; updatedAt: string }[];
+
+/** The currencies kept up to date by themselves. */
+export const AUTO_CURRENCIES = ["PKR", "USD", "GBP"] as const;
+
+/** Today's rates (units per euro), from a free exchange-rate service, with a second one if the first fails. */
+async function fetchTodaysRates(): Promise<Record<string, number> | null> {
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/EUR", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    const data = (await res.json()) as { result?: string; rates?: Record<string, number> };
+    if (data.result === "success" && data.rates) return data.rates;
+  } catch {}
+  try {
+    const res = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = (await res.json()) as { eur?: Record<string, number> };
+    if (data.eur) return Object.fromEntries(Object.entries(data.eur).map(([k, v]) => [k.toUpperCase(), v]));
+  } catch {}
+  return null;
+}
+
+// Checked at most every half hour per server, so a busy page does not hit the database for it each time.
+let lastCheck = 0;
+
+/**
+ * Keeps this month's rates current: when one is missing or more than twelve
+ * hours old, today's rates are fetched and written. A rate typed in by the
+ * super admin ('manual') is never overwritten. Failure is silent: the latest
+ * rate already stored keeps being used.
+ */
+export async function refreshRatesIfStale(force = false): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+  if (!force && Date.now() - lastCheck < 30 * 60_000) return;
+  lastCheck = Date.now();
+  await safeQuery(async () => {
+    const rows = await db()`
+      SELECT currency, source, updated_at FROM finance_rates WHERE month = date_trunc('month', current_date)::date`;
+    const stale = AUTO_CURRENCIES.filter((c) => {
+      const r = rows.find((x) => x.currency === c);
+      if (!r) return true;
+      if (r.source === "manual") return false;
+      return Date.now() - new Date(r.updated_at as string).getTime() > 12 * 60 * 60_000;
+    });
+    if (!stale.length) return true;
+    const rates = await fetchTodaysRates();
+    if (!rates) return false;
+    for (const c of stale) {
+      const v = Number(rates[c]);
+      if (!Number.isFinite(v) || v <= 0) continue;
+      await db()`
+        INSERT INTO finance_rates (month, currency, per_eur, source)
+        VALUES (date_trunc('month', current_date)::date, ${c}, ${v}, 'auto')
+        ON CONFLICT (month, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, updated_at = now()
+         WHERE finance_rates.source = 'auto'`;
+    }
+    return true;
+  }, false);
+}
 
 export async function allRates(): Promise<Rates> {
   if (!isDatabaseConfigured()) return [];
+  await refreshRatesIfStale();
   return safeQuery(async () => {
-    const rows = await db()`SELECT month, currency, per_eur FROM finance_rates ORDER BY month DESC`;
-    return rows.map((r) => ({ month: day(r.month), currency: String(r.currency), perEur: Number(r.per_eur) }));
+    const rows = await db()`SELECT month, currency, per_eur, source, updated_at FROM finance_rates ORDER BY month DESC`;
+    return rows.map((r) => ({
+      month: day(r.month),
+      currency: String(r.currency),
+      perEur: Number(r.per_eur),
+      source: r.source === "auto" ? "auto" : "manual",
+      updatedAt: new Date(r.updated_at as string).toISOString(),
+    }));
   }, []);
+}
+
+/** Drop a typed-in rate so the month goes back to the automatic one. */
+export async function clearManualRate(month: string, currency: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  const ok = await safeQuery(async () => {
+    await db()`DELETE FROM finance_rates WHERE month = ${month} AND currency = ${currency} AND source = 'manual'`;
+    return true;
+  }, false);
+  await refreshRatesIfStale(true);
+  return ok;
 }
 
 /**
@@ -203,8 +280,8 @@ export async function setRate(month: string, currency: string, perEur: number): 
   if (!isDatabaseConfigured()) return false;
   return safeQuery(async () => {
     await db()`
-      INSERT INTO finance_rates (month, currency, per_eur) VALUES (${month}, ${currency}, ${perEur})
-      ON CONFLICT (month, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, updated_at = now()`;
+      INSERT INTO finance_rates (month, currency, per_eur, source) VALUES (${month}, ${currency}, ${perEur}, 'manual')
+      ON CONFLICT (month, currency) DO UPDATE SET per_eur = EXCLUDED.per_eur, source = 'manual', updated_at = now()`;
     return true;
   }, false);
 }

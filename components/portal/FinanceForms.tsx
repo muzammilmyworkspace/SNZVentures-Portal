@@ -420,7 +420,18 @@ export function RecurringRowActions({
 
 /* ------------------------------------------------------------ rates */
 
-export function RateForm({ month, currency, current }: { month: string; currency: string; current: number | null }) {
+export function RateForm({
+  month,
+  currency,
+  current,
+  manual = false,
+}: {
+  month: string;
+  currency: string;
+  current: number | null;
+  /** Typed in by the super admin: offer to go back to the automatic rate. */
+  manual?: boolean;
+}) {
   const router = useRouter();
   const [v, setV] = useState(current ? String(current) : "");
   const [busy, setBusy] = useState(false);
@@ -442,8 +453,24 @@ export function RateForm({ month, currency, current }: { month: string; currency
       <input value={v} onChange={(e) => setV(e.target.value)} inputMode="decimal" className="h-10 w-32 rounded-[10px] border border-line bg-[var(--panel-solid)] px-3 text-[0.9rem] text-fg" placeholder="e.g. 300" aria-label={`${currency} per euro`} />
       <span className="text-[0.9rem] text-fg">{currency}</span>
       <button type="submit" disabled={busy || !v} className={PRIMARY}>
-        {busy ? "Saving…" : "Save"}
+        {busy ? "Saving…" : "Fix this rate"}
       </button>
+      {manual && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await post({ action: "rate_auto", month, currency });
+            setBusy(false);
+            setMsg(r.ok ? "Back to automatic." : r.error ?? "That didn't work.");
+            if (r.ok) router.refresh();
+          }}
+          className="text-[0.82rem] text-muted underline underline-offset-4 hover:text-fg"
+        >
+          Use automatic
+        </button>
+      )}
       {msg && <span className="text-[0.8rem] text-muted">{msg}</span>}
     </form>
   );

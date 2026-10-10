@@ -10,6 +10,7 @@ import {
   updateRecurring,
   deleteRecurring,
   setRate,
+  clearManualRate,
   setRecurringBill,
   setTerms,
   addPayout,
@@ -189,6 +190,13 @@ export async function POST(request: Request) {
   if (action === "delete_recurring") {
     const ok = await deleteRecurring(text("id", 40));
     return ok ? NextResponse.json({ ok: true }) : bad("Not found.", 404);
+  }
+
+  if (action === "rate_auto") {
+    const month = text("month", 7);
+    const currency = text("currency", 3);
+    if (!/^\d{4}-\d{2}$/.test(month) || !CURRENCY.includes(currency)) return bad("Invalid request.");
+    return (await clearManualRate(`${month}-01`, currency)) ? NextResponse.json({ ok: true }) : bad("That didn't save.", 503);
   }
 
   if (action === "set_rate") {

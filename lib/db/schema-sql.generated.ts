@@ -212,4 +212,9 @@ export const MIGRATIONS: readonly Migration[] = [
     checksum: "ec1fe3e91f3b33b3",
     sql: "-- ---------------------------------------------------------------------------\n-- A FIXED COST CAN CARRY ITS BILL: a photo or PDF of the contract, invoice or\n-- subscription receipt it is based on, opened from the list.\n-- ---------------------------------------------------------------------------\n\nALTER TABLE finance_recurring\n  ADD COLUMN IF NOT EXISTS receipt_key      TEXT,\n  ADD COLUMN IF NOT EXISTS receipt_name     TEXT,\n  ADD COLUMN IF NOT EXISTS receipt_type     TEXT,\n  ADD COLUMN IF NOT EXISTS receipt_provider TEXT;\n",
   },
+  {
+    name: "042_finance_rates_auto.sql",
+    checksum: "c534b84d41fa94f8",
+    sql: "-- ---------------------------------------------------------------------------\n-- EXCHANGE RATES BY THEMSELVES.\n--\n-- The portal fetches today's rates (from a free exchange-rate service) and\n-- keeps the current month's rate up to date, at most every twelve hours.\n-- A rate the super admin typed in is 'manual' and is never overwritten; going\n-- back to automatic removes it.\n-- ---------------------------------------------------------------------------\n\nALTER TABLE finance_rates\n  ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'auto'));\n",
+  },
 ];
