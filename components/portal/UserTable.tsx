@@ -224,6 +224,21 @@ export function UserTable({
                         Code: <span className="font-mono text-fg">{u.consultantCode}</span>
                       </span>
                     )}
+                    {/* Brought by: the consultant a client came through, or SnZ Ventures directly. Super admin only. */}
+                    {actorRole === "super_admin" && ["student", "professional", "business"].includes(u.role) && (
+                      <span className="mt-0.5 block font-sans text-[0.7rem] font-medium text-faint" title="Who brought this client">
+                        {u.advisorName && u.advisorId ? (
+                          <>
+                            Via{" "}
+                            <Link prefetch={false} href={`/portal/admin/users/${u.advisorId}`} className="text-[#E8913A] underline-offset-4 hover:underline">
+                              {u.advisorName}
+                            </Link>
+                          </>
+                        ) : (
+                          "Direct · SnZ Ventures"
+                        )}
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-5 py-3">
