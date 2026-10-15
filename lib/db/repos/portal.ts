@@ -1540,7 +1540,7 @@ export async function getAdvisorBoard(advisorId: string): Promise<
       ) i ON TRUE
       LEFT JOIN LATERAL (
         SELECT count(*)::int AS n FROM consents
-        WHERE user_id = u.id AND kind = 'student_undertaking'
+        WHERE user_id = u.id AND kind IN ('student_undertaking', 'consultant_student')
       ) k ON TRUE
       WHERE EXISTS (
               SELECT 1 FROM staff_assignments sa

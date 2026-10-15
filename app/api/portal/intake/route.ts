@@ -1,4 +1,5 @@
 import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
+import { consultantOf } from "@/lib/db/repos/consent-templates";
 import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as ops from "@/lib/db/repos/operations";
@@ -271,6 +272,47 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+      A STUDENT WHO CAME THROUGH A CONSULTANT signs that consultant's consent
+      only, never SnZ Ventures'. Until the consultant has published one there is
+      nothing to sign, so the application waits rather than go in unsigned.
+    */
+    const consultant = await consultantOf(session.userId);
+    if (consultant) {
+      const partner = await partnerConsentFor(session.userId);
+      if (!partner) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `${consultant.name} has not added their consent form yet, so the application cannot be submitted. Your answers are saved; please ask them to add it.`,
+          },
+          { status: 409 }
+        );
+      }
+      const partnerRecorded = await recordConsent({
+        userId: session.userId,
+        kind: "consultant_student",
+        version: partner.version,
+        signedName: signature,
+        ip: clientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      });
+      if (!partnerRecorded) {
+        return NextResponse.json(
+          { ok: false, error: "We could not record your signature just now, so nothing was submitted. Please try again." },
+          { status: 503 }
+        );
+      }
+      await audit({
+        action: "consent.accepted",
+        actorId: session.userId,
+        actorEmail: session.email,
+        entity: "user",
+        entityId: session.userId,
+        meta: { kind: "consultant_student", version: partner.version, consultant: partner.consultantId, at: "application_submit" },
+        ip: clientIp(request),
+      });
+    } else {
     // The version of the consent on screen today: the one written by the
     // super admin if there is one, else the built-in wording.
     const consentVersion = (await activeConsent()).version;
@@ -303,36 +345,6 @@ export async function POST(request: Request) {
       ip: clientIp(request),
     });
 
-    /*
-      THE CONSULTANT'S OWN CONSENT, when the student came through one who has
-      one in use. Shown on the same step and signed by the same tick and name;
-      recorded before the submit for the same reason as SnZ's.
-    */
-    const partner = await partnerConsentFor(session.userId);
-    if (partner) {
-      const partnerRecorded = await recordConsent({
-        userId: session.userId,
-        kind: "consultant_student",
-        version: partner.version,
-        signedName: signature,
-        ip: clientIp(request),
-        userAgent: request.headers.get("user-agent"),
-      });
-      if (!partnerRecorded) {
-        return NextResponse.json(
-          { ok: false, error: "We could not record your signature just now, so nothing was submitted. Please try again." },
-          { status: 503 }
-        );
-      }
-      await audit({
-        action: "consent.accepted",
-        actorId: session.userId,
-        actorEmail: session.email,
-        entity: "user",
-        entityId: session.userId,
-        meta: { kind: "consultant_student", version: partner.version, consultant: partner.consultantId, at: "application_submit" },
-        ip: clientIp(request),
-      });
     }
   }
 

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { mustOnboard } from "@/lib/db/repos/student-desk";
-import { currentTemplate, hasSigned } from "@/lib/db/repos/consent-templates";
+import { currentTemplate, hasSigned, studentsWaitingForConsent } from "@/lib/db/repos/consent-templates";
 import { PortalShell, type Badges } from "@/components/portal/PortalShell";
 import { ImpersonationBanner } from "@/components/portal/ImpersonationBanner";
+import { ConsentNeededBanner } from "@/components/portal/ConsentNeededBanner";
 import { SessionKeepalive } from "@/components/portal/SessionKeepalive";
 import { LiveRefresh } from "@/components/portal/LiveRefresh";
 import * as repo from "@/lib/db/repos/portal";
@@ -62,6 +63,9 @@ export default async function PortalLayout({ children }: { children: React.React
     const agreement = await currentTemplate("consultant", null);
     if (agreement && !(await hasSigned(session.userId, agreement))) redirect("/agreement");
   }
+  // A consultant's students sign the consultant's own consent; until there is one, say so on every page.
+  const consentMissing = session.role === "advisor" && !(await currentTemplate("consultant_student", session.userId));
+  const consentWaiting = consentMissing ? await studentsWaitingForConsent(session.userId) : 0;
 
   /*
     Sidebar counts, computed here so every page shows the same numbers rather
@@ -133,6 +137,8 @@ export default async function PortalLayout({ children }: { children: React.React
           admin={{ name: session.impersonator.name }}
         />
       )}
+
+      {consentMissing && <ConsentNeededBanner waiting={consentWaiting} />}
 
     <PortalShell
       name={session.name}

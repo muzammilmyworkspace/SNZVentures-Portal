@@ -1,4 +1,5 @@
 import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
+import { consultantOf } from "@/lib/db/repos/consent-templates";
 import type { Metadata } from "next";
 import { requireOpen } from "@/lib/portal/gate";
 import { requireUser } from "@/lib/auth/guard";
@@ -67,6 +68,8 @@ export default async function ApplicationPage() {
   }
 
   const definition = (await loadIntake(pathway));
+  // A student who came through a consultant signs that consultant's consent only, never SnZ Ventures'.
+  const consultant = await consultantOf(session.userId);
   const form = await getIntake(session.userId, pathway);
   /*
     The checklist ticks come from their own table, not from the form. They have
@@ -91,8 +94,9 @@ export default async function ApplicationPage() {
           checklistTicks={checklistTicks}
           status={form?.status ?? "draft"}
           returnNote={returnNote}
-          consent={pathway === "study" ? await activeConsent() : null}
-          partnerConsent={pathway === "study" ? await partnerConsentFor(session.userId) : null}
+          consent={pathway === "study" && !consultant ? await activeConsent() : null}
+          partnerConsent={pathway === "study" && consultant ? await partnerConsentFor(session.userId) : null}
+          waitingForConsultant={pathway === "study" && consultant ? consultant.name : null}
         />
       </Panel>
     </>

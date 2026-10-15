@@ -85,7 +85,7 @@ export async function studentStage(userId: string): Promise<StageInfo> {
           WHERE user_id = ${userId} AND pathway = 'study'
           LIMIT 1) AS intake_status,
         (SELECT count(*)::int FROM consents
-          WHERE user_id = ${userId} AND kind = 'student_undertaking') AS consented
+          WHERE user_id = ${userId} AND kind IN ('student_undertaking', 'consultant_student')) AS consented
     `;
 
     const feeLive = r?.fee_live as string | null;

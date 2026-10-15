@@ -161,17 +161,33 @@ export function ConsentDoc({ consent }: { consent?: ConsentView | null }) {
 }
 
 /**
- * The consent step of the application: SnZ Ventures' consent, and below it
- * the student's consultant's own, when they have one. The one tick and typed
- * name under them sign both, and both are recorded.
+ * The consent step of the application.
+ *
+ * A student who came through a consultant sees that consultant's consent
+ * ONLY (never SnZ Ventures'): the student is the consultant's. Until the
+ * consultant has published one, the step says so and the application waits.
+ * Everyone else sees SnZ Ventures' consent.
  */
 export function UndertakingDoc({
   consent,
   partner = null,
+  viaConsultant = null,
 }: {
   consent?: ConsentView | null;
   partner?: ConsentView | null;
+  viaConsultant?: string | null;
 }) {
+  if (viaConsultant) {
+    return partner ? (
+      <ConsentDoc consent={partner} />
+    ) : (
+      <div role="status" className="note-warn p-4 text-[0.9rem] leading-relaxed">
+        <strong className="font-semibold">Your consultant&apos;s consent form is not ready yet.</strong> {viaConsultant} still has
+        to add the consent you sign. Your answers are saved; you can submit as soon as it is ready. You may want to remind
+        them.
+      </div>
+    );
+  }
   if (!partner) return <ConsentDoc consent={consent} />;
   return (
     <div className="space-y-4">

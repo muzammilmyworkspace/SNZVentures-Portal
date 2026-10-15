@@ -305,3 +305,16 @@ export async function consultantOf(studentId: string): Promise<{ id: string; nam
     return r ? { id: String(r.id), name: String(r.name) } : null;
   }, null);
 }
+
+/** How many of a consultant's students have filled their application and cannot submit it until the consultant's consent exists. */
+export async function studentsWaitingForConsent(consultantId: string): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+  return safeQuery(async () => {
+    const [r] = await db()`
+      SELECT count(*)::int AS n FROM staff_assignments sa
+        JOIN users u ON u.id = sa.client_id AND u.role = 'student'
+        JOIN intake_forms f ON f.user_id = u.id AND f.pathway = 'study' AND f.status IN ('draft', 'returned')
+       WHERE sa.advisor_id = ${consultantId}`;
+    return Number(r?.n ?? 0);
+  }, 0);
+}
