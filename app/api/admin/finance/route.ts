@@ -34,6 +34,11 @@ import {
   materializePayouts,
   refreshRatesIfStale,
   universityByName,
+  listAccounts,
+  saveAccount,
+  setAccountActive,
+  addTransfer,
+  deleteTransfer,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
 } from "@/lib/db/repos/finance";
@@ -79,6 +84,10 @@ export async function POST(request: Request) {
   }
   const action = String(form.get("action") ?? "");
   const text = (k: string, n = 200) => String(form.get(k) ?? "").trim().slice(0, n);
+  // The money account, VAT and liability term of an entry or a fixed cost.
+  const accountId = UUID.test(text("accountId", 40)) ? text("accountId", 40) : null;
+  const vatMode = form.get("vatMode") === "reverse_charge" ? ("reverse_charge" as const) : ("none" as const);
+  const liabilityTerm = form.get("liabilityTerm") === "long" ? ("long" as const) : ("short" as const);
 
   if (action === "add_entry") {
     const kind = form.get("kind") === "income" ? "income" : "expense";
@@ -119,6 +128,10 @@ export async function POST(request: Request) {
       receipt,
       createdBy: session.userId,
       partnerCost: kind === "income" || form.get("partnerCost") !== "0",
+      accountId,
+      // Reverse charge is for services SnZ buys from abroad: an expense only.
+      vatMode: kind === "expense" ? vatMode : "none",
+      liabilityTerm,
     });
     // An amount in another currency gets that day's market rate now.
     if (id && currency !== "EUR") await refreshRatesIfStale(true);
@@ -174,6 +187,8 @@ export async function POST(request: Request) {
         createdBy: session.userId,
         bill,
         partnerCost: form.get("partnerCost") !== "0",
+        accountId,
+        vatMode,
       });
       return ok ? NextResponse.json({ ok: true }) : bad("That didn't save.", 503);
     }
@@ -190,6 +205,8 @@ export async function POST(request: Request) {
       ...(form.get("autoPaid") != null ? { autoPaid: form.get("autoPaid") === "1" } : {}),
       ...(form.get("active") != null ? { active: form.get("active") === "1" } : {}),
       ...(form.get("partnerCost") != null ? { partnerCost: form.get("partnerCost") === "1" } : {}),
+      ...(accountId ? { accountId } : {}),
+      ...(form.get("vatMode") != null ? { vatMode } : {}),
     });
     return ok ? NextResponse.json({ ok: true }) : bad("Not found.", 404);
   }
@@ -387,6 +404,9 @@ export async function POST(request: Request) {
       occurredOn,
       status: form.get("status") === "due" ? "due" : "paid",
       partnerCost: kind === "income" || form.get("partnerCost") !== "0",
+      accountId,
+      vatMode: kind === "expense" ? vatMode : "none",
+      liabilityTerm,
     });
     if (ok && currency !== "EUR") await refreshRatesIfStale(true);
     return ok ? NextResponse.json({ ok: true }) : bad("Only entries added by hand can be edited here.", 409);
@@ -441,6 +461,58 @@ export async function POST(request: Request) {
     const paidOn = text("date", 10) || today();
     const ok = await recordDistribution({ stakeholderId, month, amountCents: amount, paidOn: ISO.test(paidOn) ? paidOn : today(), by: session.userId });
     return ok ? NextResponse.json({ ok: true, amount }) : bad("That didn't save.", 503);
+  }
+
+  /* ---------------------------------------------- money accounts */
+  if (action === "save_account") {
+    const name = text("name", 80);
+    if (name.length < 2) return bad("Name the account, e.g. Business Revolut.");
+    const currency = text("currency", 3);
+    if (!CURRENCY.includes(currency)) return bad("Choose the currency.");
+    const raw = text("opening", 20).replace(/,/g, "");
+    const opening = raw ? Math.round(parseFloat(raw) * 100) : 0;
+    if (!Number.isFinite(opening)) return bad("Enter the opening balance, or leave it empty.");
+    const openingOn = text("openingOn", 10) || today();
+    if (!ISO.test(openingOn)) return bad("Choose the date of the opening balance.");
+    const id = text("id", 40);
+    const ok = await saveAccount({
+      id: UUID.test(id) ? id : undefined,
+      name,
+      kind: form.get("kind") === "cash" ? "cash" : "bank",
+      currency,
+      openingCents: opening,
+      openingOn,
+      defaultIn: form.get("defaultIn") === "1",
+    });
+    return ok ? NextResponse.json({ ok: true }) : bad("That name is already used.", 409);
+  }
+
+  if (action === "account_active") {
+    return (await setAccountActive(text("id", 40), form.get("active") === "1")) ? NextResponse.json({ ok: true }) : bad("Not found.", 404);
+  }
+
+  if (action === "add_transfer") {
+    const fromId = text("fromId", 40);
+    const toId = text("toId", 40);
+    if (!UUID.test(fromId) || !UUID.test(toId)) return bad("Choose both accounts.");
+    if (fromId === toId) return bad("Choose two different accounts.");
+    const accounts = await listAccounts();
+    const a = accounts.find((x) => x.id === fromId);
+    const b = accounts.find((x) => x.id === toId);
+    if (!a || !b) return bad("Choose both accounts.");
+    const fromCents = cents(form.get("amount"));
+    if (!fromCents) return bad("Enter the amount sent.");
+    // Same currency: what leaves arrives. Different: say what arrived.
+    const toCents = a.currency === b.currency ? fromCents : cents(form.get("received"));
+    if (!toCents) return bad(`Enter what arrived in ${b.name}, in ${b.currency}.`);
+    const date = text("date", 10) || today();
+    if (!ISO.test(date)) return bad("Choose the date.");
+    const ok = await addTransfer({ fromId, toId, fromCents, toCents, date, note: text("note", 200) || null, by: session.userId });
+    return ok ? NextResponse.json({ ok: true }) : bad("That didn't save.", 503);
+  }
+
+  if (action === "delete_transfer") {
+    return (await deleteTransfer(text("id", 40))) ? NextResponse.json({ ok: true }) : bad("Not found.", 404);
   }
 
   return bad("Unknown action.");

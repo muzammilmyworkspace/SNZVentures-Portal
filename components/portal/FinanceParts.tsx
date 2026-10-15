@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeading, EmptyState } from "@/components/portal/Pieces";
-import { EntryRowActions, EntryEdit } from "@/components/portal/FinanceForms";
+import { EntryRowActions, EntryEdit, DeleteTransfer } from "@/components/portal/FinanceForms";
+import type { JournalEntry } from "@/lib/portal/finance-journal";
 import { inEur, rateFor, type FinanceLine, type Rates } from "@/lib/db/repos/finance";
 import { eur, money, monthName, shortMonth, shortDate, shiftMonth, thisMonth, SOURCE_LABEL } from "@/lib/portal/finance-view";
 
@@ -207,7 +208,17 @@ export function MonthsChart({ series, current }: { series: { ym: string; income:
   );
 }
 
-export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLine[]; rates: Rates; compact?: boolean }) {
+export function LinesTable({
+  lines,
+  rates,
+  compact = false,
+  accounts = [],
+}: {
+  lines: FinanceLine[];
+  rates: Rates;
+  compact?: boolean;
+  accounts?: { id: string; name: string; currency: string; defaultIn: boolean }[];
+}) {
   if (lines.length === 0) {
     return (
       <div className="p-5">
@@ -241,10 +252,18 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
             return (
               <tr key={`${l.source}-${l.id}`} className="border-b border-line last:border-0">
                 <td className="whitespace-nowrap px-4 py-3 text-[0.82rem] text-faint">{shortDate(l.date)}</td>
-                <td className="px-4 py-3 text-[0.9rem] font-medium text-fg">{l.party ?? "—"}</td>
+                <td className="px-4 py-3 text-[0.9rem] font-medium text-fg">
+                  {l.party ?? "—"}
+                  {l.accountName && <span className="block text-[0.72rem] font-normal text-faint">{l.kind === "income" ? "into" : "from"} {l.accountName}</span>}
+                </td>
                 <td className="min-w-[13rem] px-4 py-3 text-[0.86rem] text-muted">{l.description}</td>
                 <td className="px-4 py-3 text-[0.84rem] text-muted">
                   {l.category}
+                  {l.vatMode === "reverse_charge" && (
+                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="Supplier outside Lithuania: SnZ declares and deducts 21% VAT">
+                      Reverse charge · VAT {money(l.vatCents, l.currency)}
+                    </span>
+                  )}
                   {l.kind === "expense" && !l.partnerCost && (
                     <span className="mt-0.5 block text-[0.72rem] text-faint" title="SnZ Ventures carries this alone: it does not lower the partners' profit">
                       SnZ only
@@ -265,7 +284,7 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {compact ? null : l.status === "due" ? <span className="pill pill-warn">Due</span> : <span className="pill pill-ok">Paid</span>}
+                  {compact ? null : l.status === "due" ? <span className="pill pill-warn">In process</span> : <span className="pill pill-ok">Paid</span>}
                 </td>
                 <td className="px-4 py-3 text-right print:hidden">
                   {l.source === "manual" || l.source === "recurring" ? (
@@ -283,7 +302,11 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
                           date: l.date,
                           status: l.status,
                           partnerCost: l.partnerCost,
+                          accountId: l.accountId,
+                          vatMode: l.vatMode,
+                          liabilityTerm: l.liabilityTerm,
                         }}
+                        accounts={accounts}
                       />
                     )}
                     <EntryRowActions
@@ -306,6 +329,216 @@ export function LinesTable({ lines, rates, compact = false }: { lines: FinanceLi
             );
           })}
         </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ the journal (Dr / Cr) */
+
+type AccountOpt = { id: string; name: string; currency: string; defaultIn: boolean };
+
+/** Edit, paid / in process, receipt and delete for a line, as far as its source allows. */
+export function LineActions({ l, accounts }: { l: FinanceLine; accounts: AccountOpt[] }) {
+  if (l.source === "manual" || l.source === "recurring") {
+    return (
+      <span className="inline-flex items-start gap-1.5">
+        {l.source === "manual" && (
+          <EntryEdit
+            e={{
+              id: l.id,
+              kind: l.kind,
+              category: l.category,
+              description: l.description,
+              party: l.party,
+              amount: (l.amountCents / 100).toFixed(2),
+              currency: l.currency,
+              date: l.date,
+              status: l.status,
+              partnerCost: l.partnerCost,
+              accountId: l.accountId,
+              vatMode: l.vatMode,
+              liabilityTerm: l.liabilityTerm,
+            }}
+            accounts={accounts}
+          />
+        )}
+        <EntryRowActions id={l.id} status={l.status} canToggle={l.kind === "expense"} deletable={l.source === "manual"} receiptHref={l.receiptHref} />
+      </span>
+    );
+  }
+  return l.receiptHref ? (
+    <a href={l.receiptHref} target="_blank" rel="noopener noreferrer" data-tip="Receipt" aria-label="Open the receipt" className="tip tip-end icon-btn">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M3.5 1.5h6l3 3v10h-9z M9.5 1.5v3h3 M5.5 8h5 M5.5 10.5h5" />
+      </svg>
+    </a>
+  ) : null;
+}
+
+/**
+ * THE JOURNAL: each entry with the account debited and the account credited
+ * (and the VAT legs of a reverse-charge purchase), amounts in the currency
+ * they moved in, the euro value beside them, and debit and credit totals
+ * that must agree.
+ */
+export function JournalTable({ entries, rates, accounts }: { entries: JournalEntry[]; rates: Rates; accounts: AccountOpt[] }) {
+  if (!entries.length) {
+    return (
+      <div className="p-6">
+        <EmptyState icon="search" title="No entries" body="Nothing was recorded in this period." />
+      </div>
+    );
+  }
+  let dr = 0;
+  let cr = 0;
+  for (const e of entries)
+    for (const g of e.legs) {
+      const v = inEur({ amountCents: g.cents, currency: g.currency, date: e.date }, rates) ?? 0;
+      if (g.side === "Dr") dr += v;
+      else cr += v;
+    }
+  return (
+    <div className="rail overflow-x-auto">
+      <table className="w-full min-w-[980px] text-left">
+        <thead>
+          <tr className="border-b border-line">
+            {["Date / ref", "Particulars", "Account", "Debit", "Credit", "In EUR", "Status", ""].map((h, i) => (
+              <th key={`${h}${i}`} className={`label px-3 py-3 text-faint ${["Debit", "Credit", "In EUR"].includes(h) ? "text-right" : ""}`}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e) => {
+            const n = e.legs.length;
+            const main = e.legs[0];
+            const eurVal = inEur({ amountCents: main.cents, currency: main.currency, date: e.date }, rates);
+            const l = e.line;
+            return e.legs.map((g, i) => (
+              <tr key={`${e.key}-${i}`} className={i === n - 1 ? "border-b border-line" : ""}>
+                {i === 0 && (
+                  <>
+                    <td rowSpan={n} className="whitespace-nowrap px-3 py-2.5 align-top">
+                      <span className="block text-[0.82rem] text-faint">{shortDate(e.date)}</span>
+                      <span className="block font-mono text-[0.7rem] text-muted">{e.ref}</span>
+                    </td>
+                    <td rowSpan={n} className="min-w-[12rem] max-w-[16rem] px-3 py-2.5 align-top">
+                      <span className="block text-[0.88rem] font-medium text-fg">{e.particulars}</span>
+                      {e.party && <span className="block text-[0.76rem] text-faint">{l?.kind === "income" ? "From" : "To"} {e.party}</span>}
+                      {l && l.kind === "expense" && !l.partnerCost && <span className="block text-[0.72rem] text-faint">SnZ only</span>}
+                    </td>
+                  </>
+                )}
+                <td className={`whitespace-nowrap py-1.5 text-[0.84rem] ${g.side === "Cr" ? "pl-9 pr-3 text-muted" : "px-3 text-fg"}`}>
+                  <span className="mr-1.5 font-mono text-[0.72rem] text-faint">{g.side}</span>
+                  {g.account}
+                </td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums text-[0.86rem] text-fg">{g.side === "Dr" ? money(g.cents, g.currency) : ""}</td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums text-[0.86rem] text-fg">{g.side === "Cr" ? money(g.cents, g.currency) : ""}</td>
+                {i === 0 && (
+                  <>
+                    <td rowSpan={n} className="whitespace-nowrap px-3 py-2.5 text-right align-top tabular-nums text-[0.84rem] text-muted">
+                      {eurVal == null ? "no rate" : eur(eurVal)}
+                    </td>
+                    <td rowSpan={n} className="px-3 py-2.5 align-top">
+                      {e.transfer ? (
+                        <span className="pill pill-info">Transfer</span>
+                      ) : l?.status === "due" ? (
+                        <span className="pill pill-warn">In process</span>
+                      ) : (
+                        <span className="pill pill-ok">{l?.kind === "income" ? "Received" : "Paid"}</span>
+                      )}
+                    </td>
+                    <td rowSpan={n} className="px-3 py-2.5 text-right align-top print:hidden">
+                      {e.transfer ? <DeleteTransfer id={e.transfer.id} /> : l ? <LineActions l={l} accounts={accounts} /> : null}
+                    </td>
+                  </>
+                )}
+              </tr>
+            ));
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 border-line font-semibold">
+            <td colSpan={3} className="px-3 py-3 text-[0.86rem] text-fg">
+              Totals (in EUR) {Math.abs(dr - cr) < 2 ? <span className="ml-2 text-[0.76rem] font-normal text-ok">debits = credits</span> : null}
+            </td>
+            <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-fg">{eur(dr)}</td>
+            <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-fg">{eur(cr)}</td>
+            <td colSpan={3} />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * ONE ACCOUNT'S CASH BOOK: the balance brought forward, every movement in
+ * (debit) and out (credit) with the account on the other side, the running
+ * balance, and the balance carried forward.
+ */
+export function CashBook({
+  name,
+  currency,
+  opening,
+  rows,
+}: {
+  name: string;
+  currency: string;
+  opening: number;
+  rows: { key: string; date: string; ref: string; particulars: string; contra: string; dr: number; cr: number }[];
+}) {
+  let bal = opening;
+  const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date) || a.ref.localeCompare(b.ref));
+  const totalDr = sorted.reduce((n, r) => n + r.dr, 0);
+  const totalCr = sorted.reduce((n, r) => n + r.cr, 0);
+  return (
+    <div className="rail overflow-x-auto">
+      <table className="w-full min-w-[900px] text-left">
+        <thead>
+          <tr className="border-b border-line">
+            {["Date", "Ref", "Particulars", "Contra account", `Debit (in) ${currency}`, `Credit (out) ${currency}`, "Balance"].map((h) => (
+              <th key={h} className={`label px-3 py-3 text-faint ${h.startsWith("Debit") || h.startsWith("Credit") || h === "Balance" ? "text-right" : ""}`}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)]">
+            <td colSpan={6} className="px-3 py-2.5 text-[0.86rem] font-medium text-fg">
+              Balance brought forward · {name}
+            </td>
+            <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums text-fg">{money(opening, currency)}</td>
+          </tr>
+          {sorted.map((r) => {
+            bal += r.dr - r.cr;
+            return (
+              <tr key={r.key} className="border-b border-line">
+                <td className="whitespace-nowrap px-3 py-2.5 text-[0.82rem] text-faint">{shortDate(r.date)}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[0.76rem] text-muted">{r.ref}</td>
+                <td className="px-3 py-2.5 text-[0.88rem] text-fg">{r.particulars}</td>
+                <td className="px-3 py-2.5 text-[0.84rem] text-muted">{r.contra}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-ok">{r.dr ? money(r.dr, currency) : ""}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-fg">{r.cr ? money(r.cr, currency) : ""}</td>
+                <td className={`whitespace-nowrap px-3 py-2.5 text-right tabular-nums ${bal < 0 ? "text-danger" : "text-fg"}`}>{money(bal, currency)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 border-line font-semibold">
+            <td colSpan={4} className="px-3 py-3 text-[0.86rem] text-fg">
+              Balance carried forward
+            </td>
+            <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-ok">{money(totalDr, currency)}</td>
+            <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-fg">{money(totalCr, currency)}</td>
+            <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-fg">{money(opening + totalDr - totalCr, currency)}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

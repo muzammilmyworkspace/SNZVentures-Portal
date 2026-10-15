@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/auth/guard";
-import { materializeRecurring, linesBetween, listRecurring, allRates, inEur, EXPENSE_CATEGORIES } from "@/lib/db/repos/finance";
+import { materializeRecurring, linesBetween, listRecurring, allRates, inEur, listAccounts, EXPENSE_CATEGORIES } from "@/lib/db/repos/finance";
 import { Panel, EmptyState } from "@/components/portal/Pieces";
 import { FinanceHeader, MiniStat } from "@/components/portal/FinanceParts";
 import { RecurringForm, RecurringRowActions, RecurringEdit, ModalButton } from "@/components/portal/FinanceForms";
@@ -17,7 +17,9 @@ export default async function FixedCostsPage() {
   await requireSuperAdmin();
   const now = thisMonth();
   await materializeRecurring();
-  const [recurring, rates, monthLines] = await Promise.all([listRecurring(), allRates(), linesBetween(`${now}-01`, lastDay(now))]);
+  const [recurring, rates, monthLines, allAccounts] = await Promise.all([listRecurring(), allRates(), linesBetween(`${now}-01`, lastDay(now)), listAccounts()]);
+  const accounts = allAccounts.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name, currency: a.currency, defaultIn: a.defaultIn }));
+  const accountName = (id: string | null) => allAccounts.find((a) => a.id === id)?.name ?? null;
   const running = recurring.filter((r) => r.active);
   const monthly = running.reduce((n, r) => n + (inEur({ amountCents: r.amountCents, currency: r.currency, date: `${now}-01` }, rates) ?? 0), 0);
   const sharedMonthly = running
@@ -45,7 +47,7 @@ export default async function FixedCostsPage() {
           hint={`SnZ only: ${eur(monthly - sharedMonthly)} a month · ${running.length} running`}
         />
         <MiniStat label={`Paid · ${monthName(now)}`} value={eur(paid.cents)} tone="in" />
-        <MiniStat label={`Still due · ${monthName(now)}`} value={eur(due.cents)} tone={due.cents ? "warn" : undefined} />
+        <MiniStat label={`In process · ${monthName(now)}`} value={eur(due.cents)} tone={due.cents ? "warn" : undefined} />
       </div>
 
       <Panel
@@ -53,7 +55,7 @@ export default async function FixedCostsPage() {
         padded={recurring.length === 0}
         action={
           <ModalButton label="+ Add expense" title="Add a fixed expense">
-            <RecurringForm categories={EXPENSE_CATEGORIES} thisMonth={now} />
+            <RecurringForm categories={EXPENSE_CATEGORIES} thisMonth={now} accounts={accounts} />
           </ModalButton>
         }
       >
@@ -79,7 +81,11 @@ export default async function FixedCostsPage() {
                       {!r.active && <span className="pill pill-neutral ml-2">Stopped</span>}
                       <span className="block text-[0.74rem] font-normal text-faint">Since {monthName(r.startsOn.slice(0, 7))}</span>
                     </td>
-                    <td className="px-4 py-3 text-[0.85rem] text-muted">{r.category}</td>
+                    <td className="px-4 py-3 text-[0.85rem] text-muted">
+                      {r.category}
+                      {r.vatMode === "reverse_charge" && <span className="mt-0.5 block text-[0.72rem] text-faint">Reverse charge 21%</span>}
+                      {accountName(r.accountId) && <span className="mt-0.5 block text-[0.72rem] text-faint">From {accountName(r.accountId)}</span>}
+                    </td>
                     <td className="px-4 py-3 text-[0.9rem] font-semibold tabular-nums text-fg">{money(r.amountCents, r.currency)}</td>
                     <td className="px-4 py-3 text-[0.85rem] text-muted">{r.dayOfMonth}</td>
                     <td className="px-4 py-3 text-[0.85rem] text-muted">{r.autoPaid ? "Automatically" : "You mark it"}</td>
@@ -98,8 +104,9 @@ export default async function FixedCostsPage() {
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex items-start gap-1.5">
                         <RecurringEdit
-                          r={{ id: r.id, name: r.name, category: r.category, amount: (r.amountCents / 100).toFixed(2), currency: r.currency, dayOfMonth: r.dayOfMonth, autoPaid: r.autoPaid, partnerCost: r.partnerCost }}
+                          r={{ id: r.id, name: r.name, category: r.category, amount: (r.amountCents / 100).toFixed(2), currency: r.currency, dayOfMonth: r.dayOfMonth, autoPaid: r.autoPaid, partnerCost: r.partnerCost, accountId: r.accountId, vatMode: r.vatMode }}
                           categories={EXPENSE_CATEGORIES}
+                          accounts={accounts}
                         />
                         <RecurringRowActions id={r.id} name={r.name} active={r.active} autoPaid={r.autoPaid} amount={(r.amountCents / 100).toFixed(2)} />
                       </span>

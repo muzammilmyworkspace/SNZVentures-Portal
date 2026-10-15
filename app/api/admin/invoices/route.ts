@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
   let saved;
   try {
-    saved = await invoices.create({ ...checked.value, clientId }, session.userId);
+    saved = await invoices.create({ ...checked.value, clientId, kind: body.kind === "proforma" ? "proforma" : "invoice" }, session.userId);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[invoices] create failed:", error);
@@ -110,7 +110,7 @@ export async function PATCH(request: Request) {
   if (!guard.ok) return guard.response;
   const { session } = guard;
 
-  let body: { id?: unknown; status?: unknown };
+  let body: { id?: unknown; status?: unknown; convert?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -118,8 +118,33 @@ export async function PATCH(request: Request) {
   }
 
   const id = typeof body.id === "string" ? body.id : "";
-  const status = String(body.status ?? "") as InvoiceStatus;
   if (!id) return NextResponse.json({ ok: false, error: "Which invoice?" }, { status: 400 });
+
+  // A paid proforma becomes a tax invoice.
+  if (body.convert === true) {
+    if (!(await mine(session, id))) return NextResponse.json({ ok: false, error: "Invoice not found." }, { status: 404 });
+    let made;
+    try {
+      made = await invoices.convertProforma(id, session.userId);
+    } catch {
+      made = null;
+    }
+    if (!made) {
+      return NextResponse.json({ ok: false, error: "Only a proforma not yet turned into an invoice can be converted." }, { status: 409 });
+    }
+    await audit({
+      action: "invoice.created",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "invoice",
+      entityId: made.id,
+      meta: { number: made.number, fromProforma: id },
+      ip: clientIp(request),
+    });
+    return NextResponse.json({ ok: true, invoice: made });
+  }
+
+  const status = String(body.status ?? "") as InvoiceStatus;
   if (!STATUSES.includes(status)) {
     return NextResponse.json({ ok: false, error: "That is not a status." }, { status: 400 });
   }

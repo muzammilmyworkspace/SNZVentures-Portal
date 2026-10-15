@@ -28,6 +28,15 @@ export type FinanceLine = {
   receiptHref: string | null;
   /** An expense the profit-sharing partners carry too (false: SnZ Ventures' own, e.g. office rent). */
   partnerCost: boolean;
+  /** The money account it went through (null: not said). */
+  accountId: string | null;
+  accountName: string | null;
+  /** Bought from a supplier outside Lithuania: 21% VAT declared and deducted by SnZ. */
+  vatMode: "none" | "reverse_charge";
+  /** That 21%, in the line's currency (0 when none). */
+  vatCents: number;
+  /** For an unpaid expense: due within a year, or later. */
+  liabilityTerm: "short" | "long";
 };
 
 export type Recurring = {
@@ -44,6 +53,8 @@ export type Recurring = {
   hasBill: boolean;
   /** Counts against the profit the partners share (false: SnZ Ventures carries it alone). */
   partnerCost: boolean;
+  accountId: string | null;
+  vatMode: "none" | "reverse_charge";
 };
 
 const day = (v: unknown) => {
@@ -92,14 +103,17 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
              round(f.amount * 100)::bigint AS amount_cents, f.currency,
              COALESCE(f.reviewed_at, f.updated_at)::date AS date, 'paid' AS status,
              NULL::uuid AS recurring_id, (f.receipt_document_id IS NOT NULL) AS has_receipt,
-             u.name AS party, f.receipt_document_id::text AS receipt_doc, TRUE AS partner_cost
+             u.name AS party, f.receipt_document_id::text AS receipt_doc, TRUE AS partner_cost,
+             (SELECT id FROM finance_accounts WHERE default_in ORDER BY sort LIMIT 1) AS account_id,
+             'none' AS vat_mode, 0::bigint AS vat_cents, 'short' AS liability_term
         FROM fee_submissions f JOIN users u ON u.id = f.user_id
        WHERE f.status = 'verified' AND COALESCE(f.reviewed_at, f.updated_at)::date BETWEEN ${from} AND ${to}
       UNION ALL
       SELECT i.id::text, 'invoice', 'income', 'Invoices', i.number,
-             i.total_cents, i.currency, i.updated_at::date, 'paid', NULL::uuid, FALSE, i.bill_to_name, NULL, TRUE
+             i.total_cents, i.currency, i.updated_at::date, 'paid', NULL::uuid, FALSE, i.bill_to_name, NULL, TRUE,
+             (SELECT id FROM finance_accounts WHERE default_in ORDER BY sort LIMIT 1), 'none', 0::bigint, 'short'
         FROM invoices i
-       WHERE i.status = 'paid' AND i.updated_at::date BETWEEN ${from} AND ${to}
+       WHERE i.status = 'paid' AND i.kind = 'invoice' AND i.updated_at::date BETWEEN ${from} AND ${to}
       UNION ALL
       SELECT e.id::text,
              CASE WHEN e.recurring_id IS NOT NULL THEN 'recurring'
@@ -108,11 +122,17 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
                   ELSE 'manual' END,
              e.kind, e.category,
              e.description, e.amount_cents, e.currency, e.occurred_on, e.status, e.recurring_id,
-             (e.receipt_key IS NOT NULL), e.party, NULL, COALESCE(fr.partner_cost, e.partner_cost)
+             (e.receipt_key IS NOT NULL), e.party, NULL, COALESCE(fr.partner_cost, e.partner_cost),
+             COALESCE(e.account_id, fr.account_id),
+             COALESCE(fr.vat_mode, e.vat_mode),
+             CASE WHEN COALESCE(fr.vat_mode, e.vat_mode) = 'reverse_charge' THEN round(e.amount_cents * 0.21)::bigint ELSE 0 END,
+             e.liability_term
         FROM finance_entries e LEFT JOIN finance_recurring fr ON fr.id = e.recurring_id
        WHERE e.occurred_on BETWEEN ${from} AND ${to}
       ORDER BY date DESC
     `;
+    const accounts = await db()`SELECT id, name FROM finance_accounts`;
+    const accName = new Map(accounts.map((a) => [String(a.id), String(a.name)]));
     return rows.map((r) => ({
       id: String(r.id),
       source: r.source as FinanceLine["source"],
@@ -135,6 +155,11 @@ export async function linesBetween(from: string, to: string): Promise<FinanceLin
             ? `/api/admin/finance/receipt/${r.id}`
             : null,
       partnerCost: r.partner_cost !== false,
+      accountId: r.account_id ? String(r.account_id) : null,
+      accountName: r.account_id ? accName.get(String(r.account_id)) ?? null : null,
+      vatMode: r.vat_mode === "reverse_charge" ? "reverse_charge" : "none",
+      vatCents: Number(r.vat_cents ?? 0),
+      liabilityTerm: r.liability_term === "long" ? "long" : "short",
     }));
   }, []);
 }
@@ -374,17 +399,22 @@ export async function addEntry(e: {
   createdBy: string;
   /** An expense the profit-sharing partners carry too (default yes). */
   partnerCost?: boolean;
+  accountId?: string | null;
+  vatMode?: "none" | "reverse_charge";
+  liabilityTerm?: "short" | "long";
 }): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
   return safeQuery(async () => {
     const [r] = await db()`
       INSERT INTO finance_entries (kind, category, description, amount_cents, currency, occurred_on, status,
                                    receipt_key, receipt_name, receipt_type, receipt_provider, created_by,
-                                   party, student_id, consultant_id, university, partner_cost)
+                                   party, student_id, consultant_id, university, partner_cost,
+                                   account_id, vat_mode, vat_cents, liability_term)
       VALUES (${e.kind}, ${e.category}, ${e.description}, ${e.amountCents}, ${e.currency}, ${e.occurredOn}, ${e.status},
               ${e.receipt?.key ?? null}, ${e.receipt?.name ?? null}, ${e.receipt?.type ?? null}, ${e.receipt?.provider ?? null},
               ${e.createdBy}, ${e.party ?? null}, ${e.studentId ?? null}, ${e.consultantId ?? null}, ${e.university ?? null},
-              ${e.partnerCost ?? true})
+              ${e.partnerCost ?? true}, ${e.accountId ?? null}, ${e.vatMode ?? "none"},
+              ${e.vatMode === "reverse_charge" ? Math.round(e.amountCents * 0.21) : 0}, ${e.liabilityTerm ?? "short"})
       RETURNING id`;
     return String(r.id);
   }, null);
@@ -446,6 +476,8 @@ export async function listRecurring(): Promise<Recurring[]> {
       notes: r.notes ? String(r.notes) : null,
       hasBill: r.receipt_key != null,
       partnerCost: r.partner_cost !== false,
+      accountId: r.account_id ? String(r.account_id) : null,
+      vatMode: r.vat_mode === "reverse_charge" ? "reverse_charge" : "none",
     }));
   }, []);
 }
@@ -457,9 +489,11 @@ export async function addRecurring(r: Omit<Recurring, "id" | "active" | "hasBill
   return safeQuery(async () => {
     await db()`
       INSERT INTO finance_recurring (name, category, amount_cents, currency, day_of_month, auto_paid, starts_on, notes, created_by,
-                                     receipt_key, receipt_name, receipt_type, receipt_provider, partner_cost)
+                                     receipt_key, receipt_name, receipt_type, receipt_provider, partner_cost,
+                                     account_id, vat_mode)
       VALUES (${r.name}, ${r.category}, ${r.amountCents}, ${r.currency}, ${r.dayOfMonth}, ${r.autoPaid}, ${r.startsOn}, ${r.notes}, ${r.createdBy},
-              ${r.bill?.key ?? null}, ${r.bill?.name ?? null}, ${r.bill?.type ?? null}, ${r.bill?.provider ?? null}, ${r.partnerCost})`;
+              ${r.bill?.key ?? null}, ${r.bill?.name ?? null}, ${r.bill?.type ?? null}, ${r.bill?.provider ?? null}, ${r.partnerCost},
+              ${r.accountId}, ${r.vatMode})`;
     return true;
   }, false);
 }
@@ -480,6 +514,8 @@ export async function updateRecurring(
     autoPaid?: boolean;
     active?: boolean;
     partnerCost?: boolean;
+    accountId?: string;
+    vatMode?: "none" | "reverse_charge";
   }
 ): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
@@ -493,6 +529,8 @@ export async function updateRecurring(
         day_of_month = COALESCE(${p.dayOfMonth ?? null}::smallint, day_of_month),
         auto_paid = COALESCE(${p.autoPaid ?? null}::boolean, auto_paid),
         partner_cost = COALESCE(${p.partnerCost ?? null}::boolean, partner_cost),
+        account_id = COALESCE(${p.accountId ?? null}::uuid, account_id),
+        vat_mode = COALESCE(${p.vatMode ?? null}, vat_mode),
         starts_on = CASE WHEN ${p.active === true} AND NOT active THEN date_trunc('month', current_date)::date ELSE starts_on END,
         active = COALESCE(${p.active ?? null}::boolean, active),
         updated_at = now()
@@ -723,9 +761,10 @@ export async function setPayoutPaid(id: string, paid: boolean, on: string, by: s
       if (paid && p.status === "owed") {
         const [e] = await sql`
           INSERT INTO finance_entries (kind, category, description, amount_cents, currency, occurred_on, status,
-                                       party, student_id, consultant_id, created_by)
+                                       party, student_id, consultant_id, created_by, account_id)
           VALUES ('expense', 'Commission', ${p.description}, ${p.amount_cents}, ${p.currency}, ${on}, 'paid',
-                  ${p.consultant_name}, ${p.student_id}, ${p.consultant_id}, ${by})
+                  ${p.consultant_name}, ${p.student_id}, ${p.consultant_id}, ${by},
+                  (SELECT id FROM finance_accounts WHERE currency = ${p.currency} AND active ORDER BY default_in DESC, sort LIMIT 1))
           RETURNING id`;
         await sql`UPDATE finance_payouts SET status = 'paid', paid_on = ${on}, entry_id = ${e.id} WHERE id = ${id}`;
       } else if (!paid && p.status === "paid") {
@@ -878,9 +917,10 @@ export async function setCommissionReceived(id: string, received: boolean, on: s
       if (received && c.status === "expected") {
         const [e] = await sql`
           INSERT INTO finance_entries (kind, category, description, amount_cents, currency, occurred_on, status,
-                                       party, student_id, university, created_by)
+                                       party, student_id, university, created_by, account_id)
           VALUES ('income', 'University commission', ${`Commission for ${c.student_name}`}, ${c.amount_cents}, ${c.currency},
-                  ${on}, 'paid', ${c.university}, ${c.student_id}, ${c.university}, ${by})
+                  ${on}, 'paid', ${c.university}, ${c.student_id}, ${c.university}, ${by},
+                  (SELECT id FROM finance_accounts WHERE currency = ${c.currency} AND active ORDER BY default_in DESC, sort LIMIT 1))
           RETURNING id`;
         await sql`UPDATE finance_commissions SET status = 'received', received_on = ${on}, entry_id = ${e.id} WHERE id = ${id}`;
       } else if (!received && c.status === "received") {
@@ -1023,6 +1063,9 @@ export async function updateEntry(
     occurredOn: string;
     status: "paid" | "due";
     partnerCost: boolean;
+    accountId: string | null;
+    vatMode: "none" | "reverse_charge";
+    liabilityTerm: "short" | "long";
   }
 ): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
@@ -1030,7 +1073,9 @@ export async function updateEntry(
     const rows = await db()`
       UPDATE finance_entries e SET category = ${e.category}, description = ${e.description}, party = ${e.party},
              amount_cents = ${e.amountCents}, currency = ${e.currency}, occurred_on = ${e.occurredOn}, status = ${e.status},
-             partner_cost = ${e.partnerCost}, updated_at = now()
+             partner_cost = ${e.partnerCost}, account_id = ${e.accountId}, vat_mode = ${e.vatMode},
+             vat_cents = ${e.vatMode === "reverse_charge" ? Math.round(e.amountCents * 0.21) : 0},
+             liability_term = ${e.liabilityTerm}, updated_at = now()
        WHERE e.id = ${id} AND e.recurring_id IS NULL
          AND NOT EXISTS (SELECT 1 FROM finance_payouts p WHERE p.entry_id = e.id)
          AND NOT EXISTS (SELECT 1 FROM finance_commissions c WHERE c.entry_id = e.id)
@@ -1084,4 +1129,156 @@ export async function getRecurringBill(id: string): Promise<{ key: string; provi
     const [r] = await db()`SELECT receipt_key, receipt_provider FROM finance_recurring WHERE id = ${id} AND receipt_key IS NOT NULL`;
     return r ? { key: String(r.receipt_key), provider: r.receipt_provider ? String(r.receipt_provider) : null } : null;
   }, null);
+}
+
+/* --------------------------------------------------- money accounts */
+
+export type MoneyAccount = {
+  id: string;
+  name: string;
+  kind: "bank" | "cash";
+  currency: string;
+  openingCents: number;
+  openingOn: string;
+  defaultIn: boolean;
+  active: boolean;
+};
+
+export async function listAccounts(): Promise<MoneyAccount[]> {
+  if (!isDatabaseConfigured()) return [];
+  return safeQuery(async () => {
+    const rows = await db()`SELECT * FROM finance_accounts ORDER BY active DESC, sort, name`;
+    return rows.map((r) => ({
+      id: String(r.id),
+      name: String(r.name),
+      kind: r.kind === "cash" ? "cash" : "bank",
+      currency: String(r.currency),
+      openingCents: Number(r.opening_cents),
+      openingOn: day(r.opening_on),
+      defaultIn: r.default_in === true,
+      active: r.active === true,
+    }));
+  }, []);
+}
+
+/** Add or change an account. Marking one the default for money in un-marks the others. */
+export async function saveAccount(a: {
+  id?: string;
+  name: string;
+  kind: "bank" | "cash";
+  currency: string;
+  openingCents: number;
+  openingOn: string;
+  defaultIn: boolean;
+}): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    return db().begin(async (sql) => {
+      if (a.defaultIn) await sql`UPDATE finance_accounts SET default_in = FALSE WHERE id IS DISTINCT FROM ${a.id ?? null}::uuid`;
+      if (a.id) {
+        const rows = await sql`
+          UPDATE finance_accounts SET name = ${a.name}, kind = ${a.kind}, currency = ${a.currency},
+                 opening_cents = ${a.openingCents}, opening_on = ${a.openingOn}, default_in = ${a.defaultIn}
+           WHERE id = ${a.id} RETURNING id`;
+        return rows.length > 0;
+      }
+      await sql`
+        INSERT INTO finance_accounts (name, kind, currency, opening_cents, opening_on, default_in, sort)
+        VALUES (${a.name}, ${a.kind}, ${a.currency}, ${a.openingCents}, ${a.openingOn}, ${a.defaultIn},
+                (SELECT COALESCE(max(sort), 0) + 1 FROM finance_accounts))`;
+      return true;
+    });
+  }, false);
+}
+
+export async function setAccountActive(id: string, active: boolean): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`UPDATE finance_accounts SET active = ${active} WHERE id = ${id} RETURNING id`;
+    return rows.length > 0;
+  }, false);
+}
+
+export type Transfer = {
+  id: string;
+  fromId: string;
+  toId: string;
+  fromName: string;
+  toName: string;
+  fromCents: number;
+  toCents: number;
+  fromCurrency: string;
+  toCurrency: string;
+  date: string;
+  note: string | null;
+};
+
+export async function listTransfers(from?: string, to?: string): Promise<Transfer[]> {
+  if (!isDatabaseConfigured()) return [];
+  return safeQuery(async () => {
+    const rows = await db()`
+      SELECT t.*, a.name AS from_name, a.currency AS from_currency, b.name AS to_name, b.currency AS to_currency
+        FROM finance_transfers t
+        JOIN finance_accounts a ON a.id = t.from_account
+        JOIN finance_accounts b ON b.id = t.to_account
+       WHERE (${from ?? null}::date IS NULL OR t.occurred_on >= ${from ?? null}::date)
+         AND (${to ?? null}::date IS NULL OR t.occurred_on <= ${to ?? null}::date)
+       ORDER BY t.occurred_on DESC, t.created_at DESC LIMIT 1000`;
+    return rows.map((r) => ({
+      id: String(r.id),
+      fromId: String(r.from_account),
+      toId: String(r.to_account),
+      fromName: String(r.from_name),
+      toName: String(r.to_name),
+      fromCents: Number(r.from_cents),
+      toCents: Number(r.to_cents),
+      fromCurrency: String(r.from_currency),
+      toCurrency: String(r.to_currency),
+      date: day(r.occurred_on),
+      note: r.note ? String(r.note) : null,
+    }));
+  }, []);
+}
+
+export async function addTransfer(t: { fromId: string; toId: string; fromCents: number; toCents: number; date: string; note: string | null; by: string }): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    await db()`
+      INSERT INTO finance_transfers (from_account, to_account, from_cents, to_cents, occurred_on, note, created_by)
+      VALUES (${t.fromId}, ${t.toId}, ${t.fromCents}, ${t.toCents}, ${t.date}, ${t.note}, ${t.by})`;
+    return true;
+  }, false);
+}
+
+export async function deleteTransfer(id: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`DELETE FROM finance_transfers WHERE id = ${id} RETURNING id`;
+    return rows.length > 0;
+  }, false);
+}
+
+/**
+ * Each account's balance on a date, in its own currency: the opening balance,
+ * plus money in, less money paid out (an unpaid bill has not left the
+ * account), plus transfers in, less transfers out, all from the opening date.
+ */
+export async function accountBalances(asOf: string): Promise<{ account: MoneyAccount; cents: number; unassigned: boolean }[]> {
+  const accounts = await listAccounts();
+  if (!accounts.length) return [];
+  const start = accounts.reduce((m, a) => (a.openingOn < m ? a.openingOn : m), asOf);
+  const [lines, transfers] = await Promise.all([linesBetween(start, asOf), listTransfers(start, asOf)]);
+  return accounts.map((a) => {
+    let cents = a.openingCents;
+    for (const l of lines) {
+      if (l.accountId !== a.id || l.date < a.openingOn || l.status !== "paid") continue;
+      cents += l.kind === "income" ? l.amountCents : -l.amountCents;
+    }
+    for (const t of transfers) {
+      if (t.date < a.openingOn) continue;
+      if (t.toId === a.id) cents += t.toCents;
+      if (t.fromId === a.id) cents -= t.fromCents;
+    }
+    return { account: a, cents, unassigned: false };
+  });
 }

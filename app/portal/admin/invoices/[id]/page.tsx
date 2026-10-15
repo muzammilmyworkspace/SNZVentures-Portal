@@ -70,7 +70,7 @@ export default async function InvoicePage({
             >
               ← All invoices
             </Link>
-            <InvoiceActions id={invoice.id} status={invoice.status} number={invoice.number} />
+            <InvoiceActions id={invoice.id} status={invoice.status} number={invoice.number} kind={invoice.kind} convertedTo={invoice.convertedTo} />
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export default async function InvoicePage({
 
           <div className="text-right text-[0.82rem] text-[#4A566D]">
             <p className="text-[1.9rem] font-extrabold leading-none tracking-[-0.03em] text-[#0C1526]">
-              INVOICE
+              {invoice.kind === "proforma" ? "PROFORMA INVOICE" : "INVOICE"}
             </p>
             <p className="mt-1.5 text-[1.02rem] font-bold tabular-nums text-[#0C1526]">{invoice.number}</p>
             <p className="mt-2.5">
@@ -206,6 +206,12 @@ export default async function InvoicePage({
           {co.name} · {co.address} · Amounts in {currencyName}
           <br />
           Thank you. Please quote <strong className="font-semibold">{invoice.number}</strong> with your payment.
+          {invoice.kind === "proforma" && (
+            <>
+              <br />
+              This is a proforma invoice, not a tax invoice. A tax invoice is issued once payment is received.
+            </>
+          )}
         </p>
       </div>
     </>

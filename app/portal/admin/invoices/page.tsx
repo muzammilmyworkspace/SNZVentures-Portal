@@ -109,7 +109,10 @@ export default async function InvoicesPage({
                 {pg.rows.map((inv, idx) => (
                   <tr key={inv.id} className="border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--fg)_4%,transparent)]">
                     <td className="px-4 py-3 font-mono text-[0.8rem] text-faint">{(pg.page - 1) * pg.size + idx + 1}</td>
-                    <td className="px-4 py-3 font-mono text-[0.88rem] font-semibold text-fg-strong">{inv.number}</td>
+                    <td className="px-4 py-3 font-mono text-[0.88rem] font-semibold text-fg-strong">
+                      {inv.number}
+                      {inv.kind === "proforma" && <span className="pill pill-info ml-2 font-sans">Proforma</span>}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <DateTag iso={inv.issuedOn} />
                       {inv.dueOn && inv.status !== "paid" && inv.status !== "void" && (

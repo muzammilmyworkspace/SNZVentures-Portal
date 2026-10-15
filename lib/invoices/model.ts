@@ -114,14 +114,20 @@ export const NUMBER_PATTERN = /^SNZ-(\d{4})-(\d{3,})$/;
  * to prevent, and the unique index behind it is what makes the guarantee real
  * when two people press Save at the same moment.
  */
-export function nextNumber(year: number, existing: readonly string[]): string {
+export function nextNumber(year: number, existing: readonly string[], prefix: "SNZ" | "PF" = "SNZ"): string {
+  // A proforma has its own series (PF-2026-001): it is not a tax invoice, so it
+  // must never take a number from the tax-invoice sequence.
+  const pattern = prefix === "PF" ? /^PF-(\d{4})-(\d{3,})$/ : NUMBER_PATTERN;
   let highest = 0;
   for (const number of existing) {
-    const m = NUMBER_PATTERN.exec(number);
+    const m = pattern.exec(number);
     if (m && Number(m[1]) === year) highest = Math.max(highest, Number(m[2]));
   }
-  return `SNZ-${year}-${String(highest + 1).padStart(3, "0")}`;
+  return `${prefix}-${year}-${String(highest + 1).padStart(3, "0")}`;
 }
+
+/** A tax invoice, or a proforma (a quote-like invoice sent before payment; never income). */
+export type InvoiceKind = "invoice" | "proforma";
 
 /* ------------------------------------------------------------ validating --- */
 

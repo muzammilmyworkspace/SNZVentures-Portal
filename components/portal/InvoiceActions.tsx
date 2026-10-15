@@ -20,10 +20,14 @@ export function InvoiceActions({
   id,
   status,
   number,
+  kind = "invoice",
+  convertedTo = null,
 }: {
   id: string;
   status: InvoiceStatus;
   number: string;
+  kind?: "invoice" | "proforma";
+  convertedTo?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -65,10 +69,43 @@ export function InvoiceActions({
         >
           <option value="draft">Draft</option>
           <option value="sent">Sent</option>
-          <option value="paid">Paid</option>
+          {kind === "invoice" && <option value="paid">Paid</option>}
           <option value="void">Void…</option>
         </select>
       )}
+
+      {kind === "proforma" &&
+        (convertedTo ? (
+          <a href={`/portal/admin/invoices/${convertedTo}`} className={`${btn} border border-line text-fg hover:border-[var(--accent)]`}>
+            Open its tax invoice
+          </a>
+        ) : status !== "void" ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              if (!confirm(`${number} is paid? A tax invoice is created from it (as a draft to issue), and the proforma points to it.`)) return;
+              setBusy(true);
+              setError(null);
+              try {
+                const res = await fetch("/api/admin/invoices", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id, convert: true }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) setError(data.error ?? "That did not work.");
+                else router.push(`/portal/admin/invoices/${data.invoice.id}`);
+              } catch {
+                setError("Could not reach the server.");
+              }
+              setBusy(false);
+            }}
+            className={`${btn} border border-moss-400/60 text-accent hover:bg-moss-400/10`}
+          >
+            Paid: make the tax invoice
+          </button>
+        ) : null)}
 
       <button
         type="button"

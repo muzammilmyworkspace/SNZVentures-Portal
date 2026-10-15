@@ -70,10 +70,10 @@ export async function financeWorkbook(from: string, to: string): Promise<Buffer>
 
   const transactions: Sheet = {
     name: "Transactions",
-    widths: [12, 10, 22, 26, 40, 14, 9, 14, 8, 20, 9],
-    money: [5, 7],
+    widths: [12, 10, 22, 26, 40, 14, 9, 14, 12, 20, 20, 18, 12, 9],
+    money: [5, 7, 12],
     rows: [
-      ["Date", "Type", "Category", "From / to", "What for", "Amount", "Currency", "Amount (EUR)", "Status", "Source", "Receipt"],
+      ["Date", "Type", "Category", "From / to", "What for", "Amount", "Currency", "Amount (EUR)", "Status", "Source", "Account", "VAT", "VAT amount", "Receipt"],
       ...[...lines]
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((l) => [
@@ -85,8 +85,11 @@ export async function financeWorkbook(from: string, to: string): Promise<Buffer>
           l.amountCents / 100,
           l.currency,
           eur(inEur(l, rates)),
-          l.status === "due" ? "Due" : "Paid",
+          l.status === "due" ? (l.liabilityTerm === "long" ? "In process (long-term)" : "In process") : "Paid",
           SOURCE_LABEL[l.source],
+          l.accountName ?? "",
+          l.vatMode === "reverse_charge" ? "Reverse charge 21%" : "",
+          l.vatMode === "reverse_charge" ? l.vatCents / 100 : null,
           l.receiptHref ? "Yes" : "",
         ]),
     ],
@@ -150,5 +153,21 @@ export async function financeWorkbook(from: string, to: string): Promise<Buffer>
     ],
   };
 
-  return buildXlsx([summary, transactions, monthly, consultants, universities, fixed]);
+  // Reverse-charge VAT: what to declare as output VAT and deduct as input VAT.
+  const rc = lines.filter((l) => l.vatMode === "reverse_charge").sort((a, b) => a.date.localeCompare(b.date));
+  const rcEur = rc.reduce((n, l) => n + (inEur({ amountCents: l.vatCents, currency: l.currency, date: l.date }, rates) ?? 0), 0);
+  const vat: Sheet = {
+    name: "VAT reverse charge",
+    widths: [12, 26, 40, 14, 9, 14, 14],
+    money: [3, 5, 6],
+    rows: [
+      ["Date", "Supplier", "What for", "Net amount", "Currency", "VAT 21%", "VAT (EUR)"],
+      ...rc.map((l) => [l.date, l.party ?? "", l.description, l.amountCents / 100, l.currency, l.vatCents / 100, eur(inEur({ amountCents: l.vatCents, currency: l.currency, date: l.date }, rates))]),
+      [],
+      ["Output VAT to declare (EUR)", "", "", null, "", null, eur(rcEur)],
+      ["Input VAT to deduct (EUR)", "", "", null, "", null, eur(rcEur)],
+    ],
+  };
+
+  return buildXlsx([summary, transactions, monthly, consultants, universities, fixed, vat]);
 }

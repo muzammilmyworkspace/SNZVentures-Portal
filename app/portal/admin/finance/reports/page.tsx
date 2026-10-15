@@ -18,7 +18,7 @@ import { Panel } from "@/components/portal/Pieces";
 import { FinanceHeader, MissingRates, Bars, MiniStat, INCOME_COLOR, EXPENSE_COLOR } from "@/components/portal/FinanceParts";
 import { RateForm, PrintButton } from "@/components/portal/FinanceForms";
 import { DateRangePicker } from "@/components/portal/DateRangePicker";
-import { eur, money, lastDay, monthName, totals, breakdown, partnerTotals, shareOf, thisMonth, SOURCE_LABEL } from "@/lib/portal/finance-view";
+import { eur, money, lastDay, monthName, totals, breakdown, partnerTotals, shareOf, thisMonth, sumEur, shortDate, SOURCE_LABEL } from "@/lib/portal/finance-view";
 import { resolveRange, monthsIn, rangeQuery, rangeText } from "@/lib/portal/finance-range";
 
 export const metadata: Metadata = { title: "Finance reports", robots: { index: false, follow: false } };
@@ -73,6 +73,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     dueBills.reduce((n, l) => n + (inEur(l, rates) ?? 0), 0) +
     owedByPerson.reduce((n, x) => n + x.cents, 0) +
     stakeholderDues.reduce((n, x) => n + x.cents, 0);
+  // REVERSE-CHARGE VAT: services bought from suppliers outside Lithuania. SnZ declares
+  // 21% as output VAT and deducts the same 21% as input VAT on its return.
+  const rc = expense.filter((l) => l.vatMode === "reverse_charge");
+  const rcNet = sumEur(rc, rates);
+  const rcVat = sumEur(rc.map((l) => ({ amountCents: l.vatCents, currency: l.currency, date: l.date })), rates);
   const currencies = [...new Set([...lines.map((l) => l.currency), ...recurring.map((x) => x.currency), "PKR"])].filter((c) => c !== "EUR").sort();
 
   return (
@@ -107,13 +112,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <MiniStat label="Profit the partners share" value={eur(pt.base)} hint={`SnZ carries ${eur(pt.ownCost)} alone`} />
       </div>
 
-      <Panel title={`Payments to make · ${eur(payTotal)}`} className="mb-6">
+      <Panel title={`Liabilities (in process) · ${eur(payTotal)}`} className="mb-6">
         {payTotal === 0 ? (
           <p className="text-[0.9rem] text-muted">Nothing left to pay for {rangeText(r.from, r.to)}.</p>
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
             <div>
-              <h3 className="label mb-2 text-faint">Bills still due</h3>
+              <h3 className="label mb-2 text-faint">Bills and subscriptions</h3>
               {dueBills.length === 0 ? (
                 <p className="text-[0.86rem] text-muted">None.</p>
               ) : (
@@ -190,6 +195,48 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           />
         </Panel>
       </div>
+
+      <div id="vat" className="scroll-mt-24" />
+      <Panel title={`Reverse-charge VAT 21% · ${rangeText(r.from, r.to)}`} className="mt-6" padded={rc.length === 0}>
+        {rc.length === 0 ? (
+          <p className="text-[0.9rem] text-muted">No purchases from suppliers outside Lithuania in these dates.</p>
+        ) : (
+          <>
+            <div className="grid gap-3 p-4 sm:grid-cols-3">
+              <MiniStat label="Purchases (net)" value={eur(rcNet.cents)} hint={`${rc.length} from suppliers outside Lithuania`} />
+              <MiniStat label="Output VAT to declare" value={eur(rcVat.cents)} hint="21% of the purchases" />
+              <MiniStat label="Input VAT to deduct" value={eur(rcVat.cents)} hint="Same amount: net €0.00 to pay" />
+            </div>
+            <div className="rail overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left">
+                <thead>
+                  <tr className="border-y border-line">
+                    {["Date", "Supplier", "What for", "Net amount", "VAT 21%", "VAT in EUR"].map((h) => (
+                      <th key={h} className={`label px-4 py-3 text-faint ${h.startsWith("Net") || h.startsWith("VAT") ? "text-right" : ""}`}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rc.map((l) => (
+                    <tr key={l.id} className="border-b border-line last:border-0">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-[0.82rem] text-faint">{shortDate(l.date)}</td>
+                      <td className="px-4 py-2.5 text-[0.88rem] text-fg">{l.party ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-[0.84rem] text-muted">{l.description}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-muted">{money(l.amountCents, l.currency)}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-fg">{money(l.vatCents, l.currency)}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-muted">
+                        {eur(sumEur([{ amountCents: l.vatCents, currency: l.currency, date: l.date }], rates).cents)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
 
       {months.length > 1 && (
         <Panel title="Month by month" className="mt-6" padded={false}>

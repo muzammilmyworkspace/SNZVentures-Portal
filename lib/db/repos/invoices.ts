@@ -3,6 +3,7 @@ import {
   nextNumber,
   type CurrencyCode,
   type InvoiceStatus,
+  type InvoiceKind,
   type Line,
   type Validated,
 } from "@/lib/invoices/model";
@@ -19,6 +20,9 @@ import {
 export type InvoiceRow = {
   id: string;
   number: string;
+  kind: InvoiceKind;
+  /** A proforma turned into a tax invoice: that invoice. */
+  convertedTo: string | null;
   status: InvoiceStatus;
   issuedOn: string;
   dueOn: string | null;
@@ -46,6 +50,8 @@ const day = (v: unknown) => (v ? new Date(v as string).toISOString().slice(0, 10
 const map = (r: Record<string, unknown>): InvoiceRow => ({
   id: String(r.id),
   number: String(r.number),
+  kind: r.kind === "proforma" ? "proforma" : "invoice",
+  convertedTo: r.converted_to ? String(r.converted_to) : null,
   status: r.status as InvoiceStatus,
   issuedOn: day(r.issued_on)!,
   dueOn: day(r.due_on),
@@ -72,7 +78,7 @@ const map = (r: Record<string, unknown>): InvoiceRow => ({
   createdAt: iso(r.created_at)!,
 });
 
-const COLUMNS = `i.id, i.number, i.status, i.issued_on, i.due_on, i.bill_to_name,
+const COLUMNS = `i.id, i.number, i.kind, i.converted_to, i.status, i.issued_on, i.due_on, i.bill_to_name,
   i.bill_to_email, i.bill_to_address, i.client_id, i.currency, i.vat_bp, i.lines,
   i.subtotal_cents, i.vat_cents, i.total_cents, i.notes, i.created_at,
   u.name AS created_by_name, u.role::text AS created_by_role, u.id AS created_by_id`;
@@ -116,7 +122,7 @@ export async function list(
 
         COALESCE((SELECT json_agg(t) FROM (
           SELECT currency, sum(total_cents)::bigint AS cents
-            FROM invoices WHERE status <> 'void' AND (${by}::uuid IS NULL OR created_by = ${by})
+            FROM invoices WHERE status <> 'void' AND kind = 'invoice' AND (${by}::uuid IS NULL OR created_by = ${by})
            GROUP BY currency ORDER BY currency
         ) t), '[]'::json) AS totals
     `;
@@ -143,10 +149,10 @@ export async function getById(id: string): Promise<InvoiceRow | null> {
 }
 
 /** How many numbers this year already exist, so the next one follows on. */
-async function numbersThisYear(year: number): Promise<string[]> {
+async function numbersThisYear(year: number, prefix: "SNZ" | "PF" = "SNZ"): Promise<string[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT number FROM invoices WHERE number LIKE ${"SNZ-" + year + "-%"}
+      SELECT number FROM invoices WHERE number LIKE ${prefix + "-" + year + "-%"}
     `;
     return rows.map((r) => String(r.number));
   }, []);
@@ -164,22 +170,24 @@ async function numbersThisYear(year: number): Promise<string[]> {
  * Not wrapped in safeQuery: if this cannot save, the person must be told.
  */
 export async function create(
-  input: Validated & { clientId?: string | null },
+  input: Validated & { clientId?: string | null; kind?: InvoiceKind },
   createdBy: string
 ): Promise<InvoiceRow> {
   const year = Number(input.issuedOn.slice(0, 4));
+  const kind: InvoiceKind = input.kind === "proforma" ? "proforma" : "invoice";
+  const prefix = kind === "proforma" ? "PF" : "SNZ";
   const lines = input.lines.map((l) => ({ desc: l.desc, amount_cents: l.amountCents }));
 
   for (let attempt = 0; attempt < 5; attempt++) {
-    const number = nextNumber(year, await numbersThisYear(year));
+    const number = nextNumber(year, await numbersThisYear(year, prefix), prefix);
     try {
       const [row] = await db()`
         INSERT INTO invoices (
-          number, status, issued_on, due_on, bill_to_name, bill_to_email,
+          number, kind, status, issued_on, due_on, bill_to_name, bill_to_email,
           bill_to_address, client_id, currency, vat_bp, lines,
           subtotal_cents, vat_cents, total_cents, notes, created_by
         ) VALUES (
-          ${number}, 'draft', ${input.issuedOn}, ${input.dueOn},
+          ${number}, ${kind}, 'draft', ${input.issuedOn}, ${input.dueOn},
           ${input.billToName}, ${input.billToEmail}, ${input.billToAddress},
           ${input.clientId ?? null}, ${input.currency}, ${input.vatBp},
           ${db().json(lines as never)},
@@ -241,4 +249,37 @@ export async function deleteDraft(id: string): Promise<boolean> {
     const rows = await db()`DELETE FROM invoices WHERE id = ${id} AND status = 'draft' RETURNING id`;
     return rows.length > 0;
   }, false);
+}
+
+/**
+ * TURNS A PROFORMA INTO A TAX INVOICE, once it is paid: a new tax invoice
+ * (its own SNZ number, as a draft to issue) with the same lines, and the
+ * proforma remembers which invoice it became. A proforma is never income
+ * itself; the tax invoice is.
+ */
+export async function convertProforma(id: string, createdBy: string): Promise<InvoiceRow | null> {
+  const pf = await getById(id);
+  if (!pf || pf.kind !== "proforma" || pf.convertedTo || pf.status === "void") return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const made = await create(
+    {
+      billToName: pf.billToName,
+      billToEmail: pf.billToEmail,
+      billToAddress: pf.billToAddress,
+      currency: pf.currency,
+      vatBp: pf.vatBp,
+      issuedOn: today,
+      dueOn: null,
+      lines: pf.lines,
+      subtotalCents: pf.subtotalCents,
+      vatCents: pf.vatCents,
+      totalCents: pf.totalCents,
+      notes: pf.notes ? `${pf.notes}\n\nFor proforma ${pf.number}.` : `For proforma ${pf.number}.`,
+      clientId: pf.clientId,
+      kind: "invoice",
+    },
+    createdBy
+  );
+  await db()`UPDATE invoices SET converted_to = ${made.id}, updated_at = now() WHERE id = ${id}`;
+  return made;
 }

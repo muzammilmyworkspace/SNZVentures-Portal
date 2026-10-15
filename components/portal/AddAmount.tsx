@@ -16,10 +16,25 @@ const INCOME = INCOME_CATEGORIES;
 const EXPENSE = EXPENSE_CATEGORIES;
 const CURRENCIES = FINANCE_CURRENCIES;
 
-export function AddAmount({ students }: { students: { id: string; name: string }[] }) {
+export function AddAmount({
+  students,
+  accounts = [],
+}: {
+  students: { id: string; name: string }[];
+  /** The money accounts; the one chosen sets the currency. */
+  accounts?: { id: string; name: string; currency: string; defaultIn: boolean }[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"income" | "expense">("income");
+  const firstAccount = accounts.find((a) => a.defaultIn) ?? accounts[0];
+  const [accountId, setAccountId] = useState(firstAccount?.id ?? "");
+  const [currency, setCurrency] = useState(firstAccount?.currency ?? "EUR");
+  const [amount, setAmount] = useState("");
+  const [status, setStatus] = useState<"paid" | "due">("paid");
+  const [vatMode, setVatMode] = useState<"none" | "reverse_charge">("none");
+  const vatNum = parseFloat(amount.replace(/,/g, ""));
+  const vatText = Number.isFinite(vatNum) ? `${(vatNum * 0.21).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}` : "21% of the amount";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
@@ -110,13 +125,34 @@ export function AddAmount({ students }: { students: { id: string; name: string }
               </div>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {accounts.length > 0 && (
+                  <label className="block sm:col-span-2">
+                    <span className="field-label">{kind === "income" ? "Received into" : "Paid from"}</span>
+                    <select
+                      name="accountId"
+                      value={accountId}
+                      onChange={(e) => {
+                        setAccountId(e.target.value);
+                        const a = accounts.find((x) => x.id === e.target.value);
+                        if (a) setCurrency(a.currency);
+                      }}
+                      className="field"
+                    >
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.currency})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label className="block">
                   <span className="field-label">Amount</span>
-                  <input name="amount" required inputMode="decimal" autoFocus className="field" placeholder="0.00" />
+                  <input name="amount" required inputMode="decimal" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} className="field" placeholder="0.00" />
                 </label>
                 <label className="block">
                   <span className="field-label">Currency</span>
-                  <select name="currency" defaultValue="EUR" className="field">
+                  <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="field">
                     {CURRENCIES.map((c) => (
                       <option key={c}>{c}</option>
                     ))}
@@ -156,10 +192,33 @@ export function AddAmount({ students }: { students: { id: string; name: string }
                 {kind === "expense" && (
                   <label className="block">
                     <span className="field-label">Status</span>
-                    <select name="status" defaultValue="paid" className="field">
+                    <select name="status" value={status} onChange={(e) => setStatus(e.target.value as "paid" | "due")} className="field">
                       <option value="paid">Paid</option>
-                      <option value="due">Due (not paid yet)</option>
+                      <option value="due">In process (not paid yet)</option>
                     </select>
+                  </label>
+                )}
+                {kind === "expense" && status === "due" && (
+                  <label className="block">
+                    <span className="field-label">Liability</span>
+                    <select name="liabilityTerm" defaultValue="short" className="field">
+                      <option value="short">Short-term (due within a year)</option>
+                      <option value="long">Long-term (due after a year)</option>
+                    </select>
+                  </label>
+                )}
+                {kind === "expense" && (
+                  <label className="block sm:col-span-2">
+                    <span className="field-label">VAT</span>
+                    <select name="vatMode" value={vatMode} onChange={(e) => setVatMode(e.target.value as "none" | "reverse_charge")} className="field">
+                      <option value="none">No VAT to declare</option>
+                      <option value="reverse_charge">Reverse charge 21%: supplier outside Lithuania</option>
+                    </select>
+                    {vatMode === "reverse_charge" && (
+                      <span className="mt-1 block text-[0.76rem] text-faint">
+                        SnZ declares 21% VAT on this ({vatText}) to VMI and deducts the same 21%: the amount paid does not change.
+                      </span>
+                    )}
                   </label>
                 )}
                 {kind === "expense" && (

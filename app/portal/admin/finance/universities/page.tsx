@@ -47,7 +47,7 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MiniStat label="Students" value={commissions.length} hint={`At ${universities.length} universities`} />
-        <MiniStat label="Still to receive" value={eur(expected.cents)} tone={expected.cents ? "warn" : undefined} />
+        <MiniStat label="To be received" value={eur(expected.cents)} tone={expected.cents ? "warn" : undefined} />
         <MiniStat label="Overdue" value={overdue.length} hint="Past the date expected" tone={overdue.length ? "warn" : undefined} />
         <MiniStat label="Received in total" value={eur(received.cents)} tone="in" />
       </div>
@@ -63,7 +63,7 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
                 : "inline-flex min-h-9 items-center rounded-full border border-line px-3.5 text-[0.82rem] capitalize text-muted hover:text-fg"
             }
           >
-            {k === "expected" ? "To receive" : k}
+            {k === "expected" ? "To be received" : k}
           </Link>
         ))}
         {sp.u && (
@@ -115,7 +115,7 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-fg">{money(c.amountCents, c.currency)}</td>
                       <td className="px-4 py-3">
-                        {c.status === "received" ? <span className="pill pill-ok">Received {c.receivedOn ? shortDate(c.receivedOn) : ""}</span> : <span className="pill pill-warn">To receive</span>}
+                        {c.status === "received" ? <span className="pill pill-ok">Received {c.receivedOn ? shortDate(c.receivedOn) : ""}</span> : <span className="pill pill-warn">To be received</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <CommissionActions id={c.id} status={c.status} />
@@ -134,8 +134,8 @@ export default async function UniversityCommissionsPage({ searchParams }: { sear
             <table className="w-full min-w-[720px] text-left">
               <thead>
                 <tr className="border-b border-line">
-                  {["University", "Students", "Still to receive", "Received", ""].map((h, i) => (
-                    <th key={`${h}${i}`} className={`label px-4 py-3 text-faint ${h === "Still to receive" || h === "Received" ? "text-right" : ""}`}>
+                  {["University", "Students", "To be received", "Received", ""].map((h, i) => (
+                    <th key={`${h}${i}`} className={`label px-4 py-3 text-faint ${h === "To be received" || h === "Received" ? "text-right" : ""}`}>
                       {h}
                     </th>
                   ))}

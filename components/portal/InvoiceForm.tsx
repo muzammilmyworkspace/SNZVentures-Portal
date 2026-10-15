@@ -32,6 +32,7 @@ const inDays = (n: number) => new Date(Date.now() + n * 864e5).toISOString().sli
 export function InvoiceForm() {
   const router = useRouter();
 
+  const [kind, setKind] = useState<"invoice" | "proforma">("invoice");
   const [billToName, setBillToName] = useState("");
   const [billToEmail, setBillToEmail] = useState("");
   const [billToAddress, setBillToAddress] = useState("");
@@ -63,7 +64,7 @@ export function InvoiceForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          billToName, billToEmail, billToAddress,
+          kind, billToName, billToEmail, billToAddress,
           currency, vatPercent, issuedOn, dueOn, notes, lines,
         }),
       });
@@ -84,6 +85,31 @@ export function InvoiceForm() {
 
   return (
     <div className="space-y-5">
+      <Panelish title="Type">
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Type of invoice">
+          {(
+            [
+              ["invoice", "Tax invoice", "Numbered SNZ-2026-001. Counts as income once paid."],
+              ["proforma", "Proforma invoice", "Numbered PF-2026-001. Sent before payment; never income. Turned into a tax invoice when paid."],
+            ] as const
+          ).map(([k, label, hint]) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={kind === k}
+              onClick={() => setKind(k)}
+              className={`rounded-[12px] border p-3 text-left transition-colors ${
+                kind === k ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-line hover:border-[var(--line-strong)]"
+              }`}
+            >
+              <span className="block text-[0.92rem] font-semibold text-fg">{label}</span>
+              <span className="block text-[0.78rem] text-faint">{hint}</span>
+            </button>
+          ))}
+        </div>
+      </Panelish>
+
       <Panelish title="Who it goes to">
         <div className="grid gap-x-4 sm:grid-cols-2">
           <Field label="Name on the invoice *">

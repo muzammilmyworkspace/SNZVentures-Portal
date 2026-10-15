@@ -27,7 +27,7 @@ async function post(fields: Record<string, string | File | null | undefined>) {
 
 const CloseModal = createContext<(() => void) | null>(null);
 /** Inside a ModalButton: closes it (a no-op elsewhere). */
-const useCloseModal = () => useContext(CloseModal) ?? (() => {});
+export const useCloseModal = () => useContext(CloseModal) ?? (() => {});
 
 /**
  * The "+ Add …" button at the top right of a list: opens its form in a
@@ -267,7 +267,37 @@ export function EntryRowActions({
 
 /* ------------------------------------------------------- fixed costs */
 
-export function RecurringForm({ categories, thisMonth }: { categories: readonly string[]; thisMonth: string }) {
+export type AccountOption = { id: string; name: string; currency: string; defaultIn: boolean };
+
+/** Paid from which account, and whether it is a reverse-charge purchase: shared by the fixed-cost forms. */
+function AccountVat({ accounts, accountId, vatMode }: { accounts: AccountOption[]; accountId?: string | null; vatMode?: "none" | "reverse_charge" }) {
+  const first = accounts.find((a) => a.defaultIn) ?? accounts[0];
+  return (
+    <>
+      {accounts.length > 0 && (
+        <label className="block">
+          <span className="field-label">Paid from</span>
+          <select name="accountId" defaultValue={accountId ?? first?.id ?? ""} className="field">
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.currency})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="block">
+        <span className="field-label">VAT</span>
+        <select name="vatMode" defaultValue={vatMode ?? "none"} className="field">
+          <option value="none">No VAT to declare</option>
+          <option value="reverse_charge">Reverse charge 21% (supplier outside Lithuania)</option>
+        </select>
+      </label>
+    </>
+  );
+}
+
+export function RecurringForm({ categories, thisMonth, accounts = [] }: { categories: readonly string[]; thisMonth: string; accounts?: AccountOption[] }) {
   const router = useRouter();
   const close = useCloseModal();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -289,6 +319,8 @@ export function RecurringForm({ categories, thisMonth }: { categories: readonly 
       starts: String(f.get("starts") ?? thisMonth),
       autoPaid: f.get("autoPaid") ? "1" : "0",
       partnerCost: f.get("partnerCost") ? "1" : "0",
+      accountId: String(f.get("accountId") ?? ""),
+      vatMode: String(f.get("vatMode") ?? "none"),
       bill: (f.get("bill") as File | null) ?? null,
     });
     setBusy(false);
@@ -332,6 +364,7 @@ export function RecurringForm({ categories, thisMonth }: { categories: readonly 
         <span className="field-label">Starts</span>
         <input name="starts" type="month" defaultValue={thisMonth} className="field" />
       </label>
+      <AccountVat accounts={accounts} />
       <label className="block sm:col-span-2">
         <span className="field-label">Bill / receipt (optional)</span>
         <input name="bill" type="file" accept=".pdf,image/*,application/pdf" className="field py-2 text-[0.85rem]" />
@@ -1004,9 +1037,22 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
 export function RecurringEdit({
   r,
   categories,
+  accounts = [],
 }: {
-  r: { id: string; name: string; category: string; amount: string; currency: string; dayOfMonth: number; autoPaid: boolean; partnerCost: boolean };
+  r: {
+    id: string;
+    name: string;
+    category: string;
+    amount: string;
+    currency: string;
+    dayOfMonth: number;
+    autoPaid: boolean;
+    partnerCost: boolean;
+    accountId: string | null;
+    vatMode: "none" | "reverse_charge";
+  };
   categories: readonly string[];
+  accounts?: AccountOption[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -1028,6 +1074,8 @@ export function RecurringEdit({
       day: String(f.get("day") ?? "1"),
       autoPaid: f.get("autoPaid") ? "1" : "0",
       partnerCost: f.get("partnerCost") ? "1" : "0",
+      accountId: String(f.get("accountId") ?? ""),
+      vatMode: String(f.get("vatMode") ?? "none"),
       bill: (f.get("bill") as File | null) ?? null,
     });
     setBusy(false);
@@ -1072,6 +1120,7 @@ export function RecurringEdit({
                 ))}
               </select>
             </label>
+            <AccountVat accounts={accounts} accountId={r.accountId} vatMode={r.vatMode} />
             <label className="block sm:col-span-2">
               <span className="field-label">Bill / receipt (replace, optional)</span>
               <input name="bill" type="file" accept=".pdf,image/*,application/pdf" className="field py-2 text-[0.85rem]" />
@@ -1113,6 +1162,7 @@ const EXPENSE_CATS = EXPENSE_CATEGORIES;
 
 export function EntryEdit({
   e,
+  accounts = [],
 }: {
   e: {
     id: string;
@@ -1125,7 +1175,11 @@ export function EntryEdit({
     date: string;
     status: "paid" | "due";
     partnerCost: boolean;
+    accountId: string | null;
+    vatMode: "none" | "reverse_charge";
+    liabilityTerm: "short" | "long";
   };
+  accounts?: AccountOption[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -1149,6 +1203,9 @@ export function EntryEdit({
       date: String(f.get("date") ?? ""),
       status: String(f.get("status") ?? "paid"),
       partnerCost: f.get("partnerCost") ? "1" : "0",
+      accountId: String(f.get("accountId") ?? ""),
+      vatMode: String(f.get("vatMode") ?? "none"),
+      liabilityTerm: String(f.get("liabilityTerm") ?? "short"),
     });
     setBusy(false);
     if (!res.ok) return setError(res.error ?? "That didn't save.");
@@ -1201,7 +1258,38 @@ export function EntryEdit({
                 <span className="field-label">Status</span>
                 <select name="status" defaultValue={e.status} className="field">
                   <option value="paid">Paid</option>
-                  <option value="due">Due</option>
+                  <option value="due">In process (not paid yet)</option>
+                </select>
+              </label>
+            )}
+            {e.kind === "expense" && (
+              <label className="block">
+                <span className="field-label">Liability if unpaid</span>
+                <select name="liabilityTerm" defaultValue={e.liabilityTerm} className="field">
+                  <option value="short">Short-term</option>
+                  <option value="long">Long-term</option>
+                </select>
+              </label>
+            )}
+            {accounts.length > 0 && (
+              <label className="block">
+                <span className="field-label">{e.kind === "income" ? "Received into" : "Paid from"}</span>
+                <select name="accountId" defaultValue={e.accountId ?? ""} className="field">
+                  <option value="">Not said</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.currency})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {e.kind === "expense" && (
+              <label className="block">
+                <span className="field-label">VAT</span>
+                <select name="vatMode" defaultValue={e.vatMode} className="field">
+                  <option value="none">No VAT to declare</option>
+                  <option value="reverse_charge">Reverse charge 21%</option>
                 </select>
               </label>
             )}
@@ -1372,5 +1460,218 @@ export function DistributeButton({ stakeholderId, month, paid, label }: { stakeh
       )}
       {error && <span className="text-[0.72rem] text-danger">{error}</span>}
     </span>
+  );
+}
+
+/* --------------------------------------------------- money accounts */
+
+/** Add a money account, or change one (opening balance, default for money in). */
+export function AccountForm({
+  initial,
+}: {
+  initial?: { id: string; name: string; kind: "bank" | "cash"; currency: string; openingCents: number; openingOn: string; defaultIn: boolean };
+}) {
+  const router = useRouter();
+  const close = useCloseModal();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    setBusy(true);
+    setError(null);
+    const r = await post({
+      action: "save_account",
+      id: initial?.id ?? "",
+      name: String(f.get("name") ?? ""),
+      kind: String(f.get("kind") ?? "bank"),
+      currency: String(f.get("currency") ?? "EUR"),
+      opening: String(f.get("opening") ?? ""),
+      openingOn: String(f.get("openingOn") ?? ""),
+      defaultIn: f.get("defaultIn") ? "1" : "0",
+    });
+    setBusy(false);
+    if (!r.ok) return setError(r.error ?? "That didn't save.");
+    router.refresh();
+    close();
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+      <label className="block sm:col-span-2">
+        <span className="field-label">Name</span>
+        <input name="name" required maxLength={80} defaultValue={initial?.name ?? ""} className="field" placeholder="e.g. Business Revolut" />
+      </label>
+      <label className="block">
+        <span className="field-label">Type</span>
+        <select name="kind" defaultValue={initial?.kind ?? "bank"} className="field">
+          <option value="bank">Bank account</option>
+          <option value="cash">Cash</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="field-label">Currency</span>
+        <select name="currency" defaultValue={initial?.currency ?? "EUR"} className="field">
+          {CURRENCIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="field-label">Opening balance</span>
+        <input name="opening" inputMode="decimal" defaultValue={initial ? (initial.openingCents / 100).toFixed(2) : ""} className="field" placeholder="0.00" />
+      </label>
+      <label className="block">
+        <span className="field-label">On date</span>
+        <input name="openingOn" type="date" defaultValue={initial?.openingOn ?? new Date().toISOString().slice(0, 10)} className="field" />
+      </label>
+      <label className="flex items-start gap-2.5 text-[0.88rem] text-fg sm:col-span-2">
+        <input name="defaultIn" type="checkbox" defaultChecked={initial?.defaultIn ?? false} className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+        <span>
+          Verified fees and paid invoices land here
+          <span className="block text-[0.76rem] text-faint">One account only; ticking this one un-ticks the other.</span>
+        </span>
+      </label>
+      <div className="flex items-end sm:col-span-2">
+        <button type="submit" disabled={busy} className={PRIMARY}>
+          {busy ? "Saving…" : initial ? "Save changes" : "Add account"}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+export function AccountActive({ id, name, active }: { id: string; name: string; active: boolean }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span className="inline-flex flex-col items-end">
+      <button
+        type="button"
+        onClick={async () => {
+          if (active && !window.confirm(`Switch ${name} off? Its history stays; it is no longer offered in forms.`)) return;
+          const r = await post({ action: "account_active", id, active: active ? "0" : "1" });
+          if (!r.ok) setError(r.error ?? "That didn't work.");
+          else router.refresh();
+        }}
+        data-tip={active ? "Switch off" : "Switch on"}
+        aria-label={active ? "Switch off" : "Switch on"}
+        className="tip tip-end icon-btn"
+      >
+        <Icon d={active ? "M5.5 4v8M10.5 4v8" : "M5 3.5l7 4.5-7 4.5z"} />
+      </button>
+      {error && <span className="text-[0.72rem] text-danger">{error}</span>}
+    </span>
+  );
+}
+
+/** Money moved between two of SnZ's own accounts: neither income nor expense. */
+export function TransferForm({ accounts }: { accounts: AccountOption[] }) {
+  const router = useRouter();
+  const close = useCloseModal();
+  const [fromId, setFromId] = useState(accounts[0]?.id ?? "");
+  const [toId, setToId] = useState(accounts[1]?.id ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const a = accounts.find((x) => x.id === fromId);
+  const b = accounts.find((x) => x.id === toId);
+  const twoCurrencies = Boolean(a && b && a.currency !== b.currency);
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    setBusy(true);
+    setError(null);
+    const r = await post({
+      action: "add_transfer",
+      fromId,
+      toId,
+      amount: String(f.get("amount") ?? ""),
+      received: String(f.get("received") ?? ""),
+      date: String(f.get("date") ?? ""),
+      note: String(f.get("note") ?? ""),
+    });
+    setBusy(false);
+    if (!r.ok) return setError(r.error ?? "That didn't save.");
+    router.refresh();
+    close();
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+      <label className="block">
+        <span className="field-label">From</span>
+        <select value={fromId} onChange={(e) => setFromId(e.target.value)} className="field">
+          {accounts.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name} ({x.currency})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="field-label">To</span>
+        <select value={toId} onChange={(e) => setToId(e.target.value)} className="field">
+          {accounts.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name} ({x.currency})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="field-label">Amount sent{a ? ` (${a.currency})` : ""}</span>
+        <input name="amount" required inputMode="decimal" className="field" placeholder="0.00" />
+      </label>
+      {twoCurrencies && (
+        <label className="block">
+          <span className="field-label">Amount received ({b?.currency})</span>
+          <input name="received" required inputMode="decimal" className="field" placeholder="0.00" />
+        </label>
+      )}
+      <label className="block">
+        <span className="field-label">Date</span>
+        <input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className="field" />
+      </label>
+      <label className="block sm:col-span-2">
+        <span className="field-label">Note (optional)</span>
+        <input name="note" maxLength={200} className="field" placeholder="e.g. Cash deposited at the bank" />
+      </label>
+      <div className="flex items-end sm:col-span-2">
+        <button type="submit" disabled={busy || !fromId || !toId || fromId === toId} className={PRIMARY}>
+          {busy ? "Saving…" : "Record transfer"}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-[0.85rem] text-danger sm:col-span-2">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+export function DeleteTransfer({ id }: { id: string }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        if (!window.confirm("Delete this transfer?")) return;
+        const r = await post({ action: "delete_transfer", id });
+        if (r.ok) router.refresh();
+      }}
+      data-tip="Delete"
+      aria-label="Delete transfer"
+      className="tip tip-end icon-btn hover:!border-red-400/60 hover:!text-danger"
+    >
+      <Icon d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 9h5.6l.7-9" />
+    </button>
   );
 }

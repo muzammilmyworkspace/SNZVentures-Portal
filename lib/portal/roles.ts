@@ -337,6 +337,8 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/admin/finance", label: "Dashboard", icon: "activity", roles: ["super_admin"] },
         { href: "/portal/admin/finance/transactions", label: "Transactions", icon: "requests", roles: ["super_admin"] },
         { href: "/portal/admin/finance/fixed", label: "Fixed expenses", icon: "tasks", roles: ["super_admin"] },
+        { href: "/portal/admin/finance/balance", label: "Balance & accounts", icon: "dashboard", roles: ["super_admin"] },
+        { href: "/portal/admin/finance/integrations", label: "Integrations", icon: "settings", roles: ["super_admin"] },
         { href: "/portal/admin/finance/consultants", label: "Referrals", icon: "users", roles: ["super_admin"] },
         { href: "/portal/admin/finance/universities", label: "University commissions", icon: "universities", roles: ["super_admin"] },
         { href: "/portal/admin/finance/stakeholders", label: "Stakeholders", icon: "profile", roles: ["super_admin"] },
