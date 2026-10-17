@@ -57,26 +57,26 @@ export const company = {
     incorporatedIn: "Lithuania",
   },
 
-  /** Client-supplied profiles. Only X/Twitter is outstanding. */
+  /** AdmitsFair's own profiles: none supplied yet (the SnZ ones were removed). */
   social: {
-    linkedin: "https://www.linkedin.com/company/snz-ventures/",
+    linkedin: null as string | null,
     /**
      * Client-supplied Google Business share link. Used for "read all reviews"
      * and "leave a review", and as the fallback destination when the Places
      * API is not configured — so the link works with no credentials at all.
      * Review CONTENT is fetched separately; see lib/reviews.ts.
      */
-    googleReviews: "https://share.google/MNo5ThKseoiGnDEnF",
+    googleReviews: null as string | null,
 
     /**
      * Social profiles, supplied by the client. The footer renders an icon for
      * each entry that has a URL; anything left `null` renders dimmed and
      * non-clickable rather than as a dead link.
      */
-    instagram: "https://www.instagram.com/snz.ventures/?hl=en",
-    facebook: "https://www.facebook.com/snz.ventures/",
+    instagram: null as string | null,
+    facebook: null as string | null,
     tiktok: "",
-    youtube: "https://www.youtube.com/channel/UC5lkD3z9vbxCPgI5f3R1tzA",
+    youtube: null as string | null,
     /** No X/Twitter profile supplied. */
     x: null as string | null,
   },
