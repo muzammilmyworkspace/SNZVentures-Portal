@@ -17,7 +17,7 @@ export function ChangeName({ current }: { current: string }) {
     setSaved(false);
     setBusy(true);
     try {
-      const res = await fetch("/api/portal/profile", {
+      const res = await fetch("/api/portal/name", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
