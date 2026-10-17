@@ -1,82 +1,57 @@
-import { NextResponse, after } from "next/server";
-import * as store from "@/lib/auth/store";
-import * as repo from "@/lib/db/repos/portal";
+import { NextResponse } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
-import { PROFILE_FIELDS } from "@/lib/portal/data";
-import { apiRequireOpen } from "@/lib/portal/gate";
+import { createToken, setSessionCookie } from "@/lib/auth/session";
+import * as usersRepo from "@/lib/db/repos/users";
+import { audit } from "@/lib/db/repos/audit";
+import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
+import { SEALED_MESSAGE } from "@/lib/auth/impersonation";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * Progressive profile save.
+ * CHANGING THE NAME ON YOUR OWN ACCOUNT.
  *
- * The user id always comes from the verified session, never the body. Keys are
- * filtered against PROFILE_FIELDS for the caller's OWN role, and the repository
- * filters again against the real column whitelist — so a client cannot write
- * another pathway's schema, another user's row, or their own role.
+ * The name travels inside the signed session, so after writing it the session
+ * is re-issued with the new name (same epoch, same absolute expiry); otherwise
+ * the sidebar would keep the old one until the next sign-in. Not while viewing
+ * as somebody else.
  */
 export async function POST(request: Request) {
   const guard = await apiRequireUser();
   if (!guard.ok) return guard.response;
-  {
-    const locked = await apiRequireOpen(guard.session, "/portal/profile");
-    if (locked) return locked;
-  }
   const { session } = guard;
 
-  if (!store.isStoreReady()) {
-    return NextResponse.json(
-      { ok: false, error: "The portal database is not configured yet." },
-      { status: 503 }
-    );
+  if (session.impersonator) {
+    return NextResponse.json({ ok: false, error: SEALED_MESSAGE }, { status: 403 });
+  }
+  if (!rateLimit(`name-change:${session.userId}`, { limit: 10, windowMs: 60 * 60_000 }).ok) {
+    return NextResponse.json({ ok: false, error: "Too many changes. Please try again in an hour." }, { status: 429 });
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { name?: unknown } | null;
+  const name = typeof body?.name === "string" ? body.name.replace(/\s+/g, " ").trim() : "";
+  if (name.length < 2 || name.length > 80) {
+    return NextResponse.json({ ok: false, error: "Enter a name between 2 and 80 characters." }, { status: 400 });
+  }
+  if (name === session.name) return NextResponse.json({ ok: true, name });
+
+  if (!(await usersRepo.updateName(session.userId, name))) {
+    return NextResponse.json({ ok: false, error: "That didn't save. Please try again." }, { status: 500 });
   }
 
-  const incoming = (body as { profile?: Record<string, unknown> })?.profile;
-  if (typeof incoming !== "object" || incoming === null) {
-    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
-  }
+  await audit({
+    action: "user.name_changed",
+    actorId: session.userId,
+    actorEmail: session.email,
+    entity: "user",
+    entityId: session.userId,
+    meta: { from: session.name, to: name },
+    ip: clientIp(request),
+  });
 
-  const allowed = new Set((PROFILE_FIELDS[session.role] ?? []).map((f) => f.key));
-  const patch: Record<string, string> = {};
-  for (const [key, value] of Object.entries(incoming)) {
-    if (!allowed.has(key)) continue;
-    if (typeof value !== "string") continue;
-    patch[key] = value;
-  }
-
-  try {
-    await store.saveProfile(session.userId, session.role, patch);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("[profile] save failed:", error);
-    return NextResponse.json({ ok: false, error: "Could not save." }, { status: 500 });
-  }
-
-  /*
-    Once an hour at most, not once per save. This form autosaves as somebody
-    types; the useful signal is "they were working on their details", not
-    forty rows saying so. The fields themselves are on their file, which is
-    where anybody who cares which one changed will look.
-  */
-  after(
-    repo.notifyStaff({
-      area: session.role === "student" ? "applications" : "users",
-      title: `${session.name} updated their details`,
-      body: Object.keys(patch).join(", ").slice(0, 200) || undefined,
-      href: `/portal/admin/users/${session.userId}`,
-      kind: "general",
-      aboutUserId: session.userId,
-      actorId: session.userId,
-      dedupeWithinMinutes: 60,
-    })
-  );
-
-  return NextResponse.json({ ok: true });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { exp, ...rest } = session;
+  await setSessionCookie(createToken({ ...rest, name }));
+  return NextResponse.json({ ok: true, name });
 }

@@ -99,6 +99,7 @@ export type AuditAction =
   | "user.email_change_requested"
   | "user.email_change_refused"
   | "user.email_changed"
+  | "user.name_changed"
   // Fee verification (007). The student declares, staff decide, and the
   // decision is what unlocks the rest of the portal — so all three are
   // recorded, not just the approval.

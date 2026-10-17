@@ -6,6 +6,7 @@ import { PortalHeading, Panel, BackendRequired } from "@/components/portal/Piece
 import { ChangePassword } from "@/components/portal/ChangePassword";
 import { ChangeEmail } from "@/components/portal/ChangeEmail";
 import { ProfilePhoto } from "@/components/portal/ProfilePhoto";
+import { ChangeName } from "@/components/portal/ChangeName";
 import { getAvatar } from "@/lib/db/repos/users";
 
 export default async function SettingsPage() {
@@ -62,6 +63,10 @@ export default async function SettingsPage() {
           thing — the two ways into this account — and separating them is how
           somebody ends up asking a developer to run an UPDATE.
         */}
+        <Panel title="Your name">
+          <ChangeName current={session.name} />
+        </Panel>
+
         <Panel title="Email address">
           <ChangeEmail current={session.email} />
         </Panel>

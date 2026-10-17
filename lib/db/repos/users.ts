@@ -540,6 +540,18 @@ export async function emailExists(email: string): Promise<boolean> {
 }
 
 /**
+ * The name shown on the account (sidebar, messages, invoices made from now on).
+ * Returns false when nothing was written.
+ */
+export async function updateName(userId: string, name: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const rows = await db()`UPDATE users SET name = ${name} WHERE id = ${userId} RETURNING id`;
+    return rows.length > 0;
+  }, false);
+}
+
+/**
  * Move an account to a new address.
  *
  * The new address is marked VERIFIED, because reaching here means the token
