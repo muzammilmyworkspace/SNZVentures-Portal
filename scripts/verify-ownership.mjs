@@ -292,7 +292,7 @@ await check("every case carries the reference the pages now print", async () => 
   const s = await user("student");
   const id = await openCase(s);
   const [row] = (await db.query(`SELECT reference FROM cases WHERE id = $1`, [id])).rows;
-  if (!/^SNZ-\d{4}-\d{4}$/.test(row.reference ?? "")) {
+  if (!/^(AF|SNZ)-\d{4}-\d{4}$/.test(row.reference ?? "")) {
     throw new Error(`reference was ${JSON.stringify(row.reference)}`);
   }
 });

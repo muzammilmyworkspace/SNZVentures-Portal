@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * MESSAGING
  * ---------------------------------------------------------------------------
- * A client talks to SnZ; SnZ talks back. There is no client-to-client channel
+ * A client talks to AdmitsFair; AdmitsFair talks back. There is no client-to-client channel
  * and no way to construct one — every read and write passes through
  * `canAccessConversation`, which resolves the relationship IN THE DATABASE:
  * the viewer must own the conversation, be the assigned advisor, or be admin.
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
     if (owner) {
       await repo.notify({
         userId: owner,
-        title: "New message from SnZ Ventures",
+        title: "New message from AdmitsFair",
         body: text.slice(0, 160),
         href: "/portal/messages",
         kind: "message",

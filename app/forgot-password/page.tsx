@@ -7,7 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Reset Your Password",
-  description: "Request a password reset for your SnZ Ventures account.",
+  description: "Request a password reset for your AdmitsFair account.",
   path: "/forgot-password",
   noIndex: true,
 });

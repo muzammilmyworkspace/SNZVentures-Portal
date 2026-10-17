@@ -260,13 +260,13 @@ export function LinesTable({
                 <td className="px-4 py-3 text-[0.84rem] text-muted">
                   {l.category}
                   {l.vatMode === "reverse_charge" && (
-                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="Supplier outside Lithuania: SnZ declares and deducts 21% VAT">
+                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="Supplier outside Lithuania: AdmitsFair declares and deducts 21% VAT">
                       Reverse charge · VAT {money(l.vatCents, l.currency)}
                     </span>
                   )}
                   {l.kind === "expense" && !l.partnerCost && (
-                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="SnZ Ventures carries this alone: it does not lower the partners' profit">
-                      SnZ only
+                    <span className="mt-0.5 block text-[0.72rem] text-faint" title="AdmitsFair carries this alone: it does not lower the partners' profit">
+                      AdmitsFair only
                     </span>
                   )}
                 </td>
@@ -427,7 +427,7 @@ export function JournalTable({ entries, rates, accounts }: { entries: JournalEnt
                     <td rowSpan={n} className="min-w-[12rem] max-w-[16rem] px-3 py-2.5 align-top">
                       <span className="block text-[0.88rem] font-medium text-fg">{e.particulars}</span>
                       {e.party && <span className="block text-[0.76rem] text-faint">{l?.kind === "income" ? "From" : "To"} {e.party}</span>}
-                      {l && l.kind === "expense" && !l.partnerCost && <span className="block text-[0.72rem] text-faint">SnZ only</span>}
+                      {l && l.kind === "expense" && !l.partnerCost && <span className="block text-[0.72rem] text-faint">AdmitsFair only</span>}
                     </td>
                   </>
                 )}

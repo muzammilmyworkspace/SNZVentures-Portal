@@ -318,7 +318,7 @@ export function Action({
      */
     solid:
       /* Boarding Pass: the website's runway-green pill, dark label. */
-      "bg-[var(--color-runway)] text-[#070B1A] shadow-[0_12px_30px_-14px_rgba(114,196,60,0.7)] hover:-translate-y-0.5 hover:bg-[var(--color-runway-300)]",
+      "bg-[var(--color-runway)] text-[#070B1A] shadow-[0_12px_30px_-14px_rgba(56,189,248,0.7)] hover:-translate-y-0.5 hover:bg-[var(--color-runway-300)]",
     /**
      * Outline variants lift and pick up a tinted ground on hover, not just a
      * border colour. A border-only change is easy to miss on a busy plate; the

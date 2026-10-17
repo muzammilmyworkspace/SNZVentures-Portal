@@ -269,7 +269,7 @@ export async function POST(request: Request) {
       const base = siteUrl();
       await sendMail({
         to: user.email,
-        subject: "Confirm your SnZ Ventures account",
+        subject: "Confirm your AdmitsFair account",
         text: [
           `Hello ${user.name},`,
           "",
@@ -278,7 +278,7 @@ export async function POST(request: Request) {
           "",
           "The link is valid for 24 hours.",
           "",
-          "SnZ Ventures",
+          "AdmitsFair",
         ].join("\n"),
       });
     } catch (error) {

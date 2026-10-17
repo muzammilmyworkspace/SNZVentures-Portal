@@ -37,7 +37,7 @@ if (!files.length) {
 
 const parts = [
   "-- =====================================================================",
-  "-- SnZ Ventures portal — full schema, safe to run more than once.",
+  "-- AdmitsFair portal — full schema, safe to run more than once.",
   "--",
   "-- Paste this whole file into the Supabase SQL editor and run it.",
   "--   Supabase dashboard → SQL Editor → New query → paste → Run",

@@ -1,10 +1,10 @@
 /**
- * SNZ VENTURES — SINGLE SOURCE OF TRUTH FOR COMPANY FACTS
+ * ADMITSFAIR — SINGLE SOURCE OF TRUTH FOR COMPANY FACTS
  * ---------------------------------------------------------------------------
  * Every factual claim rendered on this website reads from this file.
  *
  * SOURCING RULES (do not break these):
- *  - `verified: true`  → confirmed on the live snzventures.com site.
+ *  - `verified: true`  → confirmed on the live admitsfair.com site.
  *  - `verified: false` → appears on the live site but NOT independently
  *                        confirmed. Client must sign off before launch.
  *  - Anything unknown is typed as `null` and rendered as a visible
@@ -14,31 +14,31 @@
  */
 
 export const company = {
-  name: "SnZ Ventures",
-  nameUpper: "SNZ VENTURES",
+  name: "AdmitsFair",
+  nameUpper: "ADMITSFAIR",
   /** Verified — live site header positioning line. */
   positioning: "European Gateway for Business, Fintech & Talent",
   /** Verified — live site mission statement. */
   missionQuote:
-    "Geography should not be a barrier to ambition. SnZ Ventures dismantles the borders between European opportunity.",
+    "Geography should not be a barrier to ambition. AdmitsFair dismantles the borders between European opportunity.",
 
   /** Verified — published on the live site. */
   contact: {
     phone: "+370 623 93857",
     phoneHref: "+37062393857",
-    email: "study@snzventures.com",
+    email: "admitsfair@gmail.com",
     /**
      * Where consultation enquiries are delivered.
      *
      * ⚠ DIFFERENT DOMAIN, ON PURPOSE — client-specified. General contact
-     * Owner instruction 2026-10-04: one email (study@snzventures.com) and one
+     * Owner instruction 2026-10-04: one email (admitsfair@gmail.com) and one
      * number (+370 623 93857, calls and WhatsApp) everywhere, as on the website.
      * `MAIL_TO` overrides this at runtime without a code change, so if this
      * address is ever wrong it can be corrected from the environment.
      *
      * See CONTENT-HANDOFF § 2 — this one needs confirming before launch.
      */
-    consultationEmail: "study@snzventures.com",
+    consultationEmail: "admitsfair@gmail.com",
     /** Live site links a WhatsApp channel on the same published number. */
     whatsapp: "37062393857",
     city: "Vilnius",
@@ -75,7 +75,7 @@ export const company = {
      */
     instagram: "https://www.instagram.com/snz.ventures/?hl=en",
     facebook: "https://www.facebook.com/snz.ventures/",
-    tiktok: "https://www.tiktok.com/@snz.ventures",
+    tiktok: "",
     youtube: "https://www.youtube.com/channel/UC5lkD3z9vbxCPgI5f3R1tzA",
     /** No X/Twitter profile supplied. */
     x: null as string | null,
@@ -89,12 +89,12 @@ export const company = {
    * This is a TRUST asset, not a liability. Never imply direct regulation.
    */
   regulatoryNotice:
-    "SnZ Ventures is an advisory firm. Regulated activities — audit, legal representation, licensing submissions and AML officer functions — are delivered through licensed partner firms. SnZ Ventures is not itself a regulated financial institution.",
+    "AdmitsFair is an advisory firm. Regulated activities — audit, legal representation, licensing submissions and AML officer functions — are delivered through licensed partner firms. AdmitsFair is not itself a regulated financial institution.",
 
   /*
     THE APEX, NOT www.
 
-    This was `https://www.snzventures.com`, and that hostname does not serve
+    This was `https://www.admitsfair.com`, and that hostname does not serve
     this site. It resolves to different hosting whose TLS certificate is for
     another name, so a browser opening it gets a full-page security warning
     before it renders anything.
@@ -109,7 +109,7 @@ export const company = {
     is what the site should call itself. If `www` is added later, point it at
     the apex with a redirect rather than moving this back.
   */
-  siteUrl: "https://snzventures.com",
+  siteUrl: "https://admitsfair.com",
   locale: "en",
 } as const;
 
@@ -194,7 +194,7 @@ export const ecosystem = [
 ] as const;
 
 export const ecosystemDisclaimer =
-  "Institutions shown describe the regulatory and business environment SnZ Ventures operates within. They do not constitute endorsement, accreditation or partnership.";
+  "Institutions shown describe the regulatory and business environment AdmitsFair operates within. They do not constitute endorsement, accreditation or partnership.";
 
 /** Verified — corridors named on the live site. */
 export const sourceMarkets = [

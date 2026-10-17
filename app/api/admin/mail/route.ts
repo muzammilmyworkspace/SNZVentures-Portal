@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  *
  * SUPER ADMIN ONLY. A sending key can send mail as this firm — to its own
  * clients, from its own domain — which makes it closer to a signing key than
- * to a setting. Whoever holds it can write to anybody in the database as SnZ
+ * to a setting. Whoever holds it can write to anybody in the database as AdmitsFair
  * Ventures, and that is not an ordinary admin's authority.
  *
  * The key is never returned by any method here, including to the person who
@@ -148,9 +148,9 @@ export async function PUT(request: Request) {
   try {
     await sendMail({
       to: target,
-      subject: "SnZ Ventures portal — test message",
+      subject: "AdmitsFair portal — test message",
       text: [
-        "This is a test message from the SnZ Ventures portal.",
+        "This is a test message from the AdmitsFair portal.",
         "",
         `Sent by ${session.name} to confirm that email is working.`,
         `It was sent as: ${cfg.from}`,
@@ -158,7 +158,7 @@ export async function PUT(request: Request) {
         "If you received this, password resets, email verification and",
         "consultant invitations will all be delivered.",
         "",
-        "SnZ Ventures",
+        "AdmitsFair",
       ].join("\n"),
     });
   } catch (error) {

@@ -26,12 +26,12 @@ export type FinanceLine = {
   party: string | null;
   /** Where the receipt opens, when there is one. */
   receiptHref: string | null;
-  /** An expense the profit-sharing partners carry too (false: SnZ Ventures' own, e.g. office rent). */
+  /** An expense the profit-sharing partners carry too (false: AdmitsFair' own, e.g. office rent). */
   partnerCost: boolean;
   /** The money account it went through (null: not said). */
   accountId: string | null;
   accountName: string | null;
-  /** Bought from a supplier outside Lithuania: 21% VAT declared and deducted by SnZ. */
+  /** Bought from a supplier outside Lithuania: 21% VAT declared and deducted by AdmitsFair. */
   vatMode: "none" | "reverse_charge";
   /** That 21%, in the line's currency (0 when none). */
   vatCents: number;
@@ -51,7 +51,7 @@ export type Recurring = {
   startsOn: string;
   notes: string | null;
   hasBill: boolean;
-  /** Counts against the profit the partners share (false: SnZ Ventures carries it alone). */
+  /** Counts against the profit the partners share (false: AdmitsFair carries it alone). */
   partnerCost: boolean;
   accountId: string | null;
   vatMode: "none" | "reverse_charge";

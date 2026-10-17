@@ -73,7 +73,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     dueBills.reduce((n, l) => n + (inEur(l, rates) ?? 0), 0) +
     owedByPerson.reduce((n, x) => n + x.cents, 0) +
     stakeholderDues.reduce((n, x) => n + x.cents, 0);
-  // REVERSE-CHARGE VAT: services bought from suppliers outside Lithuania. SnZ declares
+  // REVERSE-CHARGE VAT: services bought from suppliers outside Lithuania. AdmitsFair declares
   // 21% as output VAT and deducts the same 21% as input VAT on its return.
   const rc = expense.filter((l) => l.vatMode === "reverse_charge");
   const rcNet = sumEur(rc, rates);
@@ -109,7 +109,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <MiniStat tone="in" label="Earned" value={eur(t.income)} hint={`${income.length} amounts in`} />
         <MiniStat label="Spent" value={eur(t.expense)} hint={`${expense.length} amounts out`} />
         <MiniStat label={t.profit >= 0 ? "Profit" : "Loss"} value={eur(t.profit)} tone={t.profit < 0 ? "warn" : undefined} hint={t.income ? `${Math.round((t.profit / t.income) * 100)}% of what was earned` : undefined} />
-        <MiniStat label="Profit the partners share" value={eur(pt.base)} hint={`SnZ carries ${eur(pt.ownCost)} alone`} />
+        <MiniStat label="Profit the partners share" value={eur(pt.base)} hint={`AdmitsFair carries ${eur(pt.ownCost)} alone`} />
       </div>
 
       <Panel title={`Liabilities (in process) · ${eur(payTotal)}`} className="mb-6">
@@ -187,9 +187,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <Panel title="University commissions received">
           <Bars rows={breakdown(income.filter((l) => l.category === "University commission"), (l) => l.party ?? "University", rates)} color={INCOME_COLOR} empty="None received in these dates." />
         </Panel>
-        <Panel title="Costs: shared with partners or SnZ only">
+        <Panel title="Costs: shared with partners or AdmitsFair only">
           <Bars
-            rows={breakdown(expense, (l) => (l.partnerCost ? "Shared with the partners" : "SnZ Ventures only"), rates)}
+            rows={breakdown(expense, (l) => (l.partnerCost ? "Shared with the partners" : "AdmitsFair only"), rates)}
             color={EXPENSE_COLOR}
             empty="No expenses in these dates."
           />

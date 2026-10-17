@@ -5,7 +5,7 @@
  *   node scripts/change-superadmin-email.mjs --apply          # do it
  *   node scripts/change-superadmin-email.mjs --from a@b --to c@d --apply
  *
- * Defaults move ceo@snzventures.com → info@snzventures.com.
+ * Defaults move ceo@admitsfair.com → admitsfair@gmail.com.
  *
  * WHY THIS EXISTS AT ALL
  *
@@ -35,8 +35,8 @@ function arg(name) {
   return i > -1 ? process.argv[i + 1] : undefined;
 }
 
-const FROM = (arg("from") ?? "ceo@snzventures.com").trim().toLowerCase();
-const TO = (arg("to") ?? "info@snzventures.com").trim().toLowerCase();
+const FROM = (arg("from") ?? "ceo@admitsfair.com").trim().toLowerCase();
+const TO = (arg("to") ?? "admitsfair@gmail.com").trim().toLowerCase();
 const APPLY = process.argv.includes("--apply");
 
 if (FROM === TO) {

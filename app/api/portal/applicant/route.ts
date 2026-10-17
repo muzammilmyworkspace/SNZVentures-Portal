@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  *   save / submit   details and company documents; submit sends it to the
  *                   super admin (only while it is a draft, or was rejected)
  *   remove_doc      take back a company document before submitting
- *   sign            sign the SnZ Ventures <-> consultant consent, once the
+ *   sign            sign the AdmitsFair <-> consultant consent, once the
  *                   super admin has sent it
  *
  * Only the applicant themselves, never a view-as.

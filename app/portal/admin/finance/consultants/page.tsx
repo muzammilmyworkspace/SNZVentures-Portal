@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Referrals", robots: { index: false, 
 export const dynamic = "force-dynamic";
 
 /**
- * REFERRALS — what SnZ owes the people who send students: its consultants
+ * REFERRALS — what AdmitsFair owes the people who send students: its consultants
  * (on the portal) and anyone else (a referral). Add one with its share rule;
  * a consultant can keep that rule, and each verified fee of their students
  * then adds a referral by itself. "Mark paid" moves it into Expenses.

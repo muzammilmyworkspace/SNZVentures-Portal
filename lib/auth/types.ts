@@ -1,5 +1,5 @@
 /**
- * SNZ VENTURES PORTAL — DOMAIN TYPES
+ * ADMITSFAIR PORTAL — DOMAIN TYPES
  * ---------------------------------------------------------------------------
  * The data model is deliberately wider than the current storage adapter so a
  * real database can be dropped in without reshaping the application.

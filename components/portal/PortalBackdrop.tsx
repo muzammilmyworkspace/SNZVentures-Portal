@@ -30,7 +30,7 @@ export function PortalBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div className="absolute -left-[15%] -top-[25%] h-[60vh] w-[60vw] rounded-full bg-[radial-gradient(closest-side,rgba(61,113,201,0.16),transparent)]" />
-      <div className="absolute -bottom-[30%] -right-[10%] h-[60vh] w-[55vw] rounded-full bg-[radial-gradient(closest-side,rgba(114,196,60,0.08),transparent)]" />
+      <div className="absolute -bottom-[30%] -right-[10%] h-[60vh] w-[55vw] rounded-full bg-[radial-gradient(closest-side,rgba(56,189,248,0.08),transparent)]" />
       <svg viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
         <defs>
           <pattern id="portal-grid" width="80" height="80" patternUnits="userSpaceOnUse">
@@ -39,8 +39,8 @@ export function PortalBackdrop() {
           <linearGradient id="portal-wave" x1="0" x2="1">
             <stop offset="0" stopColor="#6FA6F7" stopOpacity="0" />
             <stop offset="0.35" stopColor="#6FA6F7" stopOpacity="1" />
-            <stop offset="0.7" stopColor="#72C43C" stopOpacity="1" />
-            <stop offset="1" stopColor="#72C43C" stopOpacity="0" />
+            <stop offset="0.7" stopColor="#38BDF8" stopOpacity="1" />
+            <stop offset="1" stopColor="#38BDF8" stopOpacity="0" />
           </linearGradient>
         </defs>
         <rect width="1440" height="960" fill="url(#portal-grid)" />

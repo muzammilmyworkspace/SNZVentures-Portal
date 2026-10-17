@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * A CONSULTANT APPLICANT'S HOME: their application, and where it stands.
  *
  *   draft / rejected   the form (rejected shows why, and can be sent again)
- *   submitted          with SnZ Ventures for review
+ *   submitted          with AdmitsFair for review
  *   consent_sent       the consultant agreement, to read and sign here
  *   consent_signed     signed; waiting for the final approval
  * Once approved the account is a consultant and this page sends them home.
@@ -47,7 +47,7 @@ export default async function ApplicantPage() {
       <PortalHeading
         eyebrow="Consultant application"
         title={`Welcome, ${session.name.split(" ")[0]}`}
-        lead="Apply to work with SnZ Ventures as a consultant. Tell us about you and your company; we review it, send you our consultant agreement to sign, and then open your consultant account."
+        lead="Apply to work with AdmitsFair as a consultant. Tell us about you and your company; we review it, send you our consultant agreement to sign, and then open your consultant account."
       />
 
       <ol className="mb-6 grid gap-2 sm:grid-cols-4" aria-label="Progress">
@@ -115,7 +115,7 @@ export default async function ApplicantPage() {
       ) : (
         <Panel title="Almost there">
           <p className="text-[0.95rem] leading-relaxed text-muted">
-            Thank you for signing. SnZ Ventures will confirm your consultant account shortly, and we will email you when you can sign in as a consultant.
+            Thank you for signing. AdmitsFair will confirm your consultant account shortly, and we will email you when you can sign in as a consultant.
           </p>
         </Panel>
       )}

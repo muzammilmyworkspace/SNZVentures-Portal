@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 /**
  * NEW MESSAGE TO ONE PERSON — a student, a consultant or an employee.
  *
- * It goes into that person's own thread with the firm ("Message from SnZ
+ * It goes into that person's own thread with the firm ("Message from AdmitsFair
  * Ventures", made the first time), with a notification, and the response
  * names the thread so the sender is taken straight into it.
  */

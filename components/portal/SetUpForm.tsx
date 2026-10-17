@@ -141,7 +141,7 @@ export function SetUpForm({
               <span className="text-[0.9rem] text-fg">{email}</span>
             </div>
             <p className="mt-2.5 text-[0.75rem] leading-relaxed text-faint">
-              Set by SnZ Ventures, and what you will sign in with. Tell us if either is wrong.
+              Set by AdmitsFair, and what you will sign in with. Tell us if either is wrong.
             </p>
           </div>
 

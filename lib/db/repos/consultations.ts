@@ -1,7 +1,7 @@
 import { db, safeQuery, isDatabaseConfigured } from "../client";
 
 /**
- * CONSULTATIONS — a meeting with SnZ Ventures, asked for by a student or a
+ * CONSULTATIONS — a meeting with AdmitsFair, asked for by a student or a
  * consultant and given a time by the team.
  *
  *   requested  → the requester has asked (topic, how, when suits them)

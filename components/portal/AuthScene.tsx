@@ -11,7 +11,7 @@ import { useReduced } from "./useReduced";
  *
  *   AuthSky   the night sky: a faint chart grid, great-circle arcs that draw
  *             themselves, and long sine waves drifting sideways. Same visual
- *             language as the background of snzventures.com, so signing in
+ *             language as the background of admitsfair.com, so signing in
  *             feels like walking through the gate rather than leaving the site.
  *
  *   AuthPass  a boarding pass whose status steps through the real portal
@@ -51,7 +51,7 @@ export function AuthSky() {
         <linearGradient id="auth-arc" x1="0" x2="1">
           <stop offset="0" stopColor="#6FA6F7" stopOpacity="0" />
           <stop offset="0.5" stopColor="#6FA6F7" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#72C43C" stopOpacity="0.4" />
+          <stop offset="1" stopColor="#38BDF8" stopOpacity="0.4" />
         </linearGradient>
       </defs>
       <rect width="1000" height="900" fill="url(#auth-grid)" />
@@ -78,7 +78,7 @@ export function AuthSky() {
             <path
               d="M22.5 12c0-.8-.7-1.4-1.6-1.4h-5.4L10.3 2.3a.8.8 0 00-.7-.4H8.2c-.4 0-.6.4-.5.7l2.6 8H5.1L3.4 8.2a.6.6 0 00-.5-.3H1.8c-.3 0-.5.3-.4.6L2.6 12l-1.2 3.5c-.1.3.1.6.4.6h1.1c.2 0 .4-.1.5-.3l1.7-2.4h5.2l-2.6 8c-.1.3.1.7.5.7h1.4c.3 0 .5-.2.7-.4l5.2-8.3h5.4c.9 0 1.6-.6 1.6-1.4z"
               transform="translate(-12 -12) scale(0.9)"
-              fill={i === 1 ? "#6FA6F7" : "#72C43C"}
+              fill={i === 1 ? "#6FA6F7" : "#38BDF8"}
             >
               <animateMotion dur={`${16 + i * 5}s`} begin={`${2 + i * 3}s`} repeatCount="indefinite" rotate="auto" path={d} />
             </path>
@@ -158,7 +158,7 @@ export function AuthPass() {
               <span
                 key={st.label}
                 className="h-1.5 flex-1 rounded-full transition-colors duration-500"
-                style={{ background: k <= i ? "#2F6B12" : "rgb(18 23 38 / 0.12)" }}
+                style={{ background: k <= i ? "#075985" : "rgb(18 23 38 / 0.12)" }}
               />
             ))}
           </div>
@@ -180,7 +180,7 @@ export function AuthPass() {
         </div>
         <div className="relative flex flex-col justify-between p-4">
           <span className="font-mono text-[0.72rem] uppercase tracking-[0.16em] text-[rgb(18_23_38/0.62)]">Gate</span>
-          <span className="font-[family-name:var(--font-display)] text-[1.6rem] font-bold">SNZ</span>
+          <span className="font-[family-name:var(--font-display)] text-[1.6rem] font-bold">AF</span>
           <span className="bp-barcode h-8" />
         </div>
 
@@ -206,7 +206,7 @@ export function AuthPass() {
         <motion.path
           d="M10 100 C 140 100, 260 60, 450 12"
           fill="none"
-          stroke="#72C43C"
+          stroke="#38BDF8"
           strokeWidth="2"
           strokeLinecap="round"
           animate={{ pathLength: reduce ? 1 : flying ? 1 : (i + 1) / (STAGES.length + 1) }}

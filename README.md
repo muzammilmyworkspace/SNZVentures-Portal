@@ -1,11 +1,11 @@
-# SnZ Ventures — Client Portal
+# AdmitsFair — Client Portal
 
 The authenticated client workspace and staff console, served from
-**portal.snzventures.com**. Next.js 16 (App Router), TypeScript, Tailwind v4,
+**portal.admitsfair.com**. Next.js 16 (App Router), TypeScript, Tailwind v4,
 PostgreSQL.
 
 This repository is the portal and nothing else. The public marketing site lives
-separately in **SNZV-Website** (snzventures.com).
+separately in **SNZV-Website** (admitsfair.com).
 
 Repository: `muzammilmyworkspace/SNZVentures-Portal`
 

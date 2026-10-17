@@ -161,7 +161,7 @@ export function protectedResourceMetadata(origin: string) {
     authorization_servers: [origin],
     scopes_supported: SCOPES_SUPPORTED,
     bearer_methods_supported: ["header"],
-    resource_name: "SnZ Ventures portal",
+    resource_name: "AdmitsFair portal",
   };
 }
 

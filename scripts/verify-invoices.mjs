@@ -98,24 +98,24 @@ console.log("\n=== VAT ===");
 
 console.log("\n=== invoice numbers ===");
 {
-  if (nextNumber(2026, []) !== "SNZ-2026-001") fail("the first number of a year is wrong");
-  if (nextNumber(2026, ["SNZ-2026-001", "SNZ-2026-002"]) !== "SNZ-2026-003") {
+  if (nextNumber(2026, []) !== "AF-2026-001") fail("the first number of a year is wrong");
+  if (nextNumber(2026, ["AF-2026-001", "AF-2026-002"]) !== "AF-2026-003") {
     fail("the next number did not follow the highest existing one");
   }
-  /* A gap must not be filled — SNZ-2026-002 was voided and skipped on purpose
+  /* A gap must not be filled — AF-2026-002 was voided and skipped on purpose
      in some other scenario; reusing 004 after 001,002,005 exist is wrong. */
-  if (nextNumber(2026, ["SNZ-2026-001", "SNZ-2026-005"]) !== "SNZ-2026-006") {
+  if (nextNumber(2026, ["AF-2026-001", "AF-2026-005"]) !== "AF-2026-006") {
     fail("a gap in the sequence was filled instead of continuing past the highest number");
   }
   /* A DIFFERENT YEAR RESETS THE COUNT. Existing 2025 numbers must not push
      2026's sequence forward. */
-  if (nextNumber(2026, ["SNZ-2025-099"]) !== "SNZ-2026-001") {
+  if (nextNumber(2026, ["AF-2025-099"]) !== "AF-2026-001") {
     fail("a prior year's numbers leaked into this year's sequence");
   }
   /* Numbers this parser cannot make sense of are ignored rather than crashing
      the whole calculation — a hand-edited or malformed row must not corrupt
      numbering for every invoice after it. */
-  if (nextNumber(2026, ["not-a-number", "SNZ-2026-003", ""]) !== "SNZ-2026-004") {
+  if (nextNumber(2026, ["not-a-number", "AF-2026-003", ""]) !== "AF-2026-004") {
     fail("a malformed existing number broke the calculation");
   }
   ok("numbers follow the highest issued this year, never fill a gap, and reset each year");

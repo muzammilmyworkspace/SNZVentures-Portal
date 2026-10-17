@@ -18,11 +18,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * STAKEHOLDERS — who shares the monthly profit, what each one's part is this
- * month, and whether it has been paid. SnZ Ventures' own share stays in the
+ * month, and whether it has been paid. AdmitsFair' own share stays in the
  * business. A profit share is not an expense.
  *
  * The partners share in the profit only: income less the costs marked as
- * shared. Costs SnZ Ventures carries alone (office rent, internet, phone)
+ * shared. Costs AdmitsFair carries alone (office rent, internet, phone)
  * do not lower their part.
  */
 export default async function StakeholdersPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
@@ -68,14 +68,14 @@ export default async function StakeholdersPage({ searchParams }: { searchParams:
           tone={profit < 0 ? "warn" : undefined}
           hint={profit <= 0 ? "Nothing to share" : `Earned ${eur(month.income)} − shared costs ${eur(month.sharedCost)}`}
         />
-        <MiniStat label="To pay stakeholders" value={eur(toPay)} tone={toPay ? "warn" : undefined} hint="Not counting SnZ Ventures' own share" />
-        <MiniStat label="SnZ Ventures carries alone" value={eur(month.ownCost)} hint="Rent, internet, phone… not in the partners' profit" />
+        <MiniStat label="To pay stakeholders" value={eur(toPay)} tone={toPay ? "warn" : undefined} hint="Not counting AdmitsFair' own share" />
+        <MiniStat label="AdmitsFair carries alone" value={eur(month.ownCost)} hint="Rent, internet, phone… not in the partners' profit" />
         <MiniStat label="Paid this month" value={eur(paid)} tone="in" hint={`${active.length} stakeholders · ${totalPct}% shared`} />
       </div>
 
       <Panel title={`Shares · ${monthName(ym)}`} className="mb-5" padded={holders.length === 0} action={<StakeholderForm label="+ Add stakeholder" />}>
         {holders.length === 0 ? (
-          <EmptyState icon="search" title="No stakeholders yet" body="Add SnZ Ventures (e.g. 50%) and each partner with their share (e.g. 25% each)." />
+          <EmptyState icon="search" title="No stakeholders yet" body="Add AdmitsFair (e.g. 50%) and each partner with their share (e.g. 25% each)." />
         ) : (
           <div className="rail overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">

@@ -264,7 +264,7 @@ export function StatCard({
         aria-hidden
         className={cn(
           "absolute inset-x-0 bottom-0 h-[3px] transition-opacity duration-300",
-          urgent ? "bg-[var(--accent)]" : "bg-gradient-to-r from-[#6FA6F7]/70 to-[#72C43C]/70 opacity-0 group-hover:opacity-100"
+          urgent ? "bg-[var(--accent)]" : "bg-gradient-to-r from-[#6FA6F7]/70 to-[#38BDF8]/70 opacity-0 group-hover:opacity-100"
         )}
       />
     </>
@@ -537,7 +537,7 @@ export function NextAction({
           <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{body}</p>
           <Link
             href={href}
-            className="group mt-7 inline-flex min-h-12 items-center gap-2.5 rounded-full bg-moss-400 px-6 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[#070B1A] shadow-[0_12px_30px_-12px_rgba(114,196,60,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-moss-300 motion-reduce:transform-none"
+            className="group mt-7 inline-flex min-h-12 items-center gap-2.5 rounded-full bg-moss-400 px-6 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[#070B1A] shadow-[0_12px_30px_-12px_rgba(56,189,248,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-moss-300 motion-reduce:transform-none"
           >
             {cta}
             <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1">
@@ -552,7 +552,7 @@ export function NextAction({
           <span className="absolute -bottom-[11px] -left-[11px] h-5 w-5 rounded-full bg-[var(--surface)]" />
           <span>
             <span className="label block text-[0.72rem] text-faint">Gate</span>
-            <span className="font-[family-name:var(--font-display)] text-[2rem] font-bold leading-none text-fg-strong">SNZ</span>
+            <span className="font-[family-name:var(--font-display)] text-[2rem] font-bold leading-none text-fg-strong">AF</span>
           </span>
           <svg viewBox="0 0 180 70" className="w-full overflow-visible">
             <path d="M4 62 C 60 62, 110 40, 176 8" fill="none" stroke="currentColor" className="text-line-strong" strokeWidth="1.4" strokeDasharray="3 6" />
@@ -861,7 +861,7 @@ export function Tabs({
             className={cn(
               "inline-flex min-h-10 items-center gap-2 rounded-full px-4 font-[family-name:var(--font-display)] text-[0.88rem] font-medium transition-all duration-300",
               on
-                ? "bg-moss-400 text-[#070B1A] shadow-[0_8px_20px_-10px_rgba(114,196,60,0.7)]"
+                ? "bg-moss-400 text-[#070B1A] shadow-[0_8px_20px_-10px_rgba(56,189,248,0.7)]"
                 : "border border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] text-muted hover:border-line-strong hover:text-fg"
             )}
           >

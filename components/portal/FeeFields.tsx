@@ -9,7 +9,7 @@ import {
 } from "@/lib/portal/payment-consent";
 
 /**
- * The two field sets of Form A, transcribed from snz-consent-forms.html.
+ * The two field sets of Form A, transcribed from the original consent forms.
  *
  * EVERY FIELD HERE IS IN THAT DOCUMENT, and every field in that document is
  * here — same labels, same hints, same optional/required split, same order.

@@ -52,7 +52,7 @@ export async function financeWorkbook(from: string, to: string): Promise<Buffer>
     widths: [34, 18],
     money: [1],
     rows: [
-      ["SnZ Ventures — finance", from === `${fromMonth}-01` && to === lastDay(toMonth) && fromMonth === toMonth ? monthName(fromMonth) : rangeText(from, to)],
+      ["AdmitsFair — finance", from === `${fromMonth}-01` && to === lastDay(toMonth) && fromMonth === toMonth ? monthName(fromMonth) : rangeText(from, to)],
       ["Earned (EUR)", eur(t.income)],
       ["Spent (EUR)", eur(t.expense)],
       [t.profit >= 0 ? "Profit (EUR)" : "Loss (EUR)", eur(t.profit)],
@@ -62,7 +62,7 @@ export async function financeWorkbook(from: string, to: string): Promise<Buffer>
       [],
       ["Profit share", "EUR"],
       ["Profit the partners share (EUR)", eur(pt.base)],
-      ["Costs SnZ Ventures carries alone (EUR)", eur(pt.ownCost)],
+      ["Costs AdmitsFair carries alone (EUR)", eur(pt.ownCost)],
       ...active.map((h) => [`${h.name} (${h.sharePct}%)`, eur(shareOf(pt.base, h.sharePct))] as (string | number | null)[]),
       ...(t.missing.length ? [[], [`Not in the euro totals (no exchange rate set): ${t.missing.join(", ")}`]] : []),
     ],

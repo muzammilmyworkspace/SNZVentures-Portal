@@ -8,7 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Confirm Your Email",
-  description: "Confirm the email address on your SnZ Ventures account.",
+  description: "Confirm the email address on your AdmitsFair account.",
   path: "/verify-email",
   noIndex: true,
 });

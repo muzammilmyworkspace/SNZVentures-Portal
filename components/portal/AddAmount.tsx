@@ -216,7 +216,7 @@ export function AddAmount({
                     </select>
                     {vatMode === "reverse_charge" && (
                       <span className="mt-1 block text-[0.76rem] text-faint">
-                        SnZ declares 21% VAT on this ({vatText}) to VMI and deducts the same 21%: the amount paid does not change.
+                        AdmitsFair declares 21% VAT on this ({vatText}) to VMI and deducts the same 21%: the amount paid does not change.
                       </span>
                     )}
                   </label>
@@ -226,7 +226,7 @@ export function AddAmount({
                     <input name="partnerCost" type="checkbox" value="1" defaultChecked className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
                     <span>
                       The partners share this cost
-                      <span className="block text-[0.76rem] text-faint">Untick for costs SnZ Ventures carries alone, like office rent, internet or phone.</span>
+                      <span className="block text-[0.76rem] text-faint">Untick for costs AdmitsFair carries alone, like office rent, internet or phone.</span>
                     </span>
                   </label>
                 )}

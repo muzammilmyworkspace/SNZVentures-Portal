@@ -80,7 +80,7 @@ export function ConfirmEmailChange({ token }: { token: string | null }) {
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-line p-6 sm:p-8">
-      <p className="label text-faint">SnZ Ventures</p>
+      <p className="label text-faint">AdmitsFair</p>
       <h1 className="mt-3 text-[1.4rem] font-bold tracking-[-0.02em] text-fg-strong">
         Confirm your new email address
       </h1>

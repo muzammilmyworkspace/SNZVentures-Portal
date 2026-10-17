@@ -375,9 +375,9 @@ export function PortalShell({
         {/* Sidebar — desktop */}
         <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 backdrop-blur-xl lg:flex">
           <Link href={home} className="mb-8 flex items-center gap-2.5 px-2">
-            <Image src="/brand/snz-mark.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
+            <Image src="/brand/admitsfair-cap.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
             <span className="flex flex-col leading-none">
-              <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.02em] text-fg">SnZ Ventures</span>
+              <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.02em] text-fg">AdmitsFair</span>
               <span className="label mt-1 text-[0.72rem] text-faint">Client portal</span>
             </span>
           </Link>

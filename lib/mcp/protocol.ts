@@ -96,7 +96,7 @@ const text = (id: Id, body: string, isError: boolean): JsonRpcResponse =>
  * than by omission.
  */
 export const INSTRUCTIONS = [
-  "Read-only access to the SnZ Ventures client portal: students, their",
+  "Read-only access to the AdmitsFair client portal: students, their",
   "applications, fee submissions and documents. Call list_application_fields",
   "first when you need to know which application questions exist — the answers",
   "are stored under short keys, and that tool maps them to their real labels.",

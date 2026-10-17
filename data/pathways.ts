@@ -1,6 +1,6 @@
 /**
  * THE THREE PATHWAYS — the spine of the whole site.
- * Every claim here maps to a service verified on the live snzventures.com.
+ * Every claim here maps to a service verified on the live admitsfair.com.
  */
 
 export type PathwayKey = "study" | "careers" | "business";
@@ -143,7 +143,7 @@ export const problems: {
   },
 ];
 
-/** SECTION 4 — the SNZ approach. Six steps, deliberately unglamorous. */
+/** SECTION 4 — the ADMITSFAIR approach. Six steps, deliberately unglamorous. */
 export const approach = [
   {
     step: "01",

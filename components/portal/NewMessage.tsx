@@ -205,7 +205,7 @@ export function NewMessageButton({
   );
 }
 
-/** A consultant writes to the firm: opens their own thread with SnZ Ventures. */
+/** A consultant writes to the firm: opens their own thread with AdmitsFair. */
 export function MessageFirmButton({ name }: { name: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -240,10 +240,10 @@ export function MessageFirmButton({ name }: { name: string }) {
         className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-[0.95rem] font-semibold text-[#070B1A] transition-opacity hover:opacity-90"
       >
         {plusIcon}
-        Message SnZ Ventures
+        Message AdmitsFair
       </button>
       {open && (
-        <Window title="Message SnZ Ventures" onClose={() => setOpen(false)}>
+        <Window title="Message AdmitsFair" onClose={() => setOpen(false)}>
           <label htmlFor="mf-text" className="field-label">Message</label>
           <textarea id="mf-text" autoFocus value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={4000} className="field mt-1.5 resize-y" />
           {error && <p role="alert" className="mt-2 text-[0.85rem] text-danger">{error}</p>}

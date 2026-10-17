@@ -149,7 +149,7 @@ export async function getById(id: string): Promise<InvoiceRow | null> {
 }
 
 /** How many numbers this year already exist, so the next one follows on. */
-async function numbersThisYear(year: number, prefix: "SNZ" | "PF" = "SNZ"): Promise<string[]> {
+async function numbersThisYear(year: number, prefix: "AF" | "PF" = "AF"): Promise<string[]> {
   return safeQuery(async () => {
     const rows = await db()`
       SELECT number FROM invoices WHERE number LIKE ${prefix + "-" + year + "-%"}
@@ -162,7 +162,7 @@ async function numbersThisYear(year: number, prefix: "SNZ" | "PF" = "SNZ"): Prom
  * Raises an invoice, claiming its number as it saves.
  *
  * THE RETRY IS THE POINT. The number is worked out from the rows that exist,
- * so two people saving in the same second both compute SNZ-2026-004 — and the
+ * so two people saving in the same second both compute AF-2026-004 — and the
  * unique index lets exactly one of them have it. The loser recomputes and
  * takes 005 instead of failing in front of somebody who has just typed out a
  * whole invoice.
@@ -175,7 +175,7 @@ export async function create(
 ): Promise<InvoiceRow> {
   const year = Number(input.issuedOn.slice(0, 4));
   const kind: InvoiceKind = input.kind === "proforma" ? "proforma" : "invoice";
-  const prefix = kind === "proforma" ? "PF" : "SNZ";
+  const prefix = kind === "proforma" ? "PF" : "AF";
   const lines = input.lines.map((l) => ({ desc: l.desc, amount_cents: l.amountCents }));
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -253,7 +253,7 @@ export async function deleteDraft(id: string): Promise<boolean> {
 
 /**
  * TURNS A PROFORMA INTO A TAX INVOICE, once it is paid: a new tax invoice
- * (its own SNZ number, as a draft to issue) with the same lines, and the
+ * (its own AF number, as a draft to issue) with the same lines, and the
  * proforma remembers which invoice it became. A proforma is never income
  * itself; the tax invoice is.
  */

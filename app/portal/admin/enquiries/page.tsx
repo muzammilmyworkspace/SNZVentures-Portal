@@ -34,7 +34,7 @@ function WhatsAppAction({ enquiry: e }: { enquiry: Enquiry }) {
   const first = e.name.trim().split(/\s+/)[0] ?? "";
   const href = whatsappLink(
     e.phone,
-    `Hello ${first}, this is SnZ Ventures. Thank you for your enquiry on our website. When is a good time to talk?`
+    `Hello ${first}, this is AdmitsFair. Thank you for your enquiry on our website. When is a good time to talk?`
   );
   if (!href) {
     return (
@@ -115,7 +115,7 @@ export default async function EnquiriesPage({
   return (
     <>
       <PortalHeading
-        eyebrow="From snzventures.com"
+        eyebrow="From admitsfair.com"
         title="Website enquiries"
         lead="People who contacted us directly through the website, before they have a portal account. Newest first, with where each one came from. WhatsApp chats started from the site are counted underneath."
       />

@@ -64,7 +64,7 @@ export default async function StudentsPage({
 
   const all = await deskStudents();
   /*
-    BROUGHT BY. Everyone here sees whether a student is SnZ Ventures' own or
+    BROUGHT BY. Everyone here sees whether a student is AdmitsFair' own or
     came through a consultant. Only the student desk (the Admin role) is not
     told WHICH consultant; it sees "Consultant".
   */
@@ -202,8 +202,8 @@ export default async function StudentsPage({
                           {desk ? "Consultant" : s.consultantName}
                         </span>
                       ) : (
-                        <span data-group="employee" className="group-tag whitespace-nowrap" title="Came to SnZ Ventures directly">
-                          SnZ Ventures
+                        <span data-group="employee" className="group-tag whitespace-nowrap" title="Came to AdmitsFair directly">
+                          AdmitsFair
                         </span>
                       )}
                     </td>

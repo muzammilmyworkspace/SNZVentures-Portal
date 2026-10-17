@@ -212,7 +212,7 @@ export function DocumentUploader({
       </div>
 
       <p className="mt-4 text-[0.75rem] leading-relaxed text-faint">
-        Documents are stored privately and are visible only to you and the SnZ
+        Documents are stored privately and are visible only to you and the AdmitsFair
         staff working on your case.
       </p>
     </div>

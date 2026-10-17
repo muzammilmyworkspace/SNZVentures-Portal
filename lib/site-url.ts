@@ -8,7 +8,7 @@ import { company } from "@/data/company";
  * the portal is a locked-out user who stays locked out.
  *
  * That is exactly what was happening. The fallback was `company.siteUrl`
- * (www.snzventures.com), which is the marketing domain and is NOT currently the
+ * (www.admitsfair.com), which is the marketing domain and is NOT currently the
  * Vercel deployment — every portal path on it answers 404. So the one link in
  * the email led nowhere.
  *

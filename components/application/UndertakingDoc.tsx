@@ -164,9 +164,9 @@ export function ConsentDoc({ consent }: { consent?: ConsentView | null }) {
  * The consent step of the application.
  *
  * A student who came through a consultant sees that consultant's consent
- * ONLY (never SnZ Ventures'): the student is the consultant's. Until the
+ * ONLY (never AdmitsFair'): the student is the consultant's. Until the
  * consultant has published one, the step says so and the application waits.
- * Everyone else sees SnZ Ventures' consent.
+ * Everyone else sees AdmitsFair' consent.
  */
 export function UndertakingDoc({
   consent,
@@ -195,7 +195,7 @@ export function UndertakingDoc({
       <ConsentDoc consent={partner} />
       <p className="rounded-[var(--radius-md)] border border-line px-4 py-3 text-[0.85rem] leading-relaxed text-fg">
         Ticking the box and typing your name below means you agree to <strong className="font-semibold">both</strong>{" "}
-        documents above: SnZ Ventures&apos; and {partner.party}&apos;s.
+        documents above: AdmitsFair&apos; and {partner.party}&apos;s.
       </p>
     </div>
   );

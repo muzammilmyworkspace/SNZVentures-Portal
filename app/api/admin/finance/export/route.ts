@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   return new Response(new Uint8Array(file), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="SnZ-finance-${label}.xlsx"`,
+      "Content-Disposition": `attachment; filename="AdmitsFair-finance-${label}.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

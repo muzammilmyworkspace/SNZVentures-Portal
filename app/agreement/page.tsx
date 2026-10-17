@@ -10,7 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Consultant agreement",
-  description: "Sign the SnZ Ventures consultant agreement.",
+  description: "Sign the AdmitsFair consultant agreement.",
   path: "/agreement",
   noIndex: true,
 });
@@ -18,7 +18,7 @@ export const metadata: Metadata = buildMetadata({
 export const dynamic = "force-dynamic";
 
 /**
- * A consultant signs SnZ Ventures' consultant agreement before using the
+ * A consultant signs AdmitsFair' consultant agreement before using the
  * portal, and again for each new version. Outside /portal so the portal can
  * send them here without a loop.
  */
@@ -33,7 +33,7 @@ export default async function AgreementPage() {
   return (
     <AuthShell
       title="One step before you start."
-      lead="Read and sign the agreement between you and SnZ Ventures. You will be asked again only when it changes."
+      lead="Read and sign the agreement between you and AdmitsFair. You will be asked again only when it changes."
     >
       <AgreementForm agreement={agreement} name={session.name} />
     </AuthShell>

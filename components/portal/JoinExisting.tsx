@@ -90,8 +90,8 @@ export function JoinExisting({
 
       <p className="text-[0.8rem] leading-relaxed text-faint">
         Don&rsquo;t recognise that name? Don&rsquo;t continue — close this page and tell us at{" "}
-        <a href="mailto:study@snzventures.com" className="underline underline-offset-4 hover:text-fg">
-          study@snzventures.com
+        <a href="mailto:admitsfair@gmail.com" className="underline underline-offset-4 hover:text-fg">
+          admitsfair@gmail.com
         </a>
         .
       </p>

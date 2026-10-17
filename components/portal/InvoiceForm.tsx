@@ -20,7 +20,7 @@ import {
  * because the wrong figure is the one somebody checks against.
  *
  * The number is NOT shown here. It is claimed by the database at save, so
- * displaying "SNZ-2026-004" on a form two people might have open would promise
+ * displaying "AF-2026-004" on a form two people might have open would promise
  * one of them a number they will not get.
  */
 
@@ -89,7 +89,7 @@ export function InvoiceForm() {
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Type of invoice">
           {(
             [
-              ["invoice", "Tax invoice", "Numbered SNZ-2026-001. Counts as income once paid."],
+              ["invoice", "Tax invoice", "Numbered AF-2026-001. Counts as income once paid."],
               ["proforma", "Proforma invoice", "Numbered PF-2026-001. Sent before payment; never income. Turned into a tax invoice when paid."],
             ] as const
           ).map(([k, label, hint]) => (

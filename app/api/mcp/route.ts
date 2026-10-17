@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic";
  * signed-in user visits could be made to call it.
  */
 
-const SERVER = { name: "snz-portal", version: "1.0.0" };
+const SERVER = { name: "admitsfair-portal", version: "1.0.0" };
 
 const json = (body: unknown, status = 200) =>
   NextResponse.json(body, {

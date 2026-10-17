@@ -33,7 +33,7 @@ export default async function FixedCostsPage() {
     <>
       <FinanceHeader
         title="Fixed expenses"
-        lead="Everything you pay every month. Add it once with its bill; it goes into Expenses each month by itself. Say whether the partners share it: office rent, internet and phone are SnZ Ventures' own."
+        lead="Everything you pay every month. Add it once with its bill; it goes into Expenses each month by itself. Say whether the partners share it: office rent, internet and phone are AdmitsFair' own."
         path="/portal/admin/finance/fixed"
         ym={now}
         monthly={false}
@@ -44,7 +44,7 @@ export default async function FixedCostsPage() {
         <MiniStat
           label="Partners share"
           value={eur(sharedMonthly)}
-          hint={`SnZ only: ${eur(monthly - sharedMonthly)} a month · ${running.length} running`}
+          hint={`AdmitsFair only: ${eur(monthly - sharedMonthly)} a month · ${running.length} running`}
         />
         <MiniStat label={`Paid · ${monthName(now)}`} value={eur(paid.cents)} tone="in" />
         <MiniStat label={`In process · ${monthName(now)}`} value={eur(due.cents)} tone={due.cents ? "warn" : undefined} />
@@ -90,7 +90,7 @@ export default async function FixedCostsPage() {
                     <td className="px-4 py-3 text-[0.85rem] text-muted">{r.dayOfMonth}</td>
                     <td className="px-4 py-3 text-[0.85rem] text-muted">{r.autoPaid ? "Automatically" : "You mark it"}</td>
                     <td className="px-4 py-3">
-                      {r.partnerCost ? <span className="pill pill-info">Shared</span> : <span className="pill pill-neutral">SnZ only</span>}
+                      {r.partnerCost ? <span className="pill pill-info">Shared</span> : <span className="pill pill-neutral">AdmitsFair only</span>}
                     </td>
                     <td className="px-4 py-3 text-[0.85rem]">
                       {r.hasBill ? (

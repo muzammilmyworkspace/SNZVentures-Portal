@@ -17,7 +17,7 @@ export function ConsultantAppActions({
   userId: string;
   name: string;
   status: string;
-  /** Is a SnZ <-> consultant consent in use? Without one, approval needs no signature. */
+  /** Is a AdmitsFair <-> consultant consent in use? Without one, approval needs no signature. */
   consentActive: boolean;
 }) {
   const router = useRouter();

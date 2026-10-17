@@ -89,7 +89,7 @@ if (transport === "none") {
 
 const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 const platform = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-const base = explicit || (platform ? `https://${platform}` : "https://www.snzventures.com");
+const base = explicit || (platform ? `https://${platform}` : "https://www.admitsfair.com");
 
 const probe = PROD ?? base;
 const res = await fetch(`${probe}/reset-password`, { redirect: "manual" }).catch(() => null);
@@ -110,7 +110,7 @@ if (process.env.DATABASE_URL) {
   const postgres = (await import("postgres")).default;
   const sql = postgres(process.env.DATABASE_URL, { max: 1, ssl: "require", prepare: false });
   try {
-    const rows = await sql`SELECT email FROM users WHERE email LIKE '%.demo@snzventures.com'`;
+    const rows = await sql`SELECT email FROM users WHERE email LIKE '%.demo@admitsfair.com'`;
     rows.length === 0
       ? ok("no QA accounts on the database")
       : warn(

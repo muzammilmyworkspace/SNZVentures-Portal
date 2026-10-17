@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * THE SUPER ADMIN'S DECISIONS ON A CONSULTANT APPLICATION.
  *
  *   send_consent   submitted -> consent_sent; the applicant is emailed to sign
- *                  the SnZ Ventures <-> consultant consent in the portal
+ *                  the AdmitsFair <-> consultant consent in the portal
  *   approve        consent_signed -> approved: the account becomes a
  *                  consultant. Straight from submitted only when no consent
  *                  is in use, since there is then nothing to sign.
@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
 async function tell(to: { email: string; name: string }, subject: string, lines: string[]): Promise<boolean> {
   if (!(await mailConfigured())) return false;
   try {
-    await sendMail({ to: to.email, subject, text: [`Hello ${to.name},`, "", ...lines, "", "SnZ Ventures"].join("\n") });
+    await sendMail({ to: to.email, subject, text: [`Hello ${to.name},`, "", ...lines, "", "AdmitsFair"].join("\n") });
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -60,15 +60,15 @@ export async function PATCH(request: Request) {
     const consent = await currentTemplate("consultant", null);
     if (!consent) {
       return NextResponse.json(
-        { ok: false, error: "No SnZ ↔ Consultant consent is active. Publish one under Forms → Consent forms first." },
+        { ok: false, error: "No AdmitsFair ↔ Consultant consent is active. Publish one under Forms → Consent forms first." },
         { status: 409 }
       );
     }
     if (!(await moveApplication(userId, "consent_sent", ["submitted"]))) {
       return NextResponse.json({ ok: false, error: "This application is not waiting for review." }, { status: 409 });
     }
-    const emailed = await tell(user, "Your SnZ Ventures consultant application: one step left", [
-      "Thank you for applying to work with SnZ Ventures as a consultant.",
+    const emailed = await tell(user, "Your AdmitsFair consultant application: one step left", [
+      "Thank you for applying to work with AdmitsFair as a consultant.",
       "",
       "We have reviewed your details. Please sign in and read and sign our consultant agreement:",
       login,
@@ -108,8 +108,8 @@ export async function PATCH(request: Request) {
       company: app.companyName ?? "",
       address_line: app.address ?? "",
     });
-    const emailed = await tell(user, "Welcome to SnZ Ventures: your consultant account is ready", [
-      "Your application has been approved. You can now sign in to the portal as a SnZ Ventures consultant:",
+    const emailed = await tell(user, "Welcome to AdmitsFair: your consultant account is ready", [
+      "Your application has been approved. You can now sign in to the portal as a AdmitsFair consultant:",
       login,
       "",
       "Your consultant code is waiting in the portal. Share it with your students so they are linked to you when they sign up.",
@@ -124,8 +124,8 @@ export async function PATCH(request: Request) {
     if (!(await moveApplication(userId, "rejected", ["submitted", "consent_sent", "consent_signed"], { decidedBy: session.userId, reason }))) {
       return NextResponse.json({ ok: false, error: "This application is already decided." }, { status: 409 });
     }
-    const emailed = await tell(user, "Your SnZ Ventures consultant application", [
-      "Thank you for applying to work with SnZ Ventures as a consultant. We are not able to approve your application as it stands:",
+    const emailed = await tell(user, "Your AdmitsFair consultant application", [
+      "Thank you for applying to work with AdmitsFair as a consultant. We are not able to approve your application as it stands:",
       "",
       reason,
       "",

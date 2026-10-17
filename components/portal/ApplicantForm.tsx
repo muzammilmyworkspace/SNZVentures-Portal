@@ -8,7 +8,7 @@ import type { ConsentView } from "@/lib/portal/forms";
 /**
  * THE CONSULTANT APPLICATION, filled in by the applicant: their details,
  * their company, its documents. Save to come back to it; Submit sends it to
- * SnZ Ventures. Posts to /api/portal/applicant.
+ * AdmitsFair. Posts to /api/portal/applicant.
  */
 
 export type ApplicantDetails = {
@@ -61,7 +61,7 @@ export function ApplicantForm({
     e?.preventDefault();
     setError(null);
     setSaved(false);
-    if (action === "submit" && !window.confirm("Send your application to SnZ Ventures? You cannot change it while it is being reviewed.")) return;
+    if (action === "submit" && !window.confirm("Send your application to AdmitsFair? You cannot change it while it is being reviewed.")) return;
     setBusy(action);
     const r = await post({
       action,

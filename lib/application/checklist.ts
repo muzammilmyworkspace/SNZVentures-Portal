@@ -12,7 +12,7 @@
  * than explaining the general rule and leaving them to work it out.
  *
  * NOTHING HERE IS INVENTED. The requirements, the attestation chains and the
- * scanning rules are SnZ Ventures' own document, reproduced. Where the source
+ * scanning rules are AdmitsFair' own document, reproduced. Where the source
  * says a score depends on the university, this says that too rather than
  * picking a number — a checklist that states a requirement more precisely than
  * the institution does is a checklist that will be wrong for somebody.

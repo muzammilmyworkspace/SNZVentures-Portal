@@ -39,10 +39,10 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-face", 
 
 export const metadata: Metadata = {
   title: {
-    default: "SnZ Ventures — Client Portal",
-    template: "%s | SnZ Ventures",
+    default: "AdmitsFair — Client Portal",
+    template: "%s | AdmitsFair",
   },
-  description: "Sign in to your SnZ Ventures client portal.",
+  description: "Sign in to your AdmitsFair client portal.",
   robots: { index: false, follow: false },
 };
 

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const MODES = ["video", "phone", "office"] as const;
 
 /**
- * ASK SNZ VENTURES FOR A CONSULTATION — students (any client) and
+ * ASK ADMITSFAIR FOR A CONSULTATION — students (any client) and
  * consultants. The team gets a notification and gives it a time from
  * Consultations; until then it waits as "requested".
  */
