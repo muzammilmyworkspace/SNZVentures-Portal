@@ -1,5 +1,5 @@
 import "server-only";
-import { mailConfig, DEFAULT_FROM } from "./mail";
+import { mailConfig, gmailTransport, DEFAULT_FROM } from "./mail";
 import { getStoredMail } from "./db/repos/mail-settings";
 
 /**
@@ -16,7 +16,7 @@ import { getStoredMail } from "./db/repos/mail-settings";
  */
 
 export type MailStatus = {
-  transport: "resend" | "webhook" | "none";
+  transport: "gmail" | "resend" | "webhook" | "none";
   /** Environment variable, a key entered in the portal, or nothing. */
   source: "environment" | "portal" | "none";
   from: string | null;
@@ -48,6 +48,20 @@ export async function mailStatus(): Promise<MailStatus> {
     lastSentAt: stored?.lastSentAt ?? null,
     error: null,
   };
+
+  if (cfg.transport === "gmail") {
+    // Signs in to Gmail without sending anything: a wrong or revoked app
+    // password fails here, on this page, instead of on a student's reset.
+    try {
+      const transporter = await gmailTransport(cfg);
+      await transporter.verify();
+      base.keyAccepted = true;
+    } catch (error) {
+      base.keyAccepted = false;
+      base.error = error instanceof Error ? error.message : "Gmail did not accept the sign-in.";
+    }
+    return base;
+  }
 
   if (cfg.transport !== "resend" || !cfg.apiKey) return base;
 

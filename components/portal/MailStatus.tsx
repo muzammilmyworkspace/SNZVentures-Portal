@@ -51,6 +51,7 @@ export function MailStatusPanel({
 
   const working =
     status.transport === "webhook" ||
+    (status.transport === "gmail" && status.keyAccepted === true) ||
     (status.keyAccepted === true && Boolean(status.from) && verified);
 
   return (
@@ -65,6 +66,7 @@ export function MailStatusPanel({
             ? "Email is working, using the key entered here."
             : "Email is working, using the deployment's own settings."
           : "Email cannot be sent yet. The first ✗ below is what to fix."}
+        {working && status.transport === "gmail" && " Messages go out from the Gmail account."}
       </p>
 
       <ul>
@@ -87,6 +89,18 @@ export function MailStatusPanel({
             )
           }
         />
+
+        {status.transport === "gmail" && (
+          <Line
+            ok={status.keyAccepted}
+            label="Gmail accepts the app password"
+            detail={
+              status.keyAccepted
+                ? "Signed in to Gmail. Gmail sends up to about 500 messages a day."
+                : `Gmail refused the sign-in${status.error ? `: ${status.error}` : ""}. Check GMAIL_USER and create a new app password (Google Account → Security → App passwords).`
+            }
+          />
+        )}
 
         {status.transport === "resend" && (
           <Line
@@ -118,7 +132,7 @@ export function MailStatusPanel({
           />
         )}
 
-        {status.keyAccepted === true && (
+        {status.transport === "resend" && status.keyAccepted === true && (
           <Line
             ok={verified}
             label={`Resend will send from ${domain ?? "that domain"}`}

@@ -5,6 +5,9 @@
  * are driven purely by environment variables, so going live is configuration
  * rather than a code change:
  *
+ *   GMAIL_USER + GMAIL_APP_PASSWORD → send through that Gmail account (SMTP),
+ *                      so mail comes from the firm's own @gmail.com address.
+ *                      Needs a Google "App password"; about 500 messages a day.
  *   RESEND_API_KEY   → Resend REST API
  *   MAIL_WEBHOOK_URL → POST the payload to any endpoint (Zapier, Make, n8n,
  *                      a CRM intake, or your own SMTP relay service)
@@ -49,13 +52,26 @@ export const DEFAULT_TO = "admitsfair@gmail.com";
 export const DEFAULT_FROM = "AdmitsFair <noreply@admitsfair.com>";
 
 export type MailConfig = {
-  transport: "resend" | "webhook" | "none";
+  transport: "gmail" | "resend" | "webhook" | "none";
   /** Where it came from, so the admin screen can say which one is in force. */
   source: "environment" | "portal" | "none";
   apiKey: string | null;
   webhookUrl: string | null;
   from: string;
+  /** Gmail only: the account that signs in, and its app password. */
+  gmailUser?: string;
+  gmailPassword?: string;
 };
+
+/**
+ * Gmail sends only as the account that signed in, so the sender is that
+ * address; MAIL_FROM contributes just its display name ("AdmitsFair").
+ */
+function gmailFrom(user: string): string {
+  const configured = env("MAIL_FROM");
+  const name = configured && /^(.*?)\s*</.exec(configured)?.[1]?.replace(/"/g, "").trim();
+  return `${name || "AdmitsFair"} <${user}>`;
+}
 
 /**
  * WHAT WILL ACTUALLY BE USED TO SEND, and where it came from.
@@ -71,6 +87,21 @@ export type MailConfig = {
  */
 export async function mailConfig(): Promise<MailConfig> {
   const from = envOr("MAIL_FROM", DEFAULT_FROM);
+
+  const gmailUser = env("GMAIL_USER");
+  const gmailPassword = env("GMAIL_APP_PASSWORD");
+  if (gmailUser && gmailPassword) {
+    return {
+      transport: "gmail",
+      source: "environment",
+      apiKey: null,
+      webhookUrl: null,
+      from: gmailFrom(gmailUser),
+      gmailUser,
+      // Google shows app passwords in groups of four; the spaces are not part of it.
+      gmailPassword: gmailPassword.replace(/\s+/g, ""),
+    };
+  }
 
   if (process.env.RESEND_API_KEY) {
     return {
@@ -115,7 +146,7 @@ export async function mailConfigured(): Promise<boolean> {
   return (await mailConfig()).transport !== "none";
 }
 
-export async function mailTransport(): Promise<"resend" | "webhook" | "none"> {
+export async function mailTransport(): Promise<MailConfig["transport"]> {
   return (await mailConfig()).transport;
 }
 
@@ -123,6 +154,23 @@ export async function sendMail(message: MailMessage): Promise<void> {
   const to = message.to ?? env("MAIL_TO") ?? DEFAULT_TO;
   const cfg = await mailConfig();
   const from = cfg.from;
+
+  if (cfg.transport === "gmail") {
+    const transporter = await gmailTransport(cfg);
+    try {
+      await transporter.sendMail({
+        from,
+        to,
+        subject: message.subject,
+        text: message.text,
+        ...(message.html ? { html: message.html } : {}),
+        ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+      });
+    } catch (error) {
+      throw new Error(`Gmail refused the message: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
 
   if (cfg.transport === "resend") {
     const res = await fetch("https://api.resend.com/emails", {
@@ -189,4 +237,18 @@ async function noteMailResult(error: string | null): Promise<void> {
   } catch {
     // Bookkeeping. A message that went out has gone out.
   }
+}
+
+/** SMTP to Gmail. Imported lazily: most routes never send mail. */
+export async function gmailTransport(cfg: MailConfig) {
+  const nodemailer = (await import("nodemailer")).default;
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: cfg.gmailUser, pass: cfg.gmailPassword },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  });
 }
