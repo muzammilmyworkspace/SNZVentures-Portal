@@ -63,19 +63,17 @@ export default async function SettingsPage() {
           thing — the two ways into this account — and separating them is how
           somebody ends up asking a developer to run an UPDATE.
         */}
-        <Panel title="Your name">
-          <ChangeName current={session.name} />
-        </Panel>
-
         <Panel title="Email address">
           <ChangeEmail current={session.email} />
         </Panel>
 
         <Panel title="Account">
           <dl className="space-y-4">
-            <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
-              <dt className="label text-faint">Name</dt>
-              <dd className="text-[0.9rem] text-fg">{session.name}</dd>
+            <div className="border-b border-line pb-4">
+              <dt className="sr-only">Name</dt>
+              <dd>
+                <ChangeName current={session.name} />
+              </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
               <dt className="label text-faint">Email</dt>
