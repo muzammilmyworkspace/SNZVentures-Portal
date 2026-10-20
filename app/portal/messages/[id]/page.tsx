@@ -42,7 +42,7 @@ export default async function ConversationPage({
   await repo.markConversationRead(id, session.userId);
   const head = await repo.conversationHeader(id);
   const staff = isStaff(session.role);
-  // Staff reading their own thread with the firm, or a client: it is "AdmitsFair".
+  // Staff reading their own thread with the firm, or a client: it is "SnZ Ventures".
   const withFirm = !head || head.ownerId === session.userId;
   const group = head ? groupOf(head.role) : "student";
 
@@ -60,14 +60,14 @@ export default async function ConversationPage({
         <span className="flex min-w-0 items-center gap-4">
           {withFirm ? (
             <span aria-hidden className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[0.85rem] font-bold text-[#070B1A]">
-              AdmitsFair
+              SnZ
             </span>
           ) : (
             <Avatar id={head!.ownerId} name={head!.name} photo={head!.avatarV != null} v={head!.avatarV} size="lg" />
           )}
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-[1.3rem] font-semibold text-fg-strong">{withFirm ? "AdmitsFair" : head!.name}</h1>
+              <h1 className="truncate text-[1.3rem] font-semibold text-fg-strong">{withFirm ? "SnZ Ventures" : head!.name}</h1>
               {!withFirm && (
                 <span data-group={group} className="group-tag">
                   {group === "consultant" ? "Consultant" : group === "employee" ? "Employee" : "Student"}

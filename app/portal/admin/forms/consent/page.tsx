@@ -26,26 +26,26 @@ export const dynamic = "force-dynamic";
 /**
  * CONSENT FORMS.
  *
- * Super admin: AdmitsFair' two documents, each with drafts and versions
- *   Students     AdmitsFair <-> student, signed at the end of the application
- *   Consultants  AdmitsFair <-> consultant, signed by each consultant at sign-in
+ * Super admin: SnZ Ventures' two documents, each with drafts and versions
+ *   Students     SnZ Ventures <-> student, signed at the end of the application
+ *   Consultants  SnZ Ventures <-> consultant, signed by each consultant at sign-in
  * plus a read-only look at what each consultant gives their own students.
  *
  * Consultant: their own consent for their students (with their logo), which
  * their students agree to before submitting the application. They never see
- * AdmitsFair' documents here.
+ * SnZ Ventures' documents here.
  */
 
 const TABS: { key: string; label: string; category?: ConsentCategory; lead: string }[] = [
   {
     key: "student",
-    label: "AdmitsFair ↔ Students",
+    label: "SnZ ↔ Students",
     category: "student",
     lead: "Every student signs the active one at the end of their application. If none is active, the original built-in wording is used.",
   },
   {
     key: "consultant",
-    label: "AdmitsFair ↔ Consultants",
+    label: "SnZ ↔ Consultants",
     category: "consultant",
     lead: "Every consultant must sign the active one when they sign in, and again whenever you publish a new version. None active: nothing to sign.",
   },
@@ -139,7 +139,7 @@ export default async function ConsentFormPage({
       {!isConsultant && <TabBar active={tab!.key} />}
       <p className="mb-5 max-w-3xl text-[0.9rem] text-muted">
         {isConsultant
-          ? "Your students read and agree to the active one before they submit their application, together with AdmitsFair' own. Type it or upload a PDF / Word file, add your logo, check the draft, then publish."
+          ? "Your students read and agree to the active one before they submit their application, together with SnZ Ventures' own. Type it or upload a PDF / Word file, add your logo, check the draft, then publish."
           : tab!.lead}
       </p>
 

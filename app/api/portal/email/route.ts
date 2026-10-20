@@ -134,10 +134,10 @@ export async function POST(request: Request) {
   */
   await sendMail({
     to: next,
-    subject: "Confirm your new AdmitsFair email address",
+    subject: "Confirm your new SnZ Ventures email address",
     text:
       `Hello ${session.name},\n\n` +
-      `You asked to use this address for your AdmitsFair portal account. ` +
+      `You asked to use this address for your SnZ Ventures portal account. ` +
       `Confirm it here — the link works once and expires in an hour:\n\n${link}\n\n` +
       `Until you confirm, you keep signing in with ${session.email}.\n\n` +
       `If you did not ask for this, ignore this message and nothing changes.`,
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
 
   await sendMail({
     to: session.email,
-    subject: "Someone asked to change your AdmitsFair email address",
+    subject: "Someone asked to change your SnZ Ventures email address",
     text:
       `Hello ${session.name},\n\n` +
       `A request was made to move your portal account to ${next}. ` +

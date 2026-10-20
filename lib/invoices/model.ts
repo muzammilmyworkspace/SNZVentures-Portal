@@ -103,22 +103,18 @@ export function totalsFor(lines: readonly Line[], vatBp: number): Totals {
 
 /* ------------------------------------------------------------ numbering --- */
 
-/**
- * Tax invoices are numbered AF-YYYY-NNN. Invoices issued before the rebrand
- * keep their SNZ-YYYY-NNN numbers: an issued invoice is never renumbered.
- */
-export const NUMBER_PATTERN = /^AF-(\d{4})-(\d{3,})$/;
+export const NUMBER_PATTERN = /^SNZ-(\d{4})-(\d{3,})$/;
 
 /**
  * The next number, worked out from the ones that already exist.
  *
  * Read off the table rather than kept as a counter, so a gap — or a number
  * somebody set by hand — cannot make the next invoice collide with one already
- * sent. Two documents claiming to be AF-2026-004 is the failure this exists
+ * sent. Two documents claiming to be SNZ-2026-004 is the failure this exists
  * to prevent, and the unique index behind it is what makes the guarantee real
  * when two people press Save at the same moment.
  */
-export function nextNumber(year: number, existing: readonly string[], prefix: "AF" | "PF" = "AF"): string {
+export function nextNumber(year: number, existing: readonly string[], prefix: "SNZ" | "PF" = "SNZ"): string {
   // A proforma has its own series (PF-2026-001): it is not a tax invoice, so it
   // must never take a number from the tax-invoice sequence.
   const pattern = prefix === "PF" ? /^PF-(\d{4})-(\d{3,})$/ : NUMBER_PATTERN;

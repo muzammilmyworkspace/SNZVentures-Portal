@@ -32,7 +32,7 @@ const HOW: Record<string, { token: string; steps: string[] }> = {
     steps: [
       "Sign in to Wise Business on the web.",
       "Settings → Developer tools → API tokens → Add new token.",
-      "Choose Read only, give it a name (e.g. AdmitsFair portal), create it and copy it here.",
+      "Choose Read only, give it a name (e.g. SnZ portal), create it and copy it here.",
     ],
   },
   stripe: {

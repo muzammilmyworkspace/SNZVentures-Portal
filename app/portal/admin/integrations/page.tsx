@@ -25,7 +25,7 @@ const MESSAGES: Record<string, { tone: "ok" | "bad"; text: string }> = {
   norefresh: {
     tone: "bad",
     text:
-      "Google did not return a long-lived token, so we could not keep the connection. Remove AdmitsFair from your Google account's third-party access and connect again.",
+      "Google did not return a long-lived token, so we could not keep the connection. Remove SnZ Ventures from your Google account's third-party access and connect again.",
   },
   unconfigured: {
     tone: "bad",

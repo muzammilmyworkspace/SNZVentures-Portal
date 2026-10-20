@@ -393,7 +393,7 @@ export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> 
   },
   business: {
     eyebrow: "Business services",
-    lead: "Manage your AdmitsFair services and requests.",
+    lead: "Manage your SnZ Ventures services and requests.",
   },
   admin: {
     eyebrow: "Operations",
@@ -401,6 +401,6 @@ export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> 
   },
   applicant: {
     eyebrow: "Consultant application",
-    lead: "Your application to work with AdmitsFair as a consultant.",
+    lead: "Your application to work with SnZ Ventures as a consultant.",
   },
 };

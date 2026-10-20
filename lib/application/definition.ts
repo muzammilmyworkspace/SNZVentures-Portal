@@ -181,7 +181,7 @@ export const STUDY_APPLICATION: IntakeDefinition = {
         },
         {
           key: "source",
-          label: "How did you hear about AdmitsFair?",
+          label: "How did you hear about SnZ Ventures?",
           type: "select",
           options: [
             "Instagram",
@@ -191,7 +191,7 @@ export const STUDY_APPLICATION: IntakeDefinition = {
             "YouTube",
             "Google search",
             "Referred by a friend or family member",
-            "Referred by a former AdmitsFair student",
+            "Referred by a former SnZ student",
             "Education fair or seminar",
             "Other",
           ],
@@ -640,7 +640,7 @@ export const STUDY_APPLICATION: IntakeDefinition = {
           startsAt: "motivationDraft",
           title: "Your assembled draft",
           blurb:
-            "This is a working draft built from your answers. Your advisor will edit it into a final letter on AdmitsFair letterhead before anything is submitted.",
+            "This is a working draft built from your answers. Your advisor will edit it into a final letter on SnZ letterhead before anything is submitted.",
         },
         {
           startsAt: "work",
@@ -882,7 +882,7 @@ export const STUDY_APPLICATION: IntakeDefinition = {
         {
           key: "cShare",
           label:
-            "I authorise AdmitsFair to submit this information and my documents to universities and immigration authorities on my behalf.",
+            "I authorise SnZ Ventures to submit this information and my documents to universities and immigration authorities on my behalf.",
           type: "checkbox",
           required: true,
           wide: true,
@@ -890,7 +890,7 @@ export const STUDY_APPLICATION: IntakeDefinition = {
         {
           key: "cGdpr",
           label:
-            "I have read the privacy policy and consent to AdmitsFair processing my personal data under the GDPR for the purpose of my application.",
+            "I have read the privacy policy and consent to SnZ Ventures processing my personal data under the GDPR for the purpose of my application.",
           type: "checkbox",
           required: true,
           wide: true,

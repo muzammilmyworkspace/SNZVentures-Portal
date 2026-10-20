@@ -8,7 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Set a New Password",
-  description: "Choose a new password for your AdmitsFair account.",
+  description: "Choose a new password for your SnZ Ventures account.",
   path: "/reset-password",
   noIndex: true,
 });

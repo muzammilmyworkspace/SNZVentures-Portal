@@ -65,7 +65,7 @@ export default async function BalancePage() {
     <>
       <FinanceHeader
         title="Balance & accounts"
-        lead="The balance sheet today: what AdmitsFair has (assets), what it owes (liabilities, in process) and what is left (equity), with every bank and cash account."
+        lead="The balance sheet today: what SnZ has (assets), what it owes (liabilities, in process) and what is left (equity), with every bank and cash account."
         path="/portal/admin/finance/balance"
         ym={now}
         monthly={false}

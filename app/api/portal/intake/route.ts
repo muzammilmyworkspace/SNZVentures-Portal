@@ -274,7 +274,7 @@ export async function POST(request: Request) {
 
     /*
       A STUDENT WHO CAME THROUGH A CONSULTANT signs that consultant's consent
-      only, never AdmitsFair'. Until the consultant has published one there is
+      only, never SnZ Ventures'. Until the consultant has published one there is
       nothing to sign, so the application waits rather than go in unsigned.
     */
     const consultant = await consultantOf(session.userId);

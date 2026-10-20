@@ -365,7 +365,7 @@ console.log("\nInvoices (017)\n");
        VALUES ($1,$2,CURRENT_DATE,$3,'EUR',$4,$5::jsonb,$6,$7,$8,$9)
        RETURNING id, number`,
       [
-        over.number ?? "AF-2026-001",
+        over.number ?? "SNZ-2026-001",
         over.status ?? "draft",
         over.billToName ?? "Haider Khwaja",
         over.vatBp ?? 0,
@@ -380,27 +380,27 @@ console.log("\nInvoices (017)\n");
   await check("the total must equal subtotal + vat", async () => {
     let threw = false;
     try {
-      await makeInvoice({ number: "AF-2026-900", subtotal: 20000, vat: 4200, total: 20000 });
+      await makeInvoice({ number: "SNZ-2026-900", subtotal: 20000, vat: 4200, total: 20000 });
     } catch { threw = true; }
     if (!threw) throw new Error("an invoice with a total that does not match its parts was stored");
   });
 
   await check("a number can never appear twice", async () => {
-    await makeInvoice({ number: "AF-2026-100" });
+    await makeInvoice({ number: "SNZ-2026-100" });
     let threw = false;
-    try { await makeInvoice({ number: "AF-2026-100" }); } catch { threw = true; }
+    try { await makeInvoice({ number: "SNZ-2026-100" }); } catch { threw = true; }
     if (!threw) throw new Error("the same invoice number was accepted twice");
   });
 
   await check("a draft can be freely edited", async () => {
-    const { rows } = await makeInvoice({ number: "AF-2026-101", status: "draft" });
+    const { rows } = await makeInvoice({ number: "SNZ-2026-101", status: "draft" });
     await db.query(`UPDATE invoices SET bill_to_name = 'Corrected Name' WHERE id = $1`, [rows[0].id]);
     const { rows: after } = await db.query(`SELECT bill_to_name FROM invoices WHERE id = $1`, [rows[0].id]);
     if (after[0].bill_to_name !== "Corrected Name") throw new Error("a draft could not be edited");
   });
 
   await check("once issued, only status may move — everything else is frozen", async () => {
-    const { rows } = await makeInvoice({ number: "AF-2026-102", status: "sent" });
+    const { rows } = await makeInvoice({ number: "SNZ-2026-102", status: "sent" });
     const id = rows[0].id;
 
     // The one thing allowed:
@@ -422,7 +422,7 @@ console.log("\nInvoices (017)\n");
   });
 
   await check("an invoice is never deleted", async () => {
-    const { rows } = await makeInvoice({ number: "AF-2026-103" });
+    const { rows } = await makeInvoice({ number: "SNZ-2026-103" });
     let threw = false;
     try { await db.query(`DELETE FROM invoices WHERE id = $1`, [rows[0].id]); } catch { threw = true; }
     if (!threw) throw new Error("an invoice was deleted instead of voided");
@@ -434,7 +434,7 @@ console.log("\nInvoices (017)\n");
   });
 
   await check("a voided invoice is final — it cannot be reopened", async () => {
-    const { rows } = await makeInvoice({ number: "AF-2026-104" });
+    const { rows } = await makeInvoice({ number: "SNZ-2026-104" });
     await db.query(`UPDATE invoices SET status = 'void', updated_at = now() WHERE id = $1`, [rows[0].id]);
 
     /*
@@ -451,7 +451,7 @@ console.log("\nInvoices (017)\n");
   });
 
   await check("an invoice with no client account still stores and lists", async () => {
-    const { rows } = await makeInvoice({ number: "AF-2026-105", billToName: "Nobody With A Login" });
+    const { rows } = await makeInvoice({ number: "SNZ-2026-105", billToName: "Nobody With A Login" });
     const { rows: found } = await db.query(
       `SELECT client_id FROM invoices WHERE id = $1`,
       [rows[0].id]
@@ -948,7 +948,7 @@ await check("case reference is auto-assigned and unique", async () => {
     [u.rows[0].id]
   );
   const ra = a.rows[0].reference, rb = b.rows[0].reference;
-  if (!/^(AF|SNZ)-\d{4}-\d{4}$/.test(ra)) throw new Error(`bad reference format: ${ra}`);
+  if (!/^SNZ-\d{4}-\d{4}$/.test(ra)) throw new Error(`bad reference format: ${ra}`);
   if (ra === rb) throw new Error("two cases received the same reference");
 });
 

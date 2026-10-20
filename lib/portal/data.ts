@@ -42,7 +42,7 @@ export const REQUIRED_DOCUMENTS: Record<
   { name: string; category: string; optional?: boolean }[]
 > = {
   /*
-    The student list follows AdmitsFair' own admission form, section 11.
+    The student list follows SnZ Ventures' own admission form, section 11.
 
     It was six generic items — "Academic certificates", "Transcripts" — which
     told an applicant almost nothing. The paper form is specific about what is

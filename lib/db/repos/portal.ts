@@ -15,7 +15,7 @@ import type { Role } from "@/lib/auth/types";
 export type CaseRow = {
   id: string;
   /**
-   * AF-YYYY-NNNN. Generated for every case since 003 and, until now, shown
+   * SNZ-YYYY-NNNN. Generated for every case since 003 and, until now, shown
    * nowhere — which made it useless for the thing it exists for: naming a case
    * in an email or on the phone without reading out a UUID.
    */
@@ -1694,13 +1694,13 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
 
 /* -------------------------------------------------------------- broadcast */
 
-export const BROADCAST_SUBJECT = "Message from AdmitsFair";
+export const BROADCAST_SUBJECT = "Message from SnZ Ventures";
 
 /**
  * ONE MESSAGE TO MANY PEOPLE, into each person's own chat.
  *
  * Every recipient gets the message in a conversation of their own titled
- * "Message from AdmitsFair" (made the first time, reused after), so a reply
+ * "Message from SnZ Ventures" (made the first time, reused after), so a reply
  * is private to them and lands with the team like any other message. Staff
  * recipients see it because their own conversations now show in Messages.
  *

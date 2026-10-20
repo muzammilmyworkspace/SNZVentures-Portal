@@ -57,7 +57,7 @@ export function viewOf(t: ConsentTemplate, party: string): ConsentView {
   };
 }
 
-/** AdmitsFair <-> student: the one in use, or the built-in wording. */
+/** SnZ Ventures <-> student: the one in use, or the built-in wording. */
 export async function activeConsent(): Promise<ConsentView> {
   const t = await currentTemplate("student", null);
   if (t) return viewOf(t, CONSENT_PARTY);
@@ -74,7 +74,7 @@ export async function activeConsent(): Promise<ConsentView> {
   };
 }
 
-/** AdmitsFair <-> consultant, if one is in use. Consultants sign it at sign-in. */
+/** SnZ Ventures <-> consultant, if one is in use. Consultants sign it at sign-in. */
 export async function consultantAgreement(): Promise<ConsentView | null> {
   const t = await currentTemplate("consultant", null);
   return t ? viewOf(t, CONSENT_PARTY) : null;

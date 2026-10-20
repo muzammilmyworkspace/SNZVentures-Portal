@@ -58,7 +58,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session) redirect("/api/auth/expired?next=/portal");
   // An Admin's first sign-in: photo, details and their own password first.
   if (session.role === "admin" && !session.impersonator && (await mustOnboard(session.userId))) redirect("/welcome");
-  // A consultant signs AdmitsFair' consultant agreement (each new version) first.
+  // A consultant signs SnZ Ventures' consultant agreement (each new version) first.
   if (session.role === "advisor" && !session.impersonator) {
     const agreement = await currentTemplate("consultant", null);
     if (agreement && !(await hasSigned(session.userId, agreement))) redirect("/agreement");

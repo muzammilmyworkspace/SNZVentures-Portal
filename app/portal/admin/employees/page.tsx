@@ -43,7 +43,7 @@ export default async function EmployeesPage() {
       <PortalHeading
         eyebrow="Manage"
         title="Employees"
-        lead="The AdmitsFair team. Add someone and choose what they may use; they see only that once they sign in."
+        lead="The SnZ Ventures team. Add someone and choose what they may use; they see only that once they sign in."
         action={isSuperAdmin ? <AddStaffButton kind="employee" /> : undefined}
       />
 

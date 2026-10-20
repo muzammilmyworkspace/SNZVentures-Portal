@@ -13,7 +13,7 @@
  *                      a CRM intake, or your own SMTP relay service)
  *
  * MAIL_FROM   sender address on a domain you control and have verified
- * MAIL_TO     destination (defaults to admitsfair@gmail.com)
+ * MAIL_TO     destination (defaults to study@snzventures.com)
  *
  * If neither transport is configured, `sendMail` throws rather than silently
  * discarding the message — a lost enquiry is worse than a visible failure.
@@ -39,7 +39,7 @@ export type MailMessage = {
   replyTo?: string;
 };
 
-export const DEFAULT_TO = "admitsfair@gmail.com";
+export const DEFAULT_TO = "study@snzventures.com";
 
 /**
  * Used when MAIL_FROM is unset — and almost certainly wrong when it is.
@@ -49,7 +49,7 @@ export const DEFAULT_TO = "admitsfair@gmail.com";
  * from an address nobody asked it to verify is the failure that survives every
  * other part of the setup being correct.
  */
-export const DEFAULT_FROM = "AdmitsFair <noreply@admitsfair.com>";
+export const DEFAULT_FROM = "SnZ Ventures <noreply@snzventures.com>";
 
 export type MailConfig = {
   transport: "gmail" | "resend" | "webhook" | "none";
@@ -65,12 +65,12 @@ export type MailConfig = {
 
 /**
  * Gmail sends only as the account that signed in, so the sender is that
- * address; MAIL_FROM contributes just its display name ("AdmitsFair").
+ * address; MAIL_FROM contributes just its display name ("SnZ Ventures").
  */
 function gmailFrom(user: string): string {
   const configured = env("MAIL_FROM");
   const name = configured && /^(.*?)\s*</.exec(configured)?.[1]?.replace(/"/g, "").trim();
-  return `${name || "AdmitsFair"} <${user}>`;
+  return `${name || "SnZ Ventures"} <${user}>`;
 }
 
 /**

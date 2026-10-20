@@ -1,7 +1,7 @@
 import type { PathwayKey } from "./pathways";
 
 /**
- * SERVICES — every entry below is verified against the live admitsfair.com.
+ * SERVICES — every entry below is verified against the live snzventures.com.
  * No service, deliverable or capability here was invented.
  */
 
@@ -113,7 +113,7 @@ export const services: Service[] = [
     ],
     related: ["fintech-licensing", "investor-relocation"],
     caveat:
-      "AdmitsFair is an advisory firm. Notarial, audit and legal filings are executed by licensed Lithuanian partner firms. Registration timelines depend on the register and on document readiness, and banking decisions rest solely with the financial institution.",
+      "SnZ Ventures is an advisory firm. Notarial, audit and legal filings are executed by licensed Lithuanian partner firms. Registration timelines depend on the register and on document readiness, and banking decisions rest solely with the financial institution.",
   },
   {
     slug: "fintech-licensing",
@@ -186,8 +186,8 @@ export const services: Service[] = [
         a: "No. Authorisation is the regulator's decision alone. What can be controlled is the quality, completeness and credibility of what is submitted — which is where most applications are actually lost.",
       },
       {
-        q: "Is AdmitsFair regulated?",
-        a: "No. AdmitsFair is an advisory and coordination firm. Regulated activities — legal representation, audit, and the compliance officer functions themselves — are delivered by licensed partner firms and qualified individuals, named to you before you commit.",
+        q: "Is SnZ Ventures regulated?",
+        a: "No. SnZ Ventures is an advisory and coordination firm. Regulated activities — legal representation, audit, and the compliance officer functions themselves — are delivered by licensed partner firms and qualified individuals, named to you before you commit.",
       },
       {
         q: "What capital will I need?",
@@ -200,7 +200,7 @@ export const services: Service[] = [
     ],
     related: ["company-formation", "investor-relocation"],
     caveat:
-      "AdmitsFair is not a regulated financial institution and does not provide legal advice. Licence applications are prepared and submitted with licensed partner firms. Authorisation decisions rest solely with the Bank of Lithuania or the relevant competent authority.",
+      "SnZ Ventures is not a regulated financial institution and does not provide legal advice. Licence applications are prepared and submitted with licensed partner firms. Authorisation decisions rest solely with the Bank of Lithuania or the relevant competent authority.",
   },
   {
     slug: "investor-relocation",
@@ -283,7 +283,7 @@ export const services: Service[] = [
     ],
     related: ["company-formation", "fintech-licensing"],
     caveat:
-      "Immigration outcomes are determined solely by the Lithuanian Migration Department. AdmitsFair does not provide legal or tax advice; these are delivered by licensed partner firms. No permit, approval or timeline can be guaranteed.",
+      "Immigration outcomes are determined solely by the Lithuanian Migration Department. SnZ Ventures does not provide legal or tax advice; these are delivered by licensed partner firms. No permit, approval or timeline can be guaranteed.",
   },
   {
     slug: "international-recruitment",
@@ -370,7 +370,7 @@ export const services: Service[] = [
     ],
     related: ["company-formation", "investor-relocation"],
     caveat:
-      "AdmitsFair does not guarantee employment, work permits or visa outcomes. Hiring decisions rest with the employer and immigration decisions with the relevant national authority.",
+      "SnZ Ventures does not guarantee employment, work permits or visa outcomes. Hiring decisions rest with the employer and immigration decisions with the relevant national authority.",
   },
 ];
 

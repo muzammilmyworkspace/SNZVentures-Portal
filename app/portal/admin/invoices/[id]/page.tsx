@@ -89,7 +89,7 @@ export default async function InvoicePage({
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-start gap-3.5">
             <Image
-              src="/brand/admitsfair-cap.png"
+              src="/brand/snz-mark.png"
               alt=""
               width={52}
               height={52}

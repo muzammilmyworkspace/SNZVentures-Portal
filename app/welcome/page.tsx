@@ -9,7 +9,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Welcome",
-  description: "Finish setting up your AdmitsFair account.",
+  description: "Finish setting up your SnZ Ventures account.",
   path: "/welcome",
   noIndex: true,
 });

@@ -5,7 +5,7 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  * application stands and how their documents are going.
  *
  * `consultantName` is the consultant (an advisor account) the student came
- * through, or null when they came to AdmitsFair directly. The page decides
+ * through, or null when they came to SnZ Ventures directly. The page decides
  * how much of that each viewer sees.
  */
 
@@ -26,7 +26,7 @@ export type DeskStudent = {
   docs: number;
   docsApproved: number;
   docsWaiting: number;
-  /** Their consultant, or null: they came to AdmitsFair directly. */
+  /** Their consultant, or null: they came to SnZ Ventures directly. */
   consultantName: string | null;
 };
 

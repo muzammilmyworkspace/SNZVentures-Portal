@@ -6,7 +6,7 @@
 const KINDS: Record<string, { color: string; path: string; label: string }> = {
   message: { color: "#3987e5", label: "Message", path: "M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" },
   document: { color: "#c98500", label: "Document", path: "M4 1.5h5.5l3 3V14.5H4zM9.5 1.5v3h3" },
-  status: { color: "#38BDF8", label: "Update", path: "M3 8.5l3 3 7-7" },
+  status: { color: "#72C43C", label: "Update", path: "M3 8.5l3 3 7-7" },
   appointment: { color: "#9085e9", label: "Consultation", path: "M2.5 3.5h11v10h-11zM2.5 6.5h11M5.5 2v3M10.5 2v3" },
   task: { color: "#4fb3c9", label: "Task", path: "M3 4h10M3 8h10M3 12h6" },
   general: { color: "#8B97B0", label: "Notice", path: "M8 2.5a4 4 0 0 0-4 4v3l-1.5 2h11L12 9.5v-3a4 4 0 0 0-4-4zM6.5 13.5a1.5 1.5 0 0 0 3 0" },

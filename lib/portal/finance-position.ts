@@ -16,7 +16,7 @@ import {
 import { sumEur, partnerTotals, shareOf, shiftMonth } from "@/lib/portal/finance-view";
 
 /**
- * THE FINANCIAL POSITION TODAY — what AdmitsFair has, what it owes, what is left.
+ * THE FINANCIAL POSITION TODAY — what SnZ has, what it owes, what is left.
  * One calculation for the dashboard and the balance page, so the two can
  * never show different figures.
  *

@@ -28,7 +28,7 @@ const API = "https://www.googleapis.com/drive/v3";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3";
 
 export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
-export const ROOT_FOLDER_NAME = "AdmitsFair — Client Files";
+export const ROOT_FOLDER_NAME = "SnZ Ventures — Client Files";
 
 export function driveConfigured(): boolean {
   return Boolean(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET"));

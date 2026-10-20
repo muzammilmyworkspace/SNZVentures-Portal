@@ -68,7 +68,7 @@ export default async function ApplicationPage() {
   }
 
   const definition = (await loadIntake(pathway));
-  // A student who came through a consultant signs that consultant's consent only, never AdmitsFair'.
+  // A student who came through a consultant signs that consultant's consent only, never SnZ Ventures'.
   const consultant = await consultantOf(session.userId);
   const form = await getIntake(session.userId, pathway);
   /*

@@ -337,7 +337,7 @@ const PATHWAYS = [
   { key: "study", icon: "🎓", title: "Study abroad", blurb: "Education that leads to work" },
   { key: "career", icon: "💼", title: "Global career", blurb: "Roles with European employers" },
   { key: "business", icon: "🏢", title: "Business setup", blurb: "EU entity, licensing, relocation" },
-  { key: "consultant", icon: "🤝", title: "Become a consultant", blurb: "Bring students, work with AdmitsFair" },
+  { key: "consultant", icon: "🤝", title: "Become a consultant", blurb: "Bring students, work with SnZ" },
 ];
 
 /**
@@ -442,7 +442,7 @@ export function RegisterForm({
   if (step === 1) {
     return (
       <div>
-        <p className="field-label mb-4">What brings you to AdmitsFair?</p>
+        <p className="field-label mb-4">What brings you to SnZ Ventures?</p>
         <div className="grid gap-2.5">
           {/* A student's invite link is not the way to apply as a consultant. */}
           {PATHWAYS.filter((p) => !(invite && p.key === "consultant")).map((p) => (
@@ -561,8 +561,8 @@ export function RegisterForm({
               label="Consultant code (optional)"
               value={consultantCode}
               onChange={(v) => setConsultantCode(v.toUpperCase())}
-              placeholder="AF-ABC123"
-              hint="If an AdmitsFair consultant gave you a code, enter it so they can follow your application. Leave it empty if not."
+              placeholder="SNZ-ABC123"
+              hint="If an SnZ consultant gave you a code, enter it so they can follow your application. Leave it empty if not."
             />
           )}
 
@@ -581,8 +581,8 @@ export function RegisterForm({
               if (!phone.trim()) return setError("Enter your phone number.");
               if (!city.trim()) return setError("Enter your city.");
               if (!country.trim()) return setError("Enter your country.");
-              if (consultantCode.trim() && !/^(AF|SNZ)-[A-Z]{3}\d{3}$/i.test(consultantCode.trim()))
-                return setError("A consultant code looks like AF-ABC123. Check it, or leave it empty.");
+              if (consultantCode.trim() && !/^SNZ-[A-Z]{3}\d{3}$/i.test(consultantCode.trim()))
+                return setError("A consultant code looks like SNZ-ABC123. Check it, or leave it empty.");
               setStep(3);
             }}
           >
@@ -629,7 +629,7 @@ export function RegisterForm({
       <p className="text-center text-[0.78rem] leading-relaxed text-faint">
         Creating an account means you accept our{" "}
         <a
-          href="https://admitsfair.com/legal/terms"
+          href="https://snzventures.com/legal/terms"
           target="_blank"
           rel="noopener"
           className="text-accent underline underline-offset-4"
@@ -638,7 +638,7 @@ export function RegisterForm({
         </a>{" "}
         and{" "}
         <a
-          href="https://admitsfair.com/legal/privacy-policy"
+          href="https://snzventures.com/legal/privacy-policy"
           target="_blank"
           rel="noopener"
           className="text-accent underline underline-offset-4"

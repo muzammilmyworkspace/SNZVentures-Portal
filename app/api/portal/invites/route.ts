@@ -140,11 +140,11 @@ export async function POST(request: Request) {
     try {
       await sendMail({
         to,
-        subject: `${session.name} has invited you to AdmitsFair`,
+        subject: `${session.name} has invited you to SnZ Ventures`,
         text: [
           `Hello ${studentName.split(/\s+/)[0]},`,
           "",
-          `${session.name} at AdmitsFair has invited you to create your account.`,
+          `${session.name} at SnZ Ventures has invited you to create your account.`,
           "",
           "Open this link to get started — it works once, and expires in 14 days:",
           link,
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
           "If you were not expecting this, ignore this message. Nothing is created",
           "until you fill in the form yourself.",
           "",
-          "AdmitsFair",
+          "SnZ Ventures",
         ].join("\n"),
         replyTo: session.email,
       });

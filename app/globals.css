@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   ADMITSFAIR — DESIGN SYSTEM v2
+   SNZ VENTURES — DESIGN SYSTEM v2
    ----------------------------------------------------------------------------
    Evolution of the MERIDIAN direction, not a replacement:
      • Type is now a single modern grotesk. The display serif read decorative;
@@ -21,7 +21,7 @@
    * Ink for type sitting ON the accent green (filled buttons, badges).
    * `text-void` was in use across the codebase with no token behind it, so the
    * class emitted nothing and button labels silently inherited their parent's
-   * colour — white on #38BDF8, about 1.9:1. Defining it fixes that everywhere
+   * colour — white on #72C43C, about 1.9:1. Defining it fixes that everywhere
    * at once, and keeps working when the surrounding theme flips.
    */
   --color-void: #070B1A;
@@ -42,15 +42,15 @@
   --color-navy-100: #D9E5F8;
 
   /* --- Accent: refined green --------------------------------------------- */
-  --color-moss-800: #075985;
-  --color-moss-700: #0369A1;
-  --color-moss-600: #0284C7;
-  --color-moss-500: #0EA5E9;
-  --color-moss-400: #38BDF8;
-  --color-moss-300: #7DD0FB;
-  --color-moss-200: #B3E3FD;
-  --color-moss-100: #D9F1FE;
-  --color-moss-50: #EFF9FF;
+  --color-moss-800: #2E5C18;
+  --color-moss-700: #3E7A22;
+  --color-moss-600: #4F9628;
+  --color-moss-500: #5EAF2F;
+  --color-moss-400: #72C43C;
+  --color-moss-300: #93D667;
+  --color-moss-200: #BCE7A0;
+  --color-moss-100: #DDF3CB;
+  --color-moss-50: #F0F9E5;
 
   /* --- Neutrals ----------------------------------------------------------- */
   --color-paper: #FCFCFD;
@@ -75,8 +75,8 @@
   --color-night-600: #1F2B52;
   --color-ticket: #F6F3EC;
   --color-ticket-ink: #121726;
-  --color-runway: #38BDF8;
-  --color-runway-300: #7DD0FB;
+  --color-runway: #72C43C;
+  --color-runway-300: #93D667;
   --color-aurora: #6FA6F7;
   --color-aurora-300: #A9C9FA;
   --font-grotesk: var(--font-space), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
@@ -178,9 +178,9 @@
 /* ============================================================================
    BRAND GRADIENT — the two logo hues
    ----------------------------------------------------------------------------
-   Picked from the AdmitsFair brand palette (Navy & Sky).
+   Sampled from public/brand/snz-logo-original.png rather than picked by eye.
    The mark is 42% navy-blue around hue 228° (#243057) and 34% green around
-   hue 96° (#38BDF8); everything else is white or an edge pixel.
+   hue 96° (#7CBD43); everything else is white or an edge pixel.
 
    Those two sit 130° apart, and a straight two-stop blend between them passes
    through desaturated slate — the exact muddy midpoint that makes a
@@ -205,7 +205,7 @@
 .tone-white {
   --brand-blue: #3D71C9;
   --brand-teal: #2FAE93;
-  --brand-green: #38BDF8;
+  --brand-green: #72C43C;
   --grad-brand: linear-gradient(
     100deg,
     var(--brand-blue) 0%,
@@ -217,20 +217,20 @@
 /* On dark ground the vivid ramp is already well clear of AA. */
 .tone-deep,
 .tone-soft {
-  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #7DD0FB 100%);
+  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #93D667 100%);
 }
 
 /* On light ground every stop is darkened until the lightest clears 4.5:1. */
 .tone-light,
 .tone-white {
-  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #0369A1 100%);
+  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #3E7A22 100%);
 }
 
 .tone-deep {
   --surface: var(--color-navy-900);
   --surface-raised: #0C1328;
   --fg: var(--color-paper);
-  --ok: #7DD0FB;
+  --ok: #9be07a;
   --ok-soft: rgba(155, 224, 122, 0.11);
   --ok-line: rgba(155, 224, 122, 0.36);
   --warn: #f6c556;
@@ -252,7 +252,7 @@
   --surface: var(--color-navy-800);
   --surface-raised: #141D3A80;
   --fg: var(--color-paper);
-  --ok: #7DD0FB;
+  --ok: #9be07a;
   --ok-soft: rgba(155, 224, 122, 0.11);
   --ok-line: rgba(155, 224, 122, 0.36);
   --warn: #f6c556;
@@ -321,7 +321,7 @@
    nothing below runs unless the reader opts in via the header switch, which
    stamps `data-theme="light"` on <html>.
 
-   Palette taken from AdmitsFair's own student site (student.admitsfair.com), read
+   Palette taken from SnZ's own student site (student.snzventures.com), read
    straight out of its stylesheet rather than eyeballed. It is expressed there
    in oklch; the sRGB equivalents are noted per token so the intent survives a
    future edit by someone without a colour tool:
@@ -333,7 +333,7 @@
      line      oklch(90%   .015 260)  → #DDE3ED
      ink       oklch(29%   .09  268)  → #1E2B5E   the brand navy, also #1e2b5e
                                                   in the reference markup
-     accent    oklch(76%   .18  138)  → #38BDF8   the same green as dark mode
+     accent    oklch(76%   .18  138)  → #6DC13F   the same green as dark mode
 
    The mapping is deliberately NOT a straight inversion. `tone-deep` and
    `tone-soft` are the two bands that carry most of the page, so they take the
@@ -341,7 +341,7 @@
    dark theme — step DOWN to keep the alternating rhythm the layout depends on.
    Invert them naively and every second band disappears into its neighbour.
 
-   Accent is darkened to moss-700 for body text and hairlines: #38BDF8 on
+   Accent is darkened to moss-700 for body text and hairlines: #6DC13F on
    near-white is about 1.9:1, nowhere near readable. The vivid green survives
    where it belongs — filled buttons, which set their own dark ink on top.
    ========================================================================== */
@@ -378,12 +378,12 @@
    darkened ramp — the same swap tone-light/tone-white already make. */
 [data-theme="light"] .tone-deep,
 [data-theme="light"] .tone-soft {
-  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #0369A1 100%);
+  --grad-text: linear-gradient(100deg, #2757A8 0%, #10786B 52%, #3E7A22 100%);
 }
 
 /* …except over a photograph, which stays dark whatever the theme. */
 [data-theme="light"] .plate-deep {
-  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #7DD0FB 100%);
+  --grad-text: linear-gradient(100deg, #6FA3F0 0%, #4FD1B0 52%, #93D667 100%);
 }
 
 [data-theme="light"] .tone-deep {
@@ -472,7 +472,7 @@
   --surface: var(--color-navy-900);
   --surface-raised: #0E1E3C;
   --fg: var(--color-paper);
-  --ok: #7DD0FB;
+  --ok: #9be07a;
   --ok-soft: rgba(155, 224, 122, 0.11);
   --ok-line: rgba(155, 224, 122, 0.36);
   --warn: #f6c556;
@@ -1101,7 +1101,7 @@ p { text-wrap: pretty; }
     105deg,
     rgba(61, 113, 201, 0.62) 0%,
     rgba(47, 174, 147, 0.52) 48%,
-    rgba(56, 189, 248, 0.46) 100%
+    rgba(114, 196, 60, 0.46) 100%
   );
   -webkit-mask-image: url("/brand/world-mask.png");
   mask-image: url("/brand/world-mask.png");
@@ -1139,7 +1139,7 @@ p { text-wrap: pretty; }
   --pill-info-fg:    #1D5FA8;  --pill-info-bd:    rgba(29,95,168,0.34);   --pill-info-bg:    rgba(29,95,168,0.09);
   --pill-work-fg:    #3E4CA8;  --pill-work-bd:    rgba(62,76,168,0.34);   --pill-work-bg:    rgba(62,76,168,0.09);
   --pill-warn-fg:    #8A5A00;  --pill-warn-bd:    rgba(180,120,0,0.40);   --pill-warn-bg:    rgba(212,150,0,0.12);
-  --pill-ok-fg:      #075985;  --pill-ok-bd:      rgba(60,130,40,0.38);   --pill-ok-bg:      rgba(80,160,50,0.11);
+  --pill-ok-fg:      #2F6B22;  --pill-ok-bd:      rgba(60,130,40,0.38);   --pill-ok-bg:      rgba(80,160,50,0.11);
   --pill-danger-fg:  #B42318;  --pill-danger-bd:  rgba(180,35,24,0.36);   --pill-danger-bg:  rgba(180,35,24,0.09);
 }
 
@@ -1148,7 +1148,7 @@ p { text-wrap: pretty; }
   --pill-info-fg:    #7CC0FF;  --pill-info-bd:    rgba(124,192,255,0.34); --pill-info-bg:    rgba(124,192,255,0.10);
   --pill-work-fg:    #A7B0FF;  --pill-work-bd:    rgba(167,176,255,0.34); --pill-work-bg:    rgba(167,176,255,0.10);
   --pill-warn-fg:    #F6C556;  --pill-warn-bd:    rgba(246,197,86,0.38);  --pill-warn-bg:    rgba(246,197,86,0.11);
-  --pill-ok-fg:      #7DD0FB;  --pill-ok-bd:      rgba(155,224,122,0.36); --pill-ok-bg:      rgba(155,224,122,0.11);
+  --pill-ok-fg:      #9BE07A;  --pill-ok-bd:      rgba(155,224,122,0.36); --pill-ok-bg:      rgba(155,224,122,0.11);
   --pill-danger-fg:  #FF9C93;  --pill-danger-bd:  rgba(255,156,147,0.36); --pill-danger-bg:  rgba(255,156,147,0.10);
 }
 
@@ -1182,13 +1182,13 @@ p { text-wrap: pretty; }
  * `--accent-ink` is the same hue carried far enough to pass as text. Marks keep
  * using `--accent`; anything that has to be READ uses this.
  */
-:root { --accent-ink: #075985; }
+:root { --accent-ink: #2C5E18; }
 :root[data-theme="dark"] { --accent-ink: var(--color-moss-300); }
 
 .tone-deep  { --accent-ink: var(--color-moss-300); }
-.tone-soft  { --accent-ink: #075985; }
-.tone-light { --accent-ink: #075985; }
-.tone-white { --accent-ink: #075985; }
+.tone-soft  { --accent-ink: #2C5E18; }
+.tone-light { --accent-ink: #2C5E18; }
+.tone-white { --accent-ink: #2C5E18; }
 :root[data-theme="dark"] .tone-soft,
 :root[data-theme="dark"] .tone-light,
 :root[data-theme="dark"] .tone-white { --accent-ink: var(--color-moss-300); }
@@ -1535,7 +1535,7 @@ input[type="date"].field {
  * assembled letter — the pale end of the scale is the readable one, and the
  * theme-aware token would go dark and disappear.
  */
-.on-dark .text-ok { color: #7DD0FB; }
+.on-dark .text-ok { color: #9be07a; }
 .on-dark .text-warn { color: #f6c556; }
 .on-dark .text-danger { color: #ff9c93; }
 

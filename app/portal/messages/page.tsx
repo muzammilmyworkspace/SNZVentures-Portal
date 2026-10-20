@@ -80,7 +80,7 @@ export default async function MessagesPage() {
             <ul className="divide-y divide-[var(--line)]">
               {conversations.map((c) => {
                 const own = c.clientId === session.userId;
-                const name = own ? "AdmitsFair" : c.clientName ?? c.subject;
+                const name = own ? "SnZ Ventures" : c.clientName ?? c.subject;
                 const fresh = c.unread > 0;
                 return (
                   <li key={c.id}>
@@ -93,7 +93,7 @@ export default async function MessagesPage() {
                       {fresh && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-[var(--accent)]" />}
                       {own ? (
                         <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[0.75rem] font-bold text-[#070B1A]">
-                          AdmitsFair
+                          SnZ
                         </span>
                       ) : (
                         <Avatar id={c.clientId ?? c.id} name={name} photo={c.clientAvatarV != null} v={c.clientAvatarV} size="md" className="h-11 w-11" />
@@ -110,7 +110,7 @@ export default async function MessagesPage() {
                         </span>
                         <span className={`mt-1 block truncate text-[0.86rem] ${fresh ? "text-fg" : "text-muted"}`}>
                           {c.lastBody
-                            ? `${c.lastAuthorId === session.userId ? "You: " : !own && !c.lastFromClient ? "AdmitsFair: " : ""}${c.lastBody}`
+                            ? `${c.lastAuthorId === session.userId ? "You: " : !own && !c.lastFromClient ? "SnZ: " : ""}${c.lastBody}`
                             : "No messages yet"}
                         </span>
                       </span>

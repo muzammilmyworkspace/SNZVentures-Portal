@@ -57,7 +57,7 @@ function makePassword(): string {
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
   const bytes = randomBytes(12);
   const pick = (n: number) => Array.from(bytes.subarray(n, n + 4), (b) => abc[b % abc.length]).join("");
-  return `AdmitsFair-${pick(0)}-${pick(4)}-${pick(8)}`;
+  return `SnZ-${pick(0)}-${pick(4)}-${pick(8)}`;
 }
 
 export async function POST(request: Request) {
@@ -174,11 +174,11 @@ export async function POST(request: Request) {
       try {
         await sendMail({
           to: user.email,
-          subject: "Your AdmitsFair admin account",
+          subject: "Your SnZ Ventures admin account",
           text: [
             `Hello ${user.name},`,
             "",
-            "An admin account has been created for you on the AdmitsFair portal.",
+            "An admin account has been created for you on the SnZ Ventures portal.",
             "",
             `Sign in at: ${loginUrl}`,
             `Username: ${user.email}`,
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
             "",
             "If you were not expecting this, ignore this message.",
             "",
-            "AdmitsFair",
+            "SnZ Ventures",
           ].join("\n"),
         });
         sent = true;
@@ -238,13 +238,13 @@ export async function POST(request: Request) {
     try {
       await sendMail({
         to: user.email,
-        subject: isEmployee ? "Your AdmitsFair staff account" : "Your AdmitsFair consultant account",
+        subject: isEmployee ? "Your SnZ Ventures staff account" : "Your SnZ Ventures consultant account",
         text: [
           `Hello ${user.name},`,
           "",
           isEmployee
-            ? "An account has been created for you on the AdmitsFair staff portal."
-            : "An account has been created for you on the AdmitsFair consultant portal.",
+            ? "An account has been created for you on the SnZ Ventures staff portal."
+            : "An account has been created for you on the SnZ Ventures consultant portal.",
           "",
           `You sign in with: ${user.email}`,
           "",
@@ -257,7 +257,7 @@ export async function POST(request: Request) {
           "",
           "If you were not expecting this, ignore this message and nothing happens.",
           "",
-          "AdmitsFair",
+          "SnZ Ventures",
         ].join("\n"),
       });
       emailed = true;

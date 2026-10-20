@@ -15,8 +15,8 @@ import { buildMetadata } from "@/lib/seo";
   a cached render is one student's page served to the next.
 */
 export const metadata: Metadata = buildMetadata({
-  title: "Join AdmitsFair",
-  description: "Create your AdmitsFair account.",
+  title: "Join SnZ Ventures",
+  description: "Create your SnZ Ventures account.",
   path: "/join",
   noIndex: true,
 });
@@ -143,7 +143,7 @@ export default async function JoinPage({
       <div className="space-y-5">
         <p className="note-ok p-4 text-[0.88rem] leading-relaxed">
           <strong className="font-semibold">{invite.consultantName}</strong> has invited you to
-          AdmitsFair. Finish signing up and they will be your consultant.
+          SnZ Ventures. Finish signing up and they will be your consultant.
         </p>
 
         <RegisterForm invite={token} invitedEmail={invite.email} invitedName={invite.name ?? null} />
@@ -152,10 +152,10 @@ export default async function JoinPage({
           Not expecting this, or don&rsquo;t recognise that name? Don&rsquo;t continue — close
           this page and tell us at{" "}
           <a
-            href="mailto:admitsfair@gmail.com"
+            href="mailto:study@snzventures.com"
             className="underline underline-offset-4 hover:text-fg"
           >
-            admitsfair@gmail.com
+            study@snzventures.com
           </a>
           .
         </p>

@@ -13,7 +13,7 @@
  */
 
 const NAVY = "#0F3257";
-const MOSS = "#0284C7";
+const MOSS = "#5BA82E";
 const INK = "#1E2B5E";
 const MUTED = "#5A6478";
 const LINE = "#E3E8F0";
@@ -38,12 +38,12 @@ function shell(inner: string): string {
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid ${LINE};border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <tr><td style="background:${NAVY};padding:20px 28px;">
-<span style="color:#FFFFFF;font-size:17px;font-weight:700;letter-spacing:-0.01em;">AdmitsFair</span>
+<span style="color:#FFFFFF;font-size:17px;font-weight:700;letter-spacing:-0.01em;">SnZ Ventures</span>
 </td></tr>
 ${inner}
 <tr><td style="padding:18px 28px 24px;border-top:1px solid ${LINE};">
 <p style="margin:0;color:${MUTED};font-size:12px;line-height:1.6;">
-AdmitsFair · Vilnius, Lithuania<br>
+SnZ Ventures · Vilnius, Lithuania<br>
 This is an automated message from the client portal.
 </p>
 </td></tr>
@@ -70,13 +70,13 @@ export function passwordResetEmail(opts: {
   const text = [
     `Hello ${name},`,
     "",
-    `Someone asked to reset the password on your AdmitsFair account. Open the link below to choose a new one. It expires in ${opts.minutes} minutes and can only be used once.`,
+    `Someone asked to reset the password on your SnZ Ventures account. Open the link below to choose a new one. It expires in ${opts.minutes} minutes and can only be used once.`,
     "",
     opts.link,
     "",
     "If this wasn't you, ignore this email — your password has not changed and nobody has been given access.",
     "",
-    "AdmitsFair",
+    "SnZ Ventures",
   ].join("\n");
 
   const html = shell(`
@@ -84,7 +84,7 @@ export function passwordResetEmail(opts: {
 <h1 style="margin:0 0 14px;color:${INK};font-size:21px;line-height:1.3;font-weight:700;">Reset your password</h1>
 <p style="margin:0 0 16px;color:${INK};font-size:15px;line-height:1.6;">Hello ${esc(name)},</p>
 <p style="margin:0 0 22px;color:${MUTED};font-size:15px;line-height:1.6;">
-Someone asked to reset the password on your AdmitsFair account. Choose a new one using the button below.
+Someone asked to reset the password on your SnZ Ventures account. Choose a new one using the button below.
 </p>
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:8px;background:${MOSS};">
 <a href="${esc(opts.link)}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">Set a new password</a>
@@ -103,7 +103,7 @@ If this wasn't you, ignore this email. Your password has not changed and nobody 
 </p>
 </td></tr>`);
 
-  return { subject: "Reset your AdmitsFair password", text, html };
+  return { subject: "Reset your SnZ Ventures password", text, html };
 }
 
 /* ------------------------------------------------- student fee & application */
@@ -157,7 +157,7 @@ ${body}${button}${foot}
     ...(opts.cta ? ["", opts.cta.label + ":", opts.cta.url] : []),
     ...(opts.footnote ? ["", opts.footnote] : []),
     "",
-    "AdmitsFair",
+    "SnZ Ventures",
   ].join("\n");
 
   return { subject: opts.heading, text, html };
@@ -267,7 +267,7 @@ export function applicationCompletedEmail(opts: { name: string; portalUrl: strin
     paragraphs: [
       "Everything on your application is now done.",
       ...(opts.note ? [opts.note] : []),
-      "Your documents and messages stay in your portal if you need them. Thank you for choosing AdmitsFair.",
+      "Your documents and messages stay in your portal if you need them. Thank you for choosing SnZ Ventures.",
     ],
     cta: { label: "Open your portal", url: `${opts.portalUrl}/portal/journey` },
   });

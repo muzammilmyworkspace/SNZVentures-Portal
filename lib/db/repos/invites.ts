@@ -377,15 +377,12 @@ export type EnrolByCode =
 export async function consultantForCode(
   code: string
 ): Promise<{ id: string; name: string } | null> {
-  // AF-ABC123 since the rebrand; an old SNZ-ABC123 (on flyers already printed)
-  // still finds the same consultant, by the part after the prefix.
-  const m = /^(?:AF|SNZ)-([A-Z]{3}\d{3})$/.exec(code.trim().toUpperCase());
-  if (!m) return null;
-  const tail = m[1];
+  const c = code.trim().toUpperCase();
+  if (!/^SNZ-[A-Z]{3}\d{3}$/.test(c)) return null;
   return safeQuery(async () => {
     const [row] = await db()`
       SELECT id, name FROM users
-      WHERE upper(consultant_code) IN (${"AF-" + tail}, ${"SNZ-" + tail})
+      WHERE upper(consultant_code) = ${c}
         AND role = 'advisor' AND status = 'active'
       LIMIT 1
     `;

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 /**
  * CHAT PANEL
  * ---------------------------------------------------------------------------
- * A client talks to the AdmitsFair desk. There is no client-to-client channel — the
+ * A client talks to the SnZ desk. There is no client-to-client channel — the
  * API resolves who may read a thread from the database, so this component
  * cannot open one it should not see even if handed an arbitrary id.
  *
@@ -205,7 +205,7 @@ export function ChatPanel({
                         <p className="mb-1 px-1 text-[0.75rem] text-faint">
                           {m.authorName}
                           {STAFF.has(m.authorRole) && (
-                            <span className="ml-1.5 text-accent">· AdmitsFair</span>
+                            <span className="ml-1.5 text-accent">· SnZ Ventures</span>
                           )}
                         </p>
                       )}

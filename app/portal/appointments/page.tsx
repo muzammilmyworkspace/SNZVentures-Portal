@@ -14,7 +14,7 @@ import { groupOf } from "@/lib/portal/member-id";
 /**
  * CONSULTATIONS.
  *
- * Students and consultants ask AdmitsFair for a meeting and see what they
+ * Students and consultants ask SnZ Ventures for a meeting and see what they
  * have asked for. The team sees every request, gives each a day and time
  * (or moves, completes or cancels it); the requester is notified and
  * emailed with the time in Lithuania and Pakistan.
@@ -84,7 +84,7 @@ function Card({ c, staff }: { c: Consultation; staff: boolean }) {
         {c.notes && <p className="text-[0.82rem] leading-relaxed text-faint">“{c.notes}”</p>}
         {c.staffNote && (
           <p className="text-[0.82rem] leading-relaxed text-muted">
-            <span className="text-faint">From AdmitsFair:</span> {c.staffNote}
+            <span className="text-faint">From SnZ Ventures:</span> {c.staffNote}
           </p>
         )}
         {staff && c.scheduledByName && c.startsAt && <p className="text-[0.75rem] text-faint">Booked by {c.scheduledByName}</p>}
@@ -122,7 +122,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         <PortalHeading
           eyebrow="Contact"
           title="Consultations"
-          lead="Ask AdmitsFair for a meeting. Tell us what it is about and when suits you; we reply with a day and time, here and by email."
+          lead="Ask SnZ Ventures for a meeting. Tell us what it is about and when suits you; we reply with a day and time, here and by email."
         />
         <Panel title="Book a consultation">
           <ConsultationRequest />

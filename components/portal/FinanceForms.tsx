@@ -378,7 +378,7 @@ export function RecurringForm({ categories, thisMonth, accounts = [] }: { catego
         <span>
           The partners share this cost
           <span className="block text-[0.76rem] text-faint">
-            Untick for costs AdmitsFair carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+            Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
           </span>
         </span>
       </label>
@@ -1134,7 +1134,7 @@ export function RecurringEdit({
               <span>
                 The partners share this cost
                 <span className="block text-[0.76rem] text-faint">
-                  Untick for costs AdmitsFair carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+                  Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
                 </span>
               </span>
             </label>
@@ -1299,7 +1299,7 @@ export function EntryEdit({
               <span>
                 The partners share this cost
                 <span className="block text-[0.76rem] text-faint">
-                  Untick for costs AdmitsFair carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
+                  Untick for costs SnZ Ventures carries alone, like office rent, internet or phone: they then do not lower the partners&apos; profit.
                 </span>
               </span>
             </label>)}
@@ -1380,7 +1380,7 @@ export function StakeholderForm({
             </label>
             <label className="flex items-center gap-2.5 self-end pb-2.5 text-[0.88rem] text-fg">
               <input name="isCompany" type="checkbox" defaultChecked={initial?.isCompany ?? false} className="h-4 w-4 accent-[var(--accent)]" />
-              This is AdmitsFair itself
+              This is SnZ Ventures itself
             </label>
             <label className="block sm:col-span-2">
               <span className="field-label">Notes (optional)</span>
@@ -1571,7 +1571,7 @@ export function AccountActive({ id, name, active }: { id: string; name: string; 
   );
 }
 
-/** Money moved between two of AdmitsFair's own accounts: neither income nor expense. */
+/** Money moved between two of SnZ's own accounts: neither income nor expense. */
 export function TransferForm({ accounts }: { accounts: AccountOption[] }) {
   const router = useRouter();
   const close = useCloseModal();

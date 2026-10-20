@@ -2,7 +2,7 @@ import Link from "next/link";
 
 /**
  * A CONSULTANT WITHOUT A CONSENT FORM. The students a consultant onboards sign
- * that consultant's consent, not AdmitsFair', before their application can
+ * that consultant's consent, not SnZ Ventures', before their application can
  * be submitted. Until the consultant has published one, their students are
  * stuck at the last step; so this sits above every page, cannot be dismissed,
  * and goes away by itself once a consent is published.

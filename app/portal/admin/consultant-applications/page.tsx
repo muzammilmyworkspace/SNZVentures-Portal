@@ -57,11 +57,11 @@ export default async function ConsultantApplicationsPage({
       <PortalHeading
         eyebrow="Manage"
         title="Consultant requests"
-        lead="People who signed up to work with AdmitsFair as consultants. Review them, send the consultant agreement, and approve once they have signed it."
+        lead="People who signed up to work with SnZ Ventures as consultants. Review them, send the consultant agreement, and approve once they have signed it."
       />
       {!consentActive && (
         <p className="note-warn mb-5 p-3 text-[0.85rem] leading-relaxed">
-          No AdmitsFair ↔ Consultant agreement is active, so there is nothing for applicants to sign and you can approve them
+          No SnZ ↔ Consultant agreement is active, so there is nothing for applicants to sign and you can approve them
           directly.{" "}
           <Link href="/portal/admin/forms/consent?tab=consultant" className="font-semibold underline underline-offset-4">
             Publish one

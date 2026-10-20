@@ -7,7 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Create Your Account",
-  description: "Start your AdmitsFair journey — study abroad, global careers or business setup.",
+  description: "Start your SnZ Ventures journey — study abroad, global careers or business setup.",
   path: "/register",
   noIndex: true,
 });

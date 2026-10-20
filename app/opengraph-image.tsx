@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
 export const alt =
-  "AdmitsFair — European Gateway for Business, Fintech & Talent";
+  "SnZ Ventures — European Gateway for Business, Fintech & Talent";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -57,10 +57,10 @@ export default async function OpengraphImage() {
               fontSize: 26,
               fontWeight: 700,
               letterSpacing: "-0.04em",
-              color: "#38BDF8",
+              color: "#7ABF40",
             }}
           >
-            AdmitsFair
+            SnZ
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div
@@ -71,7 +71,7 @@ export default async function OpengraphImage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              AdmitsFair
+              SnZ Ventures
             </div>
             <div
               style={{
@@ -101,7 +101,7 @@ export default async function OpengraphImage() {
             }}
           >
             <span>Your next opportunity</span>
-            <span style={{ color: "#38BDF8" }}>has no borders.</span>
+            <span style={{ color: "#7ABF40" }}>has no borders.</span>
           </div>
           <div
             style={{
@@ -131,12 +131,12 @@ export default async function OpengraphImage() {
             style={{
               width: 34,
               height: 4,
-              background: "#38BDF8",
+              background: "#7ABF40",
               borderRadius: 2,
               display: "flex",
             }}
           />
-          <div style={{ fontSize: 19, color: "#8B9CC4" }}>admitsfair.com</div>
+          <div style={{ fontSize: 19, color: "#8B9CC4" }}>snzventures.com</div>
         </div>
       </div>
     ),

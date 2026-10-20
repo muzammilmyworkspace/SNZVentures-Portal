@@ -85,7 +85,7 @@ export const SOURCE_LABEL: Record<FinanceLine["source"], string> = {
 
 /**
  * THE PROFIT THE PARTNERS SHARE. Income, less only the expenses marked as
- * partner costs. Costs AdmitsFair carries alone (office rent, internet,
+ * partner costs. Costs SnZ Ventures carries alone (office rent, internet,
  * phone: the partners work remotely and use none of it) do not lower it.
  */
 export function partnerTotals(lines: FinanceLine[], rates: Rates) {

@@ -39,7 +39,7 @@ export default async function Page() {
       <PortalHeading
         eyebrow="Business"
         title="Services"
-        lead="What AdmitsFair can take on for you. Regulated work is delivered through licensed partner firms."
+        lead="What SnZ can take on for you. Regulated work is delivered through licensed partner firms."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

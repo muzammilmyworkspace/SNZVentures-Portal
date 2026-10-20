@@ -47,7 +47,7 @@ export function McpConnect({
   const [error, setError] = useState<string | null>(null);
 
   const command = fresh
-    ? `claude mcp add --transport http --scope user admitsfair-portal ${origin}/api/mcp --header "Authorization: Bearer ${fresh}"`
+    ? `claude mcp add --transport http --scope user snz-portal ${origin}/api/mcp --header "Authorization: Bearer ${fresh}"`
     : "";
 
   async function create() {

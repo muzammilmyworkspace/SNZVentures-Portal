@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       createdBy: session.userId,
       partnerCost: kind === "income" || form.get("partnerCost") !== "0",
       accountId,
-      // Reverse charge is for services AdmitsFair buys from abroad: an expense only.
+      // Reverse charge is for services SnZ buys from abroad: an expense only.
       vatMode: kind === "expense" ? vatMode : "none",
       liabilityTerm,
     });

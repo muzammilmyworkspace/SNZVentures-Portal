@@ -3,8 +3,8 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
 /**
  * CONSENT DOCUMENTS, by category (see migration 035).
  *
- *   student             AdmitsFair <-> student      (super admin)
- *   consultant          AdmitsFair <-> consultant   (super admin)
+ *   student             SnZ Ventures <-> student      (super admin)
+ *   consultant          SnZ Ventures <-> consultant   (super admin)
  *   consultant_student  a consultant <-> their students (that consultant)
  *
  * A draft is edited in place and never shown. Publishing makes it the one in

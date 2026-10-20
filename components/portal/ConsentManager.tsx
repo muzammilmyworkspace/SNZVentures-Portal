@@ -431,7 +431,7 @@ export function ConsentVersions({
   party: string;
   /** This page's URL, to which `edit=` is added. */
   basePath: string;
-  /** AdmitsFair's student consent only: the wording built into the portal. */
+  /** SnZ's student consent only: the wording built into the portal. */
   builtIn?: { title: string; version: string; signed: number; isCurrent: boolean } | null;
 }) {
   const router = useRouter();

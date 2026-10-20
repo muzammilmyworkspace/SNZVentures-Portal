@@ -386,7 +386,7 @@ export function IntakeForm({
   consent?: ConsentView | null;
   /** The student's consultant's own consent, signed with the same tick. */
   partnerConsent?: ConsentView | null;
-  /** The student came through this consultant: only their consent applies (null when AdmitsFair's applies). */
+  /** The student came through this consultant: only their consent applies (null when SnZ's applies). */
   waitingForConsultant?: string | null;
 }) {
   const router = useRouter();
@@ -577,7 +577,7 @@ export function IntakeForm({
         </h2>
         <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">
           {status === "completed"
-            ? "Everything on this application is done. Thank you for choosing AdmitsFair; your documents and messages stay here if you need them."
+            ? "Everything on this application is done. Thank you for choosing SnZ Ventures; your documents and messages stay here if you need them."
             : status === "applied"
             ? "Your applications have gone to the universities. We will tell you as soon as they reply; you can follow it under Track progress."
             : status === "accepted"

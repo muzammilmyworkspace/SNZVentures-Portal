@@ -1,5 +1,5 @@
 /**
- * A meeting time, said the way both sides read it: Lithuania (where AdmitsFair is)
+ * A meeting time, said the way both sides read it: Lithuania (where SnZ is)
  * and Pakistan (where most students are). "Tue 7 Oct 2026, 15:00 Lithuania
  * time (17:00 Pakistan time)".
  */

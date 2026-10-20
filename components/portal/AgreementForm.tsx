@@ -5,7 +5,7 @@ import { ConsentDoc } from "@/components/application/UndertakingDoc";
 import type { ConsentView } from "@/lib/portal/forms";
 
 /**
- * A consultant signs AdmitsFair' consultant agreement: read it, tick, type
+ * A consultant signs SnZ Ventures' consultant agreement: read it, tick, type
  * their name. Posts to /api/auth/agreement, then into the portal.
  */
 export function AgreementForm({ agreement, name }: { agreement: ConsentView; name: string }) {

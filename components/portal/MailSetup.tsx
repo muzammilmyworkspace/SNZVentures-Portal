@@ -26,7 +26,7 @@ export function MailSetup({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [from, setFrom] = useState("AdmitsFair <noreply@admitsfair.com>");
+  const [from, setFrom] = useState("SnZ Ventures <noreply@snzventures.com>");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);

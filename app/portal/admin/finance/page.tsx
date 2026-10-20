@@ -119,7 +119,7 @@ export default async function FinanceDashboard({ searchParams }: { searchParams:
               {expenses.length === 0 ? row("No expenses yet", 0) : expenses.map((r) => row(r.label, r.cents, { key: `e-${r.label}` }))}
               {row("Total expenses", t.expense, { strong: true })}
               {row(t.profit >= 0 ? "Net profit" : "Net loss", t.profit, { strong: true, tone: t.profit >= 0 ? "in" : undefined })}
-              {row("Profit the partners share", pt.base, { sub: `After shared costs; AdmitsFair carries ${eur(pt.ownCost)} alone`, href: "/portal/admin/finance/stakeholders" })}
+              {row("Profit the partners share", pt.base, { sub: `After shared costs; SnZ carries ${eur(pt.ownCost)} alone`, href: "/portal/admin/finance/stakeholders" })}
             </tbody>
           </table>
         </Panel>

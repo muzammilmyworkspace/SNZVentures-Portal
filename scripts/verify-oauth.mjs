@@ -58,7 +58,7 @@ if (selectsSecret("id, (secret_hash IS NOT NULL) AS has_secret")) {
   fail("selectsSecret condemns a boolean derived in the database");
 }
 
-const ORIGIN = "https://portal.admitsfair.com";
+const ORIGIN = "https://portal.snzventures.com";
 const challengeFor = (verifier) =>
   createHash("sha256").update(verifier).digest("base64url");
 
@@ -153,7 +153,7 @@ console.log("\n=== which server a token is for ===");
 {
   const mcp = `${ORIGIN}/api/mcp`;
 
-  if (canonicalResource("HTTPS://Portal.AdmitsFair.com/api/mcp/") !== mcp) {
+  if (canonicalResource("HTTPS://Portal.SnZVentures.com/api/mcp/") !== mcp) {
     fail("case and a trailing slash were not normalised");
   }
   if (canonicalResource("https://x.example/a#frag") !== null) fail("a fragment was accepted");
@@ -166,8 +166,8 @@ console.log("\n=== which server a token is for ===");
      server that trusted the same issuer — the confused-deputy problem. */
   for (const other of [
     "https://attacker.example/api/mcp",
-    "https://portal.admitsfair.com.attacker.example/api/mcp",
-    "https://portal.admitsfair.com/api/other",
+    "https://portal.snzventures.com.attacker.example/api/mcp",
+    "https://portal.snzventures.com/api/other",
   ]) {
     if (resourceMatches(other, mcp)) fail(`a token for ${other} was accepted here`);
   }

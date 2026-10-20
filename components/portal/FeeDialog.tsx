@@ -532,12 +532,12 @@ function ReadIt({
           if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) setRead(true);
         }}
         className="max-h-[45vh] overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-line bg-white p-6 text-[#101b40] sm:p-8">
-        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#0369A1]">Form A</p>
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#3e7a22]">Form A</p>
         <h3 className="mt-1 text-[1.25rem] font-extrabold tracking-[-0.03em]">
           {PAYMENT_CONSENT_TITLE}
         </h3>
 
-        <dl className="mt-5 grid gap-3 border-l-2 border-[#38BDF8] bg-[#f4f6fa] p-4 sm:grid-cols-2">
+        <dl className="mt-5 grid gap-3 border-l-2 border-[#72c43c] bg-[#f4f6fa] p-4 sm:grid-cols-2">
           {[
             ["Student", facts.name],
             ["Passport number", facts.passport],
@@ -563,7 +563,7 @@ function ReadIt({
           <ol className="space-y-2">
             {PAYMENT_CLAUSES.map((c, i) => (
               <li key={i} className="relative pl-7">
-                <span className="absolute left-0 top-0.5 text-[0.65rem] font-bold text-[#0369A1]">
+                <span className="absolute left-0 top-0.5 text-[0.65rem] font-bold text-[#3e7a22]">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 {c}

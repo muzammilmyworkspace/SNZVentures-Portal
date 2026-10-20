@@ -28,7 +28,7 @@ import type { Session } from "@/lib/auth/types";
  *   activate / deactivate   put a published version in or out of use
  *   delete      a draft, or a published version nobody has signed
  *
- * WHO: the super admin manages AdmitsFair' own (student, consultant); a
+ * WHO: the super admin manages SnZ Ventures' own (student, consultant); a
  * consultant manages only their own consent for their students. Nobody else.
  */
 

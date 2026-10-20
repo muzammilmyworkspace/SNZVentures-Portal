@@ -11,7 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: "Client Login",
-  description: "Sign in to your AdmitsFair client portal.",
+  description: "Sign in to your SnZ Ventures client portal.",
   path: "/login",
   noIndex: true,
 });

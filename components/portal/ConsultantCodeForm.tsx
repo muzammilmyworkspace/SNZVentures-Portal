@@ -41,7 +41,7 @@ export function ConsultantCodeForm() {
           id="ccode"
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="AF-ABC123"
+          placeholder="SNZ-ABC123"
           maxLength={12}
           className="field min-w-0 flex-1 font-mono uppercase"
         />
@@ -54,7 +54,7 @@ export function ConsultantCodeForm() {
         </button>
       </div>
       <p className={msg ? (msg.ok ? "mt-2 text-[0.82rem] text-accent" : "mt-2 text-[0.82rem] text-danger") : "mt-2 text-[0.78rem] text-faint"} role={msg ? "status" : undefined}>
-        {msg?.text ?? "If an AdmitsFair consultant gave you a code, enter it so they can follow your application."}
+        {msg?.text ?? "If an SnZ consultant gave you a code, enter it so they can follow your application."}
       </p>
     </form>
   );

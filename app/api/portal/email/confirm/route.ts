@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     */
     await sendMail({
       to: before.email,
-      subject: "Your AdmitsFair email address has been changed",
+      subject: "Your SnZ Ventures email address has been changed",
       text:
         `Hello ${before.name},\n\n` +
         `Your portal account now signs in with ${next}. This address will no longer work.\n\n` +

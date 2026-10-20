@@ -1,10 +1,10 @@
 /**
- * ADMITSFAIR — SINGLE SOURCE OF TRUTH FOR COMPANY FACTS
+ * SNZ VENTURES — SINGLE SOURCE OF TRUTH FOR COMPANY FACTS
  * ---------------------------------------------------------------------------
  * Every factual claim rendered on this website reads from this file.
  *
  * SOURCING RULES (do not break these):
- *  - `verified: true`  → confirmed on the live admitsfair.com site.
+ *  - `verified: true`  → confirmed on the live snzventures.com site.
  *  - `verified: false` → appears on the live site but NOT independently
  *                        confirmed. Client must sign off before launch.
  *  - Anything unknown is typed as `null` and rendered as a visible
@@ -14,31 +14,31 @@
  */
 
 export const company = {
-  name: "AdmitsFair",
-  nameUpper: "ADMITSFAIR",
+  name: "SnZ Ventures",
+  nameUpper: "SNZ VENTURES",
   /** Verified — live site header positioning line. */
   positioning: "European Gateway for Business, Fintech & Talent",
   /** Verified — live site mission statement. */
   missionQuote:
-    "Geography should not be a barrier to ambition. AdmitsFair dismantles the borders between European opportunity.",
+    "Geography should not be a barrier to ambition. SnZ Ventures dismantles the borders between European opportunity.",
 
   /** Verified — published on the live site. */
   contact: {
     phone: "+370 623 93857",
     phoneHref: "+37062393857",
-    email: "admitsfair@gmail.com",
+    email: "study@snzventures.com",
     /**
      * Where consultation enquiries are delivered.
      *
      * ⚠ DIFFERENT DOMAIN, ON PURPOSE — client-specified. General contact
-     * Owner instruction 2026-10-04: one email (admitsfair@gmail.com) and one
+     * Owner instruction 2026-10-04: one email (study@snzventures.com) and one
      * number (+370 623 93857, calls and WhatsApp) everywhere, as on the website.
      * `MAIL_TO` overrides this at runtime without a code change, so if this
      * address is ever wrong it can be corrected from the environment.
      *
      * See CONTENT-HANDOFF § 2 — this one needs confirming before launch.
      */
-    consultationEmail: "admitsfair@gmail.com",
+    consultationEmail: "study@snzventures.com",
     /** Live site links a WhatsApp channel on the same published number. */
     whatsapp: "37062393857",
     city: "Vilnius",
@@ -57,26 +57,26 @@ export const company = {
     incorporatedIn: "Lithuania",
   },
 
-  /** AdmitsFair's own profiles: none supplied yet (the SnZ ones were removed). */
+  /** Client-supplied profiles. Only X/Twitter is outstanding. */
   social: {
-    linkedin: null as string | null,
+    linkedin: "https://www.linkedin.com/company/snz-ventures/",
     /**
      * Client-supplied Google Business share link. Used for "read all reviews"
      * and "leave a review", and as the fallback destination when the Places
      * API is not configured — so the link works with no credentials at all.
      * Review CONTENT is fetched separately; see lib/reviews.ts.
      */
-    googleReviews: null as string | null,
+    googleReviews: "https://share.google/MNo5ThKseoiGnDEnF",
 
     /**
      * Social profiles, supplied by the client. The footer renders an icon for
      * each entry that has a URL; anything left `null` renders dimmed and
      * non-clickable rather than as a dead link.
      */
-    instagram: null as string | null,
-    facebook: null as string | null,
-    tiktok: "",
-    youtube: null as string | null,
+    instagram: "https://www.instagram.com/snz.ventures/?hl=en",
+    facebook: "https://www.facebook.com/snz.ventures/",
+    tiktok: "https://www.tiktok.com/@snz.ventures",
+    youtube: "https://www.youtube.com/channel/UC5lkD3z9vbxCPgI5f3R1tzA",
     /** No X/Twitter profile supplied. */
     x: null as string | null,
   },
@@ -89,12 +89,12 @@ export const company = {
    * This is a TRUST asset, not a liability. Never imply direct regulation.
    */
   regulatoryNotice:
-    "AdmitsFair is an advisory firm. Regulated activities — audit, legal representation, licensing submissions and AML officer functions — are delivered through licensed partner firms. AdmitsFair is not itself a regulated financial institution.",
+    "SnZ Ventures is an advisory firm. Regulated activities — audit, legal representation, licensing submissions and AML officer functions — are delivered through licensed partner firms. SnZ Ventures is not itself a regulated financial institution.",
 
   /*
     THE APEX, NOT www.
 
-    This was `https://www.admitsfair.com`, and that hostname does not serve
+    This was `https://www.snzventures.com`, and that hostname does not serve
     this site. It resolves to different hosting whose TLS certificate is for
     another name, so a browser opening it gets a full-page security warning
     before it renders anything.
@@ -109,7 +109,7 @@ export const company = {
     is what the site should call itself. If `www` is added later, point it at
     the apex with a redirect rather than moving this back.
   */
-  siteUrl: "https://admitsfair.com",
+  siteUrl: "https://snzventures.com",
   locale: "en",
 } as const;
 
@@ -194,7 +194,7 @@ export const ecosystem = [
 ] as const;
 
 export const ecosystemDisclaimer =
-  "Institutions shown describe the regulatory and business environment AdmitsFair operates within. They do not constitute endorsement, accreditation or partnership.";
+  "Institutions shown describe the regulatory and business environment SnZ Ventures operates within. They do not constitute endorsement, accreditation or partnership.";
 
 /** Verified — corridors named on the live site. */
 export const sourceMarkets = [

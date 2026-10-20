@@ -1,7 +1,7 @@
 /**
  * FORM A — PAYMENT AUTHORIZATION & DECLARATION
  * ---------------------------------------------------------------------------
- * The wording is AdmitsFair' own, transcribed from the signed paper form.
+ * The wording is SnZ Ventures' own, transcribed from the signed paper form.
  * Nothing has been added: no promise about admission, no success rate, no
  * claim about outcomes. The clauses say what the paper says.
  *
@@ -46,11 +46,11 @@ export type PaymentDeclarationFacts = {
  * is why they are a constant rather than built from the facts above.
  */
 export const PAYMENT_CLAUSES: string[] = [
-  "I have voluntarily transferred the above amount to MB AdmitsFair solely for the purpose of paying the institution fee named above.",
-  "MB AdmitsFair is authorised to make this payment on my behalf and to identify me to the institution as the applicant it relates to.",
-  "The fee is charged by the institution and is subject to that institution's own refund and admission policies, not to any policy of MB AdmitsFair.",
-  "Once MB AdmitsFair has transferred the fee to the institution, the payment is considered completed on my behalf and MB AdmitsFair has discharged its obligation in respect of it.",
-  "MB AdmitsFair gives no assurance as to the outcome of my application, and this authorisation is not connected to any admission decision.",
+  "I have voluntarily transferred the above amount to MB SnZ Ventures solely for the purpose of paying the institution fee named above.",
+  "MB SnZ Ventures is authorised to make this payment on my behalf and to identify me to the institution as the applicant it relates to.",
+  "The fee is charged by the institution and is subject to that institution's own refund and admission policies, not to any policy of MB SnZ Ventures.",
+  "Once MB SnZ Ventures has transferred the fee to the institution, the payment is considered completed on my behalf and MB SnZ Ventures has discharged its obligation in respect of it.",
+  "MB SnZ Ventures gives no assurance as to the outcome of my application, and this authorisation is not connected to any admission decision.",
   "I sign this declaration willingly, in full understanding of its contents, and without any coercion.",
 ];
 
@@ -88,7 +88,7 @@ export function paymentDeclarationBody(f: PaymentDeclarationFacts): string[] {
   }
 
   out.push(
-    `I hereby authorise MB AdmitsFair, acting as my educational consultant, to collect the sum of ${f.amountLabel} from me and to transfer that payment to ${f.university} on my behalf` +
+    `I hereby authorise MB SnZ Ventures, acting as my educational consultant, to collect the sum of ${f.amountLabel} from me and to transfer that payment to ${f.university} on my behalf` +
       (f.payDate ? `, in respect of a transfer made on ${f.payDate}` : "") +
       `. The payment is being sent by ${f.method.toLowerCase()}.`
   );

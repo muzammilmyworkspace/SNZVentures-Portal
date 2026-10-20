@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const r = resolveRange(Object.fromEntries(new URL(request.url).searchParams), new Date().toISOString().slice(0, 10));
   const m = r.from === r.to ? r.from : `${r.from}_to_${r.to}`;
 
-  const entries: ZipEntry[] = [{ name: `AdmitsFair-finance-${m}.xlsx`, data: await financeWorkbook(r.from, r.to) }];
+  const entries: ZipEntry[] = [{ name: `SnZ-finance-${m}.xlsx`, data: await financeWorkbook(r.from, r.to) }];
   const receipts = await receiptsBetween(r.from, r.to);
   const taken = new Set<string>();
   const failed: string[] = [];
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
   return new Response(new Uint8Array(zip), {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="AdmitsFair-finance-${m}-for-accountant.zip"`,
+      "Content-Disposition": `attachment; filename="SnZ-finance-${m}-for-accountant.zip"`,
       "Cache-Control": "no-store",
     },
   });

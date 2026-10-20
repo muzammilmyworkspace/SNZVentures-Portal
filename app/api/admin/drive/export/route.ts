@@ -277,7 +277,7 @@ export async function POST(request: Request) {
       token,
       folder.id,
       recipient,
-      `${user.name}'s application file from AdmitsFair.`
+      `${user.name}'s application file from SnZ Ventures.`
     );
   }
 

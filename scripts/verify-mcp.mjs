@@ -214,9 +214,9 @@ console.log("\n=== the token ===");
 
 console.log("\n=== origin ===");
 {
-  const self = "https://portal.admitsfair.com/api/mcp";
+  const self = "https://portal.snzventures.com/api/mcp";
   if (!originAllowed(null, self)) fail("a request with no Origin was refused");
-  if (!originAllowed("https://portal.admitsfair.com", self)) fail("our own origin was refused");
+  if (!originAllowed("https://portal.snzventures.com", self)) fail("our own origin was refused");
   if (originAllowed("https://evil.example", self)) fail("another site's origin was accepted");
   if (originAllowed("not a url", self)) fail("a malformed origin was accepted");
   ok("no Origin passes, ours passes, anything else does not");
