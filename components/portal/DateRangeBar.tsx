@@ -122,7 +122,7 @@ export function PeriodStat({
 
   const body = (
     <>
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: hue }} />
+      <span aria-hidden className="pv3-hue absolute inset-x-0 top-0 h-[3px]" style={{ background: hue }} />
       <span className="label text-[0.7rem] text-faint">{label}</span>
       <span className="num mt-3 block text-[2.1rem] leading-none text-fg-strong">{cur}</span>
       <span className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78rem]">

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./boarding.css";
+import "./portal-v3.css";
 
 /**
  * ROOT LAYOUT — PORTAL ORIGIN.

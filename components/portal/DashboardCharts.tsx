@@ -407,7 +407,7 @@ export function ProgressGauges({
         const hue = `var(--viz-${(i % 3) + 1})`;
         const body = (
           <div className="group relative flex h-full items-center gap-5 overflow-hidden rounded-[16px] border border-line bg-[image:var(--panel-bg)] p-5 shadow-[var(--panel-shadow)] transition-all duration-300 hover:-translate-y-1 hover:border-line-strong motion-reduce:transform-none">
-            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] opacity-80" style={{ background: hue }} />
+            <span aria-hidden className="pv3-hue absolute inset-x-0 top-0 h-[3px] opacity-80" style={{ background: hue }} />
             <svg viewBox="0 0 76 76" className="h-[76px] w-[76px] shrink-0 -rotate-90" aria-hidden>
               <circle cx="38" cy="38" r={R} fill="none" stroke="color-mix(in srgb, var(--fg) 10%, transparent)" strokeWidth="7" />
               <motion.circle

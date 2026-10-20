@@ -1,0 +1,225 @@
+/* ============================================================================
+   PORTAL UI v3
+   ----------------------------------------------------------------------------
+   The same navy + sky palette, a calmer working surface. Everything here is
+   scoped to `.portal-shell.pv3` (set by components/portal/PortalShell), so the
+   sign-in screens and the website are untouched, and removing the `pv3` class
+   brings back the previous look exactly.
+
+     • Ground: one flat navy (dark) or near-white (light) — no grid, no waves.
+     • Cards: flat panels with a hairline and a soft shadow, 14px radius.
+     • Type: labels in sentence case in the UI face (no mono capitals), numbers
+       tabular, headings a size smaller.
+     • Controls: rounded rectangles (10px) instead of full pills, 40–44px tall.
+   ========================================================================== */
+
+.portal-shell.pv3 {
+  --pv-bg: #0B1324;
+  --pv-side: #0A1020;
+  --pv-panel: #111B31;
+  --pv-panel-2: #16213A;
+  --pv-hover: rgb(148 170 210 / 0.08);
+  --pv-active: rgb(56 189 248 / 0.14);
+  --pv-ring: rgb(56 189 248 / 0.28);
+  --surface: var(--pv-bg);
+  --surface-wash: none;
+  --panel-bg: linear-gradient(var(--pv-panel), var(--pv-panel));
+  --panel-solid: var(--pv-panel);
+  --panel-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -16px rgb(0 0 0 / 0.6);
+  --line: rgb(148 170 210 / 0.13);
+  --line-strong: rgb(148 170 210 / 0.24);
+  background: var(--pv-bg);
+}
+[data-theme="light"] .portal-shell.pv3 {
+  --pv-bg: #F4F7FB;
+  --pv-side: #FFFFFF;
+  --pv-panel: #FFFFFF;
+  --pv-panel-2: #F7F9FC;
+  --pv-hover: rgb(12 21 38 / 0.045);
+  --pv-active: rgb(2 132 199 / 0.1);
+  --pv-ring: rgb(2 132 199 / 0.22);
+  --panel-shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 6px 18px -12px rgb(16 24 40 / 0.18);
+  --line: rgb(12 21 38 / 0.09);
+  --line-strong: rgb(12 21 38 / 0.17);
+}
+
+/* ------------------------------------------------------------ chrome --- */
+.pv3 .pv3-side {
+  background: var(--pv-side);
+  border-right: 1px solid var(--line);
+}
+.pv3 .pv3-top {
+  background: color-mix(in srgb, var(--pv-bg) 82%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.pv3 .pv3-group {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.pv3 .pv3-item { color: var(--fg-muted); transition: color 0.15s, background-color 0.15s; }
+.pv3 .pv3-item:hover { color: var(--fg-strong); background: var(--pv-hover); }
+.pv3 .pv3-item.is-on { color: var(--fg-strong); font-weight: 600; }
+.pv3 .pv3-item-bg { background: var(--pv-active); box-shadow: inset 0 0 0 1px var(--pv-ring); }
+.pv3 .pv3-item-icon { color: var(--fg-faint); transition: color 0.15s; }
+.pv3 .pv3-item:hover .pv3-item-icon { color: var(--fg-muted); }
+.pv3 .pv3-item.is-on .pv3-item-icon { color: var(--accent); }
+.pv3 .pv3-step {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 6px;
+  font-size: 0.7rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.pv3 .pv3-item.is-on .pv3-step { background: var(--accent); color: #070B1A; box-shadow: none; }
+.pv3 .pv3-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-moss-400);
+  color: #070B1A;
+  font-size: 0.7rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.pv3 .pv3-search {
+  color: var(--fg-faint);
+  background: var(--pv-panel);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow 0.15s, color 0.15s;
+}
+.pv3 .pv3-search:hover { color: var(--fg-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pv3 .pv3-kbd {
+  font-family: var(--font-sans);
+  font-size: 0.68rem; font-weight: 600;
+  padding: 2px 6px; border-radius: 6px;
+  color: var(--fg-faint);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.pv3 .pv3-user { background: var(--pv-panel); box-shadow: inset 0 0 0 1px var(--line); }
+.pv3 .pv3-icon-btn { color: var(--fg-muted); transition: color 0.15s, background-color 0.15s; }
+.pv3 .pv3-icon-btn:hover { color: var(--fg-strong); background: var(--pv-hover); }
+.pv3 .pv3-avatar-btn { transition: box-shadow 0.15s; }
+.pv3 .pv3-avatar-btn:hover { box-shadow: 0 0 0 2px var(--accent); }
+.pv3 .pv3-menu {
+  background: var(--pv-panel);
+  box-shadow: inset 0 0 0 1px var(--line), 0 20px 50px -20px rgb(0 0 0 / 0.55);
+}
+[data-theme="light"] .pv3 .pv3-menu { box-shadow: inset 0 0 0 1px var(--line), 0 20px 50px -24px rgb(16 24 40 / 0.35); }
+.pv3 .pv3-menu-item { color: var(--fg-muted); }
+.pv3 .pv3-menu-item:hover,
+.pv3 .pv3-menu-item.is-on { color: var(--fg-strong); background: var(--pv-hover); }
+.pv3 .pv3-status.is-action { color: var(--accent-ink); background: var(--pv-active); box-shadow: inset 0 0 0 1px var(--pv-ring); }
+.pv3 .pv3-status.is-wait { color: var(--pill-warn-fg); background: var(--pill-warn-bg); box-shadow: inset 0 0 0 1px var(--pill-warn-bd); }
+.pv3 .pv3-status.is-ok { color: var(--fg-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* The header's bell and theme switch come from shared components; give them
+   the same square, quiet button as the rest of the bar. */
+.pv3 .pv3-top :is(button, a):not(.pv3-avatar-btn):not(.pv3-icon-btn) {
+  border-radius: 10px;
+}
+
+/* ---------------------------------------------------------- typography -- */
+.pv3 .label {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.pv3 .num {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.pv3 h1 { font-family: var(--font-sans); letter-spacing: -0.025em; }
+:where(.pv3) h2,
+:where(.pv3) h3 { font-family: var(--font-sans); letter-spacing: -0.015em; }
+
+/* -------------------------------------------------------------- forms --- */
+.pv3 .field-label {
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+.pv3 .field {
+  border-radius: 10px;
+  border-color: var(--line-strong);
+  background-color: var(--pv-panel);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+@media (max-width: 640px) { .pv3 .field { font-size: 1rem; } }
+.pv3 .field:focus {
+  border-color: var(--accent);
+  background-color: var(--pv-panel);
+  box-shadow: 0 0 0 3px var(--pv-ring);
+}
+
+/* -------------------------------------------------------------- pills --- */
+.pv3 .pill {
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ------------------------------------------------------------ buttons --- */
+/* Every pill-shaped button in the work area becomes a rounded rectangle —
+   the buttons are written inline across many pages, so this is the one place
+   that can change them all at once. Avatars and count badges are spans, so
+   they keep their circles. */
+.pv3 main :is(a, button).rounded-full { border-radius: 10px; }
+.pv3 main :is(a, button).bg-moss-400 {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 6px 16px -10px rgb(56 189 248 / 0.9);
+}
+
+/* ------------------------------------------------------------- motion --- */
+.pv3 .portal-rise,
+.pv3 main .grid:not(form .grid) > * {
+  animation-duration: 0.35s;
+}
+.pv3 main .grid:not(form .grid) > *:nth-child(n) { animation-delay: 0s; }
+
+/* ---------------------------------------------------- dashboard extras -- */
+.pv3 .dash-work > * { --card-hue: transparent; }
+
+/* Coloured top rules on dashboard gauges and the date-range bar: v3 cards are
+   plain; the colour stays in the chart marks, where it carries meaning. */
+.pv3 .pv3-hue { display: none; }
+.pv3 .pv3-palette-input:focus,
+.pv3 .pv3-palette-input:focus-visible { outline: none; box-shadow: none; }
+
+/* ---------------------------------------------------------- sign-in v3 --
+   The sign-in, register and reset screens keep their brand panel on the
+   left; the form side takes the v3 controls so the first screen a person
+   sees matches the portal they land in. */
+.auth-split .auth-form-side .label {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.auth-split .auth-form-side .field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+.auth-split .auth-form-side .field {
+  border-radius: 10px;
+  border-color: var(--line-strong);
+}
+.auth-split .auth-form-side .field:focus { box-shadow: 0 0 0 3px rgb(56 189 248 / 0.25); }
+.auth-split .auth-form-side :is(a, button).rounded-full { border-radius: 10px; }
+.auth-split .auth-form-side h1 { font-family: var(--font-sans); letter-spacing: -0.03em; }

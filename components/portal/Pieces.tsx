@@ -35,25 +35,16 @@ export function PortalHeading({
   meta?: ReactNode;
 }) {
   return (
-    <header className="portal-rise mb-8">
+    <header className="portal-rise mb-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {eyebrow && (
-            <p className="label mb-3 flex items-center gap-3 text-accent">
-              <span aria-hidden className="inline-block h-px w-8 bg-current" />
-              {eyebrow}
-            </p>
-          )}
-          <h1 className="font-[family-name:var(--font-display)] text-[1.9rem] font-semibold leading-[1.05] tracking-[-0.035em] text-fg-strong sm:text-[2.4rem]">
-            {title}
-          </h1>
-          {lead && (
-            <p className="mt-3 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{lead}</p>
-          )}
+          {eyebrow && <p className="mb-1.5 text-[0.8rem] font-semibold text-accent-ink">{eyebrow}</p>}
+          <h1 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.025em] text-fg-strong sm:text-[1.85rem]">{title}</h1>
+          {lead && <p className="mt-2 max-w-2xl text-[0.92rem] leading-relaxed text-muted">{lead}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
-      {meta && <div className="mt-6">{meta}</div>}
+      {meta && <div className="mt-5">{meta}</div>}
     </header>
   );
 }
@@ -78,20 +69,14 @@ export function Panel({
   return (
     <section
       className={cn(
-        "portal-rise relative overflow-hidden rounded-[18px] border",
-        "bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)]",
-        accent ? "border-moss-400/35" : "border-line",
+        "portal-rise relative overflow-hidden rounded-[14px] border bg-[var(--panel-solid)] shadow-[var(--panel-shadow)]",
+        accent ? "border-[color-mix(in_srgb,var(--accent)_40%,transparent)]" : "border-line",
         className
       )}
     >
       {(title || action) && (
-        <header className="flex items-center justify-between gap-4 border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] px-5 py-3.5">
-          {title && (
-            <h2 className="label flex items-center gap-2.5 text-[0.75rem] text-muted">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-              {title}
-            </h2>
-          )}
+        <header className="flex min-h-[52px] items-center justify-between gap-4 border-b border-line px-5 py-3">
+          {title && <h2 className="text-[0.92rem] font-semibold text-fg-strong">{title}</h2>}
           {action}
         </header>
       )}
@@ -100,14 +85,16 @@ export function Panel({
   );
 }
 
-/** Small "View all" link in a card header — padded out to a real touch target. */
 export function CardLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="label -my-3 inline-flex min-h-11 items-center py-3 text-faint transition-colors hover:text-accent"
+      className="-my-3 inline-flex min-h-11 items-center gap-1 py-3 text-[0.82rem] font-semibold text-accent-ink transition-opacity hover:opacity-80"
     >
       {children}
+      <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3">
+        <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </Link>
   );
 }
@@ -137,12 +124,11 @@ export function EmptyState({
   };
 
   return (
-    <div className="flex items-start gap-4 rounded-[14px] border border-dashed border-line-strong bg-[color-mix(in_srgb,var(--fg)_2%,transparent)] p-5">
+    <div className="flex items-start gap-4 rounded-[14px] border border-dashed border-line-strong p-5">
       <span
         aria-hidden
-        className="relative mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent"
+        className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] text-accent"
       >
-        <span className="absolute inset-0 rounded-[14px] ring-1 ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]" />
         <svg viewBox="0 0 22 22" fill="none" className="h-[18px] w-[18px]">
           <path
             d={paths[icon]}
@@ -159,7 +145,7 @@ export function EmptyState({
         {action && (
           <Link
             href={action.href}
-            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 font-[family-name:var(--font-display)] text-[0.92rem] font-semibold text-fg transition-colors hover:border-[var(--accent)] hover:text-accent"
+            className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-line-strong px-4 text-[0.88rem] font-semibold text-fg transition-colors hover:border-[var(--accent)] hover:text-accent"
           >
             {action.label}
           </Link>
@@ -238,48 +224,28 @@ export function StatCard({
   urgent?: boolean;
   hint?: string;
 }) {
-  /*
-    A figure laid out like an instrument reading: the label as a mono caption
-    on top, the number large, the explanation underneath, and a thin rule at
-    the foot that lights up for anything urgent or clickable.
-  */
   const inner = (
     <>
       <span className="flex items-center justify-between gap-3">
-        <span className="label text-[0.72rem] text-faint">{label}</span>
+        <span className="text-[0.82rem] font-medium text-muted">{label}</span>
         {href && (
-          <span
-            aria-hidden
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line text-muted transition-all duration-300 group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[#070B1A]"
-          >
-            <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
-              <path d="M2.5 9.5l7-7M4 2.5h5.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3.5 w-3.5 shrink-0 text-faint transition-colors group-hover:text-accent">
+            <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         )}
       </span>
-      <span className={cn("num mt-4 block text-[2.6rem] leading-none", urgent ? "text-accent" : "text-fg-strong")}>{value}</span>
-      {hint && <span className="mt-3 block text-[0.82rem] leading-relaxed text-muted">{hint}</span>}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-x-0 bottom-0 h-[3px] transition-opacity duration-300",
-          urgent ? "bg-[var(--accent)]" : "bg-gradient-to-r from-[#6FA6F7]/70 to-[#38BDF8]/70 opacity-0 group-hover:opacity-100"
-        )}
-      />
+      <span className={cn("num mt-3 block text-[1.9rem] leading-none", urgent ? "text-accent" : "text-fg-strong")}>{value}</span>
+      {hint && <span className="mt-2 block text-[0.8rem] leading-relaxed text-faint">{hint}</span>}
     </>
   );
 
   const base = cn(
-    "group relative block overflow-hidden rounded-[16px] border p-5 bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)] transition-all duration-300",
+    "group relative block rounded-[14px] border bg-[var(--panel-solid)] p-4 shadow-[var(--panel-shadow)] transition-colors sm:p-5",
     urgent ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : "border-line"
   );
 
   return href ? (
-    <Link
-      href={href}
-      className={cn(base, "hover:-translate-y-1 hover:border-line-strong motion-reduce:transform-none")}
-    >
+    <Link href={href} className={cn(base, "hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)]")}>
       {inner}
     </Link>
   ) : (
@@ -319,55 +285,32 @@ export function WorkCard({
   href: string;
 }) {
   const waiting = value > 0;
-
   return (
     <Link
       href={href}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-[16px] border p-5 shadow-[var(--panel-shadow)] transition-all duration-300",
-        "hover:-translate-y-1 motion-reduce:transform-none",
+        "group relative flex h-full flex-col rounded-[14px] border bg-[var(--panel-solid)] p-4 shadow-[var(--panel-shadow)] transition-colors sm:p-5",
         waiting
-          ? "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[image:var(--panel-bg)] hover:border-[var(--accent)]"
-          : "border-line bg-[image:var(--panel-bg)] hover:border-line-strong"
+          ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:border-[var(--accent)]"
+          : "border-line hover:border-line-strong"
       )}
     >
-      {/* Each card's own hue as a thin rule along the top (set per position
-          by .dash-work in boarding.css), so the row reads as distinct queues. */}
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-[var(--card-hue,transparent)] opacity-80" />
-      {/* A soft accent glow in the corner of any card that holds work. */}
-      {waiting && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--accent)_30%,transparent),transparent)]"
-        />
-      )}
-      <span className="relative flex items-start justify-between gap-3">
-        <span className={cn("text-[0.95rem] font-semibold leading-snug", waiting ? "text-fg-strong" : "text-muted")}>{label}</span>
-        <span
-          aria-hidden
-          className={cn(
-            "grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-all duration-300",
-            waiting
-              ? "border-[var(--accent)] bg-[var(--accent)] text-[#070B1A] group-hover:scale-110"
-              : "border-[color-mix(in_srgb,var(--card-hue,var(--line-strong))_55%,transparent)] text-[var(--card-hue,var(--fg-faint))] group-hover:bg-[color-mix(in_srgb,var(--card-hue,var(--fg))_14%,transparent)]"
-          )}
-        >
-          <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
-            <path d="M2.5 9.5l7-7M4 2.5h5.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
+      <span className="flex items-start justify-between gap-3">
+        <span className={cn("text-[0.88rem] font-semibold leading-snug", waiting ? "text-fg-strong" : "text-muted")}>{label}</span>
+        <svg viewBox="0 0 12 12" fill="none" aria-hidden className={cn("mt-0.5 h-3.5 w-3.5 shrink-0 transition-colors", waiting ? "text-accent" : "text-faint group-hover:text-fg")}>
+          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </span>
-
-      <span className="relative mt-5 flex items-end gap-3">
-        <span className={cn("num block text-[2.8rem] leading-none", waiting ? "text-fg-strong" : "text-faint")}>{value}</span>
+      <span className="mt-3 flex items-center gap-2.5">
+        <span className={cn("num block text-[2rem] leading-none", waiting ? "text-fg-strong" : "text-faint")}>{value}</span>
         {waiting && (
-          <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] px-2.5 py-1 text-[0.72rem] font-semibold text-accent">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)] motion-reduce:animate-none" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-2 py-0.5 text-[0.72rem] font-semibold text-accent-ink">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
             Needs action
           </span>
         )}
       </span>
-      <span className="relative mt-auto block pt-3 text-[0.82rem] leading-relaxed text-faint">{note}</span>
+      <span className="mt-auto block pt-3 text-[0.8rem] leading-relaxed text-faint">{note}</span>
     </Link>
   );
 }
@@ -387,7 +330,7 @@ export function AllClear({
   action?: { label: string; href: string };
 }) {
   return (
-    <div className="flex flex-col gap-4 rounded-[var(--radius-md)] border border-moss-400/30 bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3.5">
         <span
           aria-hidden
@@ -411,7 +354,7 @@ export function AllClear({
       {action && (
         <Link
           href={action.href}
-          className="font-[family-name:var(--font-display)] font-semibold text-[0.95rem] tracking-[-0.005em] inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-fg transition-colors hover:border-moss-400/60 hover:text-accent"
+          className="inline-flex min-h-10 shrink-0 items-center rounded-[10px] border border-line-strong px-4 text-[0.88rem] font-semibold text-fg transition-colors hover:border-[var(--accent)] hover:text-accent"
         >
           {action.label}
         </Link>
@@ -511,57 +454,34 @@ export function NextAction({
   href: string;
   eyebrow?: string;
 }) {
-  /*
-    THE NEXT STEP, AS A BOARDING PASS. The one card on the dashboard that
-    asks the student to act, so it is the only one drawn as a ticket: the
-    instruction on the main part, a stub with a mono "gate" label and a
-    plane flying a dashed route. Decorative parts are aria-hidden.
-  */
   return (
-    <section
-      className="portal-rise relative overflow-hidden rounded-[18px] border border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[image:var(--panel-bg)] shadow-[var(--panel-shadow)]"
-    >
+    <section className="portal-rise relative overflow-hidden rounded-[16px] border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[var(--panel-solid)] shadow-[var(--panel-shadow)]">
       <span
         aria-hidden
-        className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--accent)_22%,transparent),transparent)]"
+        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--accent)_18%,transparent),transparent)]"
       />
-      <div className="relative grid md:grid-cols-[1fr_240px]">
-        <div className="p-6 sm:p-7">
-          <p className="label flex items-center gap-3 text-accent">
-            <span aria-hidden className="inline-block h-px w-8 bg-current" />
-            {eyebrow}
-          </p>
-          <h2 className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.025em] text-fg-strong sm:text-[1.9rem]">
-            {title}
-          </h2>
-          <p className="mt-3 max-w-xl text-[0.95rem] leading-relaxed text-muted">{body}</p>
-          <Link
-            href={href}
-            className="group mt-7 inline-flex min-h-12 items-center gap-2.5 rounded-full bg-moss-400 px-6 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[#070B1A] shadow-[0_12px_30px_-12px_rgba(56,189,248,0.7)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-moss-300 motion-reduce:transform-none"
-          >
-            {cta}
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1">
-              <path d="M1 6h9M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="flex items-start gap-4">
+          <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-accent">
+            <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
+              <path d="M4 10h11M11 5l5 5-5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </Link>
-        </div>
-
-        {/* The stub */}
-        <div aria-hidden className="relative hidden flex-col justify-between border-l-2 border-dashed border-line-strong p-6 md:flex">
-          <span className="absolute -left-[11px] -top-[11px] h-5 w-5 rounded-full bg-[var(--surface)]" />
-          <span className="absolute -bottom-[11px] -left-[11px] h-5 w-5 rounded-full bg-[var(--surface)]" />
-          <span>
-            <span className="label block text-[0.72rem] text-faint">Gate</span>
-            <span className="font-[family-name:var(--font-display)] text-[2rem] font-bold leading-none text-fg-strong">AF</span>
           </span>
-          <svg viewBox="0 0 180 70" className="w-full overflow-visible">
-            <path d="M4 62 C 60 62, 110 40, 176 8" fill="none" stroke="currentColor" className="text-line-strong" strokeWidth="1.4" strokeDasharray="3 6" />
-            <path d="M22.5 12c0-.8-.7-1.4-1.6-1.4h-5.4L10.3 2.3a.8.8 0 00-.7-.4H8.2c-.4 0-.6.4-.5.7l2.6 8H5.1L3.4 8.2a.6.6 0 00-.5-.3H1.8c-.3 0-.5.3-.4.6L2.6 12l-1.2 3.5c-.1.3.1.6.4.6h1.1c.2 0 .4-.1.5-.3l1.7-2.4h5.2l-2.6 8c-.1.3.1.7.5.7h1.4c.3 0 .5-.2.7-.4l5.2-8.3h5.4c.9 0 1.6-.6 1.6-1.4z" transform="translate(-12 -12) scale(0.85)" fill="var(--accent)" className="motion-reduce:hidden">
-              <animateMotion dur="5s" repeatCount="indefinite" rotate="auto" path="M4 62 C 60 62, 110 40, 176 8" />
-            </path>
-          </svg>
-          <span className="bp-barcode h-8 text-[var(--fg-strong)] opacity-60" />
+          <div className="min-w-0">
+            <p className="text-[0.8rem] font-semibold text-accent-ink">{eyebrow}</p>
+            <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight tracking-[-0.02em] text-fg-strong sm:text-[1.5rem]">{title}</h2>
+            <p className="mt-2 max-w-xl text-[0.92rem] leading-relaxed text-muted">{body}</p>
+          </div>
         </div>
+        <Link
+          href={href}
+          className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-moss-400 px-5 text-[0.95rem] font-semibold text-[#070B1A] transition-colors hover:bg-moss-300"
+        >
+          {cta}
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3 transition-transform group-hover:translate-x-0.5">
+            <path d="M1 6h9M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
       </div>
     </section>
   );
@@ -799,9 +719,9 @@ export function DataTable({
       <table className="w-full text-left" style={{ minWidth }}>
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
-          <tr className="border-b border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)]">
+          <tr className="border-b border-line bg-[var(--pv-panel-2,transparent)]">
             {columns.map((c, i) => (
-              <th key={`${c}-${i}`} scope="col" className="label whitespace-nowrap px-5 py-3 text-[0.72rem] text-faint">
+              <th key={`${c}-${i}`} scope="col" className="whitespace-nowrap px-5 py-2.5 text-[0.76rem] font-semibold text-muted">
                 {c}
               </th>
             ))}
@@ -815,7 +735,7 @@ export function DataTable({
 
 export function Row({ children }: { children: ReactNode }) {
   return (
-    <tr className="group/row relative border-b border-line transition-colors last:border-0 hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] [&>td:first-child]:shadow-[inset_3px_0_0_transparent] hover:[&>td:first-child]:shadow-[inset_3px_0_0_var(--accent)]">
+    <tr className="group/row relative border-b border-line transition-colors last:border-0 hover:bg-[var(--pv-hover,color-mix(in_srgb,var(--fg)_4%,transparent))]">
       {children}
     </tr>
   );
@@ -831,7 +751,7 @@ export function Cell({
   className?: string;
 }) {
   return (
-    <td className={cn("px-5 py-4 text-[0.92rem]", muted ? "text-muted" : "text-fg", className)}>
+    <td className={cn("px-5 py-3.5 text-[0.9rem]", muted ? "text-muted" : "text-fg", className)}>
       {children}
     </td>
   );
@@ -850,7 +770,10 @@ export function Tabs({
   label?: string;
 }) {
   return (
-    <nav aria-label={label} className="mb-5 flex flex-wrap gap-2">
+    <nav
+      aria-label={label}
+      className="mb-5 inline-flex max-w-full flex-wrap gap-1 rounded-[12px] border border-line bg-[var(--panel-solid)] p-1 shadow-[var(--panel-shadow)]"
+    >
       {items.map((t) => {
         const on = t.key === active;
         return (
@@ -859,18 +782,18 @@ export function Tabs({
             href={t.href}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "inline-flex min-h-10 items-center gap-2 rounded-full px-4 font-[family-name:var(--font-display)] text-[0.88rem] font-medium transition-all duration-300",
+              "inline-flex h-9 items-center gap-2 rounded-[9px] px-3.5 text-[0.86rem] font-medium transition-colors",
               on
-                ? "bg-moss-400 text-[#070B1A] shadow-[0_8px_20px_-10px_rgba(56,189,248,0.7)]"
-                : "border border-line bg-[color-mix(in_srgb,var(--fg)_3%,transparent)] text-muted hover:border-line-strong hover:text-fg"
+                ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-fg-strong shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_35%,transparent)]"
+                : "text-muted hover:bg-[var(--pv-hover,color-mix(in_srgb,var(--fg)_5%,transparent))] hover:text-fg"
             )}
           >
             {t.label}
             {t.count !== undefined && (
               <span
                 className={cn(
-                  "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[0.72rem]",
-                  on ? "bg-[#070B1A]/15" : "bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]"
+                  "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[0.72rem] font-semibold tabular-nums",
+                  on ? "bg-[var(--accent)] text-[#070B1A]" : "bg-[color-mix(in_srgb,var(--fg)_8%,transparent)] text-muted"
                 )}
               >
                 {t.count}
@@ -933,7 +856,7 @@ export function DocumentCard({
     <div className="group flex gap-4 border-b border-line py-4 last:border-0">
       <span
         aria-hidden
-        className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-line bg-[color-mix(in_srgb,var(--viz-1)_14%,transparent)] text-[var(--viz-1)] transition-transform duration-300 group-hover:-rotate-3"
+        className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent"
       >
         <svg viewBox="0 0 20 20" fill="none" className="h-[18px] w-[18px]">
           <path d="M5 2.5h6.5L15 6v11.5H5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />

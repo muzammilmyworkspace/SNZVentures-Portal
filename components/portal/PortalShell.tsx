@@ -2,32 +2,35 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { analytics } from "@/lib/analytics";
 import { ROLE_LABEL, type Role } from "@/lib/auth/types";
-import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey } from "@/lib/portal/roles";
+import { navFor, portalRoleFor, homeFor, type IconKey, type BadgeKey, type NavItem } from "@/lib/portal/roles";
 import { clearDraft } from "@/lib/portal/fee-draft";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
-import { PortalBackdrop } from "./PortalBackdrop";
 import { useReduced } from "./useReduced";
 import { Avatar } from "./Avatar";
 import { areaForPath, canUse, isStudentDesk } from "@/lib/portal/permissions";
 
 /**
- * PORTAL CHROME
+ * PORTAL CHROME (v3)
  * ---------------------------------------------------------------------------
  * One shell, four navigations. Which one a person sees comes from the ROLE ON
  * THEIR SIGNED SESSION, resolved on the server and passed in — there is no
  * control here for changing it and no client state that could be edited to
- * change it. The role-preview switcher lives only under /demo, behind
- * DEMO_MODE, and cannot reach this component.
+ * change it.
  *
  * The chrome is presentation. Hiding a link has never protected anything: every
  * route it points at re-checks the session on the server before rendering.
+ *
+ * v3 layout: a fixed sidebar (brand, quick search, the navigation, the signed-in
+ * person) and a slim top bar that says where you are as "Section › Page".
+ * Ctrl/⌘ + K opens a quick switcher over the same items the sidebar shows, so it
+ * can never offer a page the sidebar would hide.
  */
 
 const ICONS: Record<IconKey, string> = {
@@ -51,10 +54,18 @@ const ICONS: Record<IconKey, string> = {
   tasks: "M4 7l2 2 4-4M4 17l2 2 4-4M13 8h7M13 17h7",
 };
 
-function Icon({ name }: { name: IconKey }) {
+function Icon({ name, className }: { name: IconKey; className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-[18px] w-[18px] shrink-0">
-      <path d={ICONS[name]} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn("h-[18px] w-[18px] shrink-0", className)}>
+      <path d={ICONS[name]} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden className={cn("h-4 w-4 shrink-0", className)}>
+      <path d="M9 15A6 6 0 109 3a6 6 0 000 12zM17 17l-3.6-3.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -84,29 +95,21 @@ export function PortalShell({
   /** Live counts, computed on the server. Absent or zero renders nothing. */
   badges?: Badges;
   /**
-   * Routes this visitor cannot reach yet.
-   *
-   * Computed on the SERVER from lib/portal/stage and passed down. Greying a
-   * link out here is decoration only — every gated page guards itself, so
-   * typing the URL gets the same answer as clicking. This exists so the
-   * student can see the shape of what is coming rather than meeting a
-   * redirect with no explanation.
+   * Routes this visitor cannot reach yet. Computed on the SERVER and passed
+   * down; greying a link out here is decoration only — every gated page guards
+   * itself.
    */
   lockedPaths?: string[];
   /** One line saying why, shown on hover and to screen readers. */
   lockNote?: string | null;
-  /**
-   * Where this person stands, for the header.
-   *
-   * Computed by the layout from the same rows the gate reads, rather than in
-   * here: the shell is a client component, and shipping the stage rules to the
-   * browser would mean keeping two copies of them in step.
-   */
+  /** Where this person stands, for the header (computed by the layout). */
   status?: { label: string; tone: "ok" | "wait" | "action" } | null;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const reduce = useReduced();
 
   const portalRole = portalRoleFor(role);
   const groups = navFor[portalRole]
@@ -129,10 +132,7 @@ export function PortalShell({
   useEffect(() => setMenuOpen(false), [pathname]);
   useEffect(() => setAccountOpen(false), [pathname]);
 
-  /*
-    A menu that only closes on its own button is a menu people leave open and
-    then click through. Both exits are handled: anywhere else, or Escape.
-  */
+  // The account menu closes on a click anywhere else, or Escape.
   useEffect(() => {
     if (!accountOpen) return;
     const onDown = (e: MouseEvent) => {
@@ -147,14 +147,10 @@ export function PortalShell({
     };
   }, [accountOpen]);
 
-  /*
-    The name of the page you are on, read off the same nav that produced the
-    link. A header that repeats your own name back at you is a header doing
-    nothing; the one thing it can always say is where you are.
-  */
+  // Where you are, read off the same nav that produced the link.
   const best =
     groups
-      .flatMap((g) => g.items)
+      .flatMap((g) => g.items.map((i) => ({ ...i, group: g.group })))
       .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0] ?? null;
   const here = best?.label ?? null;
@@ -172,36 +168,26 @@ export function PortalShell({
     // Any half-filled declaration belongs to the session that started it.
     clearDraft();
     await fetch("/api/auth/logout", { method: "POST" });
-    /*
-      A full load, replacing the history entry.
-
-      Same reasoning as sign-in: a client-side transition here can be cancelled
-      mid-flight and leave the person on a dashboard whose session is already
-      gone. `location.replace` drops the dashboard from history so Back cannot
-      return to it, and the fresh document request meets the guard with no
-      cookie and lands on the sign-in screen.
-    */
+    // A full load, replacing the history entry, so Back cannot return to a
+    // dashboard whose session is gone.
     window.location.replace("/login");
   }
 
-  const reduce = useReduced();
-
   /*
-    FOLDING SECTIONS. All folded to begin with, except the one you are in
-    (which you can still fold); the ones you open are remembered in this browser (localStorage, read after
-    the first render so the server and the browser draw the same thing).
+    FOLDING SECTIONS. The section you are in is open; the others remember what
+    you chose in this browser (read after the first render so the server and
+    the browser draw the same thing). The first time, every section is open:
+    in v3 the sections are compact enough to show in full.
   */
-  // The first time, only the first section (Overview) is open.
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups[0] ? [groups[0].group] : []));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups.map((g) => g.group)));
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("portal-nav-open");
+      const raw = localStorage.getItem("portal-nav-open-v3");
       if (raw === null) return;
       const saved = JSON.parse(raw);
       if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String)));
     } catch {}
   }, []);
-  // The section you are in, folded by hand; forgotten when you go to another page.
   const [shut, setShut] = useState<Set<string>>(() => new Set());
   useEffect(() => setShut(new Set()), [pathname]);
   const toggleGroup = (name: string, open: boolean) => {
@@ -216,7 +202,7 @@ export function PortalShell({
       if (open) next.delete(name);
       else next.add(name);
       try {
-        localStorage.setItem("portal-nav-open", JSON.stringify([...next]));
+        localStorage.setItem("portal-nav-open-v3", JSON.stringify([...next]));
       } catch {}
       return next;
     });
@@ -226,332 +212,369 @@ export function PortalShell({
   const isActive = (href: string) =>
     href === home ? pathname === home : (pathname === href || pathname.startsWith(`${href}/`)) && best?.href === href;
 
+  /* ------------------------------------------------------------ quick search */
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => setPaletteOpen(false), [pathname]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const searchable = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        g.items.filter((i) => !lockedPaths.includes(i.href)).map((i) => ({ ...i, group: g.group }))
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [portalRole, role, permissions, lockedPaths.join("|")]
+  );
+
   const Nav = (
-    <nav aria-label="Portal" className="flex flex-col">
-      {groups.map((g, gi) => {
-        // The section you are in opens by itself; every section folds and opens on a click.
-        const here = g.items.some((i) => isActive(i.href));
-        const open = openGroups.has(g.group) || (here && !shut.has(g.group));
+    <nav aria-label="Portal" className="flex flex-col gap-1">
+      {groups.map((g) => {
+        const inHere = g.items.some((i) => isActive(i.href));
+        const open = openGroups.has(g.group) || (inHere && !shut.has(g.group));
         const waiting = g.items.reduce((n, i) => n + (i.badgeKey ? badges[i.badgeKey] ?? 0 : 0), 0);
         return (
-        <div key={g.group} className={cn(gi > 0 && "mt-1 border-t border-line pt-1")}>
-          {/*
-            A SECTION HEADING, not a menu item: no box, small capitals, bold,
-            the chevron on the right. Only a page (an item) ever gets the green
-            box, so the two can never be mistaken for each other.
-          */}
-          <button
-            type="button"
-            onClick={() => toggleGroup(g.group, open)}
-            aria-expanded={open}
-            className="group/h flex w-full items-center gap-2 rounded-[8px] px-3 pb-2 pt-3 text-left"
-          >
-            <span
-              aria-hidden
-              className={cn("h-1.5 w-1.5 shrink-0 rounded-full transition-colors", here ? "bg-[var(--accent)]" : "bg-transparent")}
-            />
-            <span
-              className={cn(
-                "flex-1 text-[0.7rem] font-bold uppercase tracking-[0.16em] transition-colors",
-                here ? "text-[var(--accent)]" : open ? "text-fg-strong" : "text-faint group-hover/h:text-fg"
-              )}
+          <div key={g.group} className="pb-1">
+            <button
+              type="button"
+              onClick={() => toggleGroup(g.group, open)}
+              aria-expanded={open}
+              className="group/h flex w-full items-center gap-2 rounded-lg px-2.5 pb-1.5 pt-3 text-left"
             >
-              {g.group}
-            </span>
-            {!open && waiting > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.68rem] font-bold text-[#070B1A]">
-                {waiting}
-              </span>
-            )}
-            <svg
-              viewBox="0 0 12 12"
-              aria-hidden
-              className={cn("h-3 w-3 shrink-0 text-faint transition-transform group-hover/h:text-fg", open ? "rotate-90" : "")}
-            >
-              <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {open && (
-          <ul className="mb-2 ml-[1.1rem] flex flex-col gap-0.5 border-l border-line pl-2">
-            {g.items.map((item) => {
-              const on = isActive(item.href);
-              const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
-              const locked = lockedPaths.includes(item.href);
+              <span className="pv3-group flex-1">{g.group}</span>
+              {!open && waiting > 0 && <span className="pv3-count">{waiting}</span>}
+              <svg
+                viewBox="0 0 12 12"
+                aria-hidden
+                className={cn("h-3 w-3 shrink-0 text-faint opacity-0 transition group-hover/h:opacity-100", open ? "rotate-90" : "")}
+              >
+                <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {open && (
+              <ul className="flex flex-col gap-0.5">
+                {g.items.map((item: NavItem) => {
+                  const on = isActive(item.href);
+                  const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
+                  const locked = lockedPaths.includes(item.href);
 
-              /*
-                A LOCKED ITEM IS A SPAN, NOT A DISABLED LINK.
+                  // A locked item is a span, not a disabled link: it cannot be
+                  // focused, followed or opened in a new tab.
+                  if (locked) {
+                    return (
+                      <li key={item.href + item.label}>
+                        <span
+                          aria-disabled="true"
+                          title={lockNote ?? undefined}
+                          className="flex h-9 cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 text-[0.875rem] text-faint"
+                        >
+                          <Icon name={item.icon} className="opacity-60" />
+                          <span className="flex-1 truncate">{item.label}</span>
+                          <svg viewBox="0 0 14 14" aria-hidden className="h-3.5 w-3.5 shrink-0">
+                            <rect x="2.5" y="6" width="9" height="6.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                            <path d="M4.6 6V4.4a2.4 2.4 0 0 1 4.8 0V6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                          </svg>
+                          <span className="sr-only">Locked. {lockNote ?? ""}</span>
+                        </span>
+                      </li>
+                    );
+                  }
 
-                Rendering it as an <a> and cancelling the click leaves it
-                keyboard-focusable, announced as a link, and openable in a new
-                tab from the context menu — three ways to reach a page it
-                claims to block. A span with aria-disabled says the true thing
-                to everyone and cannot be followed by anyone.
-              */
-              if (locked) {
-                return (
-                  <li key={item.href + item.label}>
-                    <span
-                      aria-disabled="true"
-                      title={lockNote ?? undefined}
-                      className="flex min-h-10 cursor-not-allowed items-center gap-3 rounded-[10px] px-3 text-[0.88rem] text-faint"
-                    >
-                      <Icon name={item.icon} />
-                      <span className="flex-1">{item.label}</span>
-                      <svg viewBox="0 0 14 14" aria-hidden className="h-3.5 w-3.5 shrink-0">
-                        <rect x="2.5" y="6" width="9" height="6.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                        <path d="M4.6 6V4.4a2.4 2.4 0 0 1 4.8 0V6" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                      </svg>
-                      <span className="sr-only">Locked. {lockNote ?? ""}</span>
-                    </span>
-                  </li>
-                );
-              }
-
-              return (
-                <li key={item.href + item.label}>
-                  <Link
-                    href={item.href}
-                    aria-current={on ? "page" : undefined}
-                    className={cn(
-                      "group relative flex min-h-10 items-center gap-3 rounded-[10px] px-3 text-[0.88rem] transition-colors",
-                      on
-                        ? "font-semibold text-fg-strong"
-                        : "text-muted hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg"
-                    )}
-                  >
-                    {/* The active marker slides between items (shared layout). */}
-                    {on && (
-                      <motion.span
-                        layoutId="portal-nav-active"
-                        aria-hidden
-                        className="absolute inset-0 -z-10 rounded-[10px] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)]"
-                        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }}
+                  return (
+                    <li key={item.href + item.label}>
+                      <Link
+                        href={item.href}
+                        aria-current={on ? "page" : undefined}
+                        className={cn("pv3-item group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[0.875rem]", on && "is-on")}
                       >
-                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
-                      </motion.span>
-                    )}
-                    {item.step ? (
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "num inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[0.66rem] font-semibold",
-                          on
-                            ? "border-[var(--accent)] bg-[var(--accent)] text-[#070B1A]"
-                            : "border-[var(--line-strong)] text-muted group-hover:border-[var(--accent)] group-hover:text-accent"
+                        {on && (
+                          <motion.span
+                            layoutId="pv3-nav-active"
+                            aria-hidden
+                            className="pv3-item-bg absolute inset-0 -z-10 rounded-lg"
+                            transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 480, damping: 40 }}
+                          />
                         )}
-                      >
-                        {String(item.step).padStart(2, "0")}
-                      </span>
-                    ) : (
-                      <span className={on ? "text-accent" : undefined}>
-                        <Icon name={item.icon} />
-                      </span>
-                    )}
-                    <span className="flex-1">
-                      {item.step ? <span className="sr-only">Step {item.step}: </span> : null}
-                      {item.label}
-                    </span>
-                    {count > 0 && (
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-moss-400 px-1.5 text-[0.7rem] font-semibold text-navy-950">
-                        {count > 99 ? "99+" : count}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          )}
-        </div>
+                        {item.step ? (
+                          <span aria-hidden className="pv3-step">
+                            {item.step}
+                          </span>
+                        ) : (
+                          <Icon name={item.icon} className="pv3-item-icon" />
+                        )}
+                        <span className="flex-1 truncate">
+                          {item.step ? <span className="sr-only">Step {item.step}: </span> : null}
+                          {item.label}
+                        </span>
+                        {count > 0 && <span className="pv3-count">{count > 99 ? "99+" : count}</span>}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         );
       })}
     </nav>
   );
 
+  const Brand = (
+    <Link href={home} className="flex items-center gap-2.5">
+      <Image src="/brand/admitsfair-cap.png" alt="" width={32} height={32} className="h-8 w-8 rounded-[10px]" />
+      <span className="flex flex-col leading-tight">
+        <span className="text-[0.98rem] font-semibold tracking-[-0.01em] text-fg-strong">AdmitsFair</span>
+        <span className="text-[0.72rem] text-faint">Client portal</span>
+      </span>
+    </Link>
+  );
+
   return (
-    <div className="portal-shell tone-soft relative isolate min-h-screen">
-      <PortalBackdrop />
-      <div className="relative z-10 mx-auto flex w-full max-w-[100rem]">
-        {/* Sidebar — desktop */}
-        <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 backdrop-blur-xl lg:flex">
-          <Link href={home} className="mb-8 flex items-center gap-2.5 px-2">
-            <Image src="/brand/admitsfair-cap.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
-            <span className="flex flex-col leading-none">
-              <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.02em] text-fg">AdmitsFair</span>
-              <span className="label mt-1 text-[0.72rem] text-faint">Client portal</span>
+    <div className="portal-shell pv3 tone-soft relative isolate min-h-screen">
+      {/* Sidebar — desktop */}
+      <aside className="pv3-side fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col lg:flex">
+        <div className="flex h-16 shrink-0 items-center px-5">{Brand}</div>
+
+        <div className="px-3 pb-2">
+          <button type="button" onClick={() => setPaletteOpen(true)} className="pv3-search flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-[0.85rem]">
+            <SearchIcon />
+            <span className="flex-1 text-left">Search pages…</span>
+            <kbd className="pv3-kbd">Ctrl K</kbd>
+          </button>
+        </div>
+
+        <div className="rail flex-1 overflow-y-auto px-3 pb-4">{Nav}</div>
+
+        <div className="pv3-user m-3 flex items-center gap-3 rounded-xl p-2.5">
+          <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[0.85rem] font-semibold text-fg-strong">{name}</span>
+            <span className="block truncate text-[0.74rem] text-faint">{ROLE_LABEL[role]}</span>
+          </span>
+          <button
+            type="button"
+            onClick={logout}
+            disabled={signingOut}
+            aria-label={signingOut ? "Signing out" : "Sign out"}
+            title="Sign out"
+            className="pv3-icon-btn grid h-8 w-8 place-items-center rounded-lg disabled:opacity-50"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden className="h-4 w-4">
+              <path d="M10 2.5H4.5A1.5 1.5 0 003 4v8a1.5 1.5 0 001.5 1.5H10M7 8h6.5m0 0l-2-2m2 2l-2 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="relative min-w-0 lg:pl-[264px]">
+        <header className="pv3-top sticky top-0 z-40 flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-controls="portal-mobile-nav"
+            aria-label="Menu"
+            className="pv3-icon-btn grid h-9 w-9 place-items-center rounded-lg lg:hidden"
+          >
+            <span className="flex flex-col gap-[4px]">
+              <span className="block h-px w-4 bg-current" />
+              <span className="block h-px w-4 bg-current" />
+              <span className="block h-px w-4 bg-current" />
             </span>
-          </Link>
+          </button>
+          <span className="lg:hidden">{Brand}</span>
 
-          <div className="rail flex-1 overflow-y-auto">{Nav}</div>
+          {/* Where you are: Section › Page */}
+          <nav aria-label="Breadcrumb" className="hidden min-w-0 flex-1 items-center gap-2 text-[0.9rem] lg:flex">
+            {best && best.group && <span className="truncate text-faint">{best.group}</span>}
+            {best && best.group && (
+              <svg viewBox="0 0 12 12" aria-hidden className="h-3 w-3 shrink-0 text-faint">
+                <path d="M4.5 2.5L8 6l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+            <span className="truncate font-semibold text-fg-strong">{here ?? name}</span>
+          </nav>
+          <span className="flex-1 lg:hidden" />
 
-          <div className="mt-4 border-t border-line pt-4">
-            <div className="flex items-center gap-3 px-2 py-1.5">
-              <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.85rem] font-semibold text-fg">{name}</span>
-                <span className="label block text-[0.72rem] text-faint">{ROLE_LABEL[role]}</span>
-              </span>
-            </div>
+          {/* What the portal is waiting on, coloured by whose move it is. */}
+          {status && (
+            <span
+              className={cn(
+                "pv3-status hidden shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[0.78rem] font-medium md:inline-flex",
+                `is-${status.tone}`
+              )}
+            >
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+              {status.label}
+            </span>
+          )}
+
+          <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Search pages" className="pv3-icon-btn grid h-9 w-9 place-items-center rounded-lg lg:hidden">
+            <SearchIcon />
+          </button>
+
+          <NotificationBell unread={badges.notifications ?? 0} />
+
+          <ThemeToggle />
+
+          <div ref={accountRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setAccountOpen((o) => !o)}
+              aria-expanded={accountOpen}
+              aria-haspopup="menu"
+              className="pv3-avatar-btn flex h-9 w-9 items-center justify-center rounded-full"
+            >
+              <span className="sr-only">Account</span>
+              <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" className="h-9 w-9" />
+            </button>
+
+            {accountOpen && (
+              <div role="menu" className="pv3-menu absolute right-0 top-11 z-50 w-60 overflow-hidden rounded-xl p-1.5">
+                <div className="px-3 py-2.5">
+                  <p className="truncate text-[0.88rem] font-semibold text-fg-strong">{name}</p>
+                  <p className="mt-0.5 text-[0.74rem] text-faint">{ROLE_LABEL[role]}</p>
+                </div>
+                <div className="my-1 h-px bg-[var(--line)]" />
+                <Link role="menuitem" href="/portal/profile" className="pv3-menu-item flex h-9 items-center rounded-lg px-3 text-[0.86rem]">
+                  Profile
+                </Link>
+                <Link role="menuitem" href="/portal/settings" className="pv3-menu-item flex h-9 items-center rounded-lg px-3 text-[0.86rem]">
+                  Settings
+                </Link>
+                <div className="my-1 h-px bg-[var(--line)]" />
+                <button
+                  role="menuitem"
+                  type="button"
+                  onClick={logout}
+                  disabled={signingOut}
+                  className="pv3-menu-item flex h-9 w-full items-center rounded-lg px-3 text-left text-[0.86rem] disabled:opacity-50"
+                >
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Mobile drawer — a disclosure under the header, never an overlay. */}
+        {menuOpen && (
+          <div id="portal-mobile-nav" className="pv3-side border-b border-line px-3 py-4 lg:hidden">
+            {Nav}
             <button
               type="button"
               onClick={logout}
               disabled={signingOut}
-              className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-[0.85rem] text-muted transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg disabled:opacity-50"
+              className="pv3-icon-btn mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-line text-[0.86rem] disabled:opacity-50"
             >
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden className="h-[15px] w-[15px]">
-                <path
-                  d="M10 2.5H4.5A1.5 1.5 0 003 4v8a1.5 1.5 0 001.5 1.5H10M7 8h6.5m0 0l-2-2m2 2l-2 2"
-                  stroke="currentColor"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
               {signingOut ? "Signing out…" : "Sign out"}
             </button>
           </div>
-        </aside>
+        )}
 
-        {/* Main */}
-        <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-expanded={menuOpen}
-              aria-controls="portal-mobile-nav"
-              aria-label="Menu"
-              className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] border border-line text-muted transition-colors hover:text-fg lg:hidden"
-            >
-              <span className="flex flex-col gap-[4px]">
-                <span className="block h-px w-4 bg-current" />
-                <span className="block h-px w-4 bg-current" />
-                <span className="block h-px w-4 bg-current" />
-              </span>
-            </button>
+        <main id="main" className="mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 lg:px-10 lg:py-9">
+          <motion.div
+            key={pathname}
+            initial={reduce ? false : { opacity: 0.001, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {children}
+          </motion.div>
+        </main>
+      </div>
 
-            {/* "Back to site" removed — see the note in AuthShell. */}
+      {paletteOpen && (
+        <QuickSearch
+          items={searchable}
+          onClose={() => setPaletteOpen(false)}
+          onGo={(href) => {
+            setPaletteOpen(false);
+            router.push(href);
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
-            {/* Where you are. */}
-            <p className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.015em] text-fg-strong">
-              {here ?? name}
-            </p>
+/* -------------------------------------------------------------- QuickSearch */
 
-            {/*
-              WHAT THE PORTAL IS WAITING ON.
+function QuickSearch({
+  items,
+  onClose,
+  onGo,
+}: {
+  items: (NavItem & { group: string })[];
+  onClose: () => void;
+  onGo: (href: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [index, setIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => inputRef.current?.focus(), []);
 
-              This bar carried a name the person already knows, across the full
-              width of every page. The one thing worth that space is the answer
-              to "what happens next, and whose move is it" — so it says that,
-              and it says it in a colour that distinguishes their move from
-              ours. It is hidden on small screens, where the dashboard says the
-              same thing with room to explain it.
-            */}
-            {status && (
-              <span
-                className={cn(
-                  "hidden shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[0.78rem] font-medium md:inline-flex",
-                  status.tone === "action" && "border-moss-400/50 bg-moss-400/10 text-accent",
-                  status.tone === "wait" && "border-amber-300/40 bg-amber-300/10 text-warn",
-                  status.tone === "ok" && "border-line text-muted"
-                )}
-              >
-                <span
-                  aria-hidden
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    status.tone === "action" && "bg-moss-400",
-                    status.tone === "wait" && "bg-amber-300",
-                    status.tone === "ok" && "bg-muted"
-                  )}
-                />
-                {status.label}
-              </span>
-            )}
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const results = items.filter((i) => {
+    const hay = `${i.label} ${i.group}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+  const pick = Math.min(index, Math.max(0, results.length - 1));
 
-            <NotificationBell unread={badges.notifications ?? 0} />
-
-            <ThemeToggle />
-
-            <div ref={accountRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setAccountOpen((o) => !o)}
-                aria-expanded={accountOpen}
-                aria-haspopup="menu"
-                className="flex h-9 w-9 items-center justify-center rounded-full transition-shadow hover:shadow-[0_0_0_2px_var(--accent)]"
-              >
-                <span className="sr-only">Account</span>
-                <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" className="h-9 w-9" />
-              </button>
-
-              {accountOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-[var(--radius-md)] border border-line bg-surface shadow-lg"
-                >
-                  <div className="border-b border-line px-4 py-3">
-                    <p className="truncate text-[0.88rem] font-semibold text-fg">{name}</p>
-                    <p className="label mt-0.5 text-[0.72rem] text-faint">{ROLE_LABEL[role]}</p>
-                  </div>
-                  <Link
-                    role="menuitem"
-                    href="/portal/profile"
-                    className="flex min-h-11 items-center px-4 text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg"
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    role="menuitem"
-                    href="/portal/settings"
-                    className="flex min-h-11 items-center px-4 text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg"
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={logout}
-                    disabled={signingOut}
-                    className="flex min-h-11 w-full items-center border-t border-line px-4 text-left text-[0.85rem] text-muted transition-colors hover:bg-raised hover:text-fg disabled:opacity-50"
-                  >
-                    {signingOut ? "Signing out…" : "Sign out"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* Mobile drawer — a disclosure under the header rather than a shrunk
-              sidebar, so it never overlays the content it navigates to. */}
-          {menuOpen && (
-            <div id="portal-mobile-nav" className="border-b border-line px-4 py-5 lg:hidden">
-              {Nav}
-              <button
-                type="button"
-                onClick={logout}
-                disabled={signingOut}
-                className="mt-5 flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] border border-line px-3 text-[0.85rem] text-muted transition-colors hover:text-fg disabled:opacity-50"
-              >
-                {signingOut ? "Signing out…" : "Sign out"}
-              </button>
-            </div>
-          )}
-
-          <main id="main" className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-            {/* Each page rises in on navigation. Keyed by path; skipped under
-                reduced motion. Opacity starts at 0.001 rather than 0 so the
-                content is never invisible to tools that test for opacity 0. */}
-            <motion.div
-              key={pathname}
-              initial={reduce ? false : { opacity: 0.001, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {children}
-            </motion.div>
-          </main>
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Search pages">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[rgb(4_7_15/0.55)] backdrop-blur-[2px]" />
+      <div className="pv3-menu relative w-full max-w-xl overflow-hidden rounded-2xl">
+        <div className="flex items-center gap-3 border-b border-line px-4">
+          <SearchIcon className="text-faint" />
+          <input
+            ref={inputRef}
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+              else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setIndex((i) => Math.min(i + 1, results.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setIndex((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter" && results[pick]) onGo(results[pick].href);
+            }}
+            placeholder="Go to a page…"
+            aria-label="Search pages"
+            className="pv3-palette-input h-14 flex-1 bg-transparent text-[0.98rem] text-fg outline-none placeholder:text-faint"
+          />
+          <kbd className="pv3-kbd">Esc</kbd>
         </div>
+        <ul className="rail max-h-[50vh] overflow-y-auto p-2">
+          {results.length === 0 && <li className="px-3 py-6 text-center text-[0.88rem] text-faint">No page matches “{q}”.</li>}
+          {results.map((r, i) => (
+            <li key={r.href + r.label}>
+              <button
+                type="button"
+                onMouseEnter={() => setIndex(i)}
+                onClick={() => onGo(r.href)}
+                className={cn("pv3-menu-item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left", i === pick && "is-on")}
+              >
+                <Icon name={r.icon} className="text-faint" />
+                <span className="flex-1 truncate text-[0.9rem] text-fg">{r.label}</span>
+                <span className="truncate text-[0.76rem] text-faint">{r.group}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
