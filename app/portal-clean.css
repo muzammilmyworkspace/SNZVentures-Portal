@@ -1,0 +1,109 @@
+/* ============================================================================
+   SNZ PORTAL — CLEAN (October 2026)
+   ----------------------------------------------------------------------------
+   A plain, light working surface for the SnZ Ventures portal: white sidebar
+   and cards, hairline borders instead of shadows, the brand green as the one
+   accent, 8px corners, and no backdrop, waves, glows or page animations.
+
+   Scoped to `.portal-shell.snzc` (set by components/portal/PortalShell), so
+   the sign-in screens keep their own look. Light is the default theme; a
+   calm dark version follows the same rules.
+   ========================================================================== */
+
+.portal-shell.snzc {
+  --c-bg: #F4F6F3;
+  --c-side: #FFFFFF;
+  --c-panel: #FFFFFF;
+  --c-hover: rgb(31 45 92 / 0.05);
+  --c-active: #EAF5E1;
+  --c-active-ink: #2C5E18;
+  --c-bar: #6CBF3B;
+
+  --surface: var(--c-bg);
+  --surface-wash: none;
+  --panel-bg: var(--c-panel);
+  --panel-solid: var(--c-panel);
+  --panel-shadow: none;
+  --line: rgb(31 45 92 / 0.12);
+  --line-strong: rgb(31 45 92 / 0.22);
+  background: var(--c-bg);
+}
+[data-theme="dark"] .portal-shell.snzc {
+  --c-bg: #151D36;
+  --c-side: #1A2342;
+  --c-panel: #1C2647;
+  --c-hover: rgb(255 255 255 / 0.05);
+  --c-active: rgb(108 191 59 / 0.16);
+  --c-active-ink: #A7E07F;
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.2);
+}
+
+/* ------------------------------------------------------------ chrome --- */
+.snzc .portal-side,
+[data-theme="light"] .snzc .portal-side {
+  background: var(--c-side);
+  backdrop-filter: none;
+}
+.snzc .snzc-top {
+  background: var(--c-side);
+  backdrop-filter: none;
+}
+.snzc .snzc-item { color: var(--fg-muted); border-radius: 8px; }
+.snzc .snzc-item:hover { background: var(--c-hover); color: var(--fg); }
+.snzc .snzc-item.is-on {
+  background: var(--c-active);
+  color: var(--c-active-ink);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--c-bar);
+}
+.snzc .snzc-item.is-on svg { color: var(--c-active-ink); }
+
+/* ---------------------------------------------------------- typography -- */
+.snzc .label {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.snzc .num,
+.snzc h1 { font-family: var(--font-sans); letter-spacing: -0.02em; }
+.snzc .num { font-weight: 700; }
+:where(.snzc) h2,
+:where(.snzc) h3 { font-family: var(--font-sans); letter-spacing: -0.01em; }
+
+/* -------------------------------------------------------------- cards --- */
+.snzc .panel,
+.snzc [class*="rounded-[var(--radius-lg)]"],
+.snzc [class*="rounded-2xl"] { border-radius: 10px; }
+.snzc main [class*="shadow"] { box-shadow: none; }
+
+/* -------------------------------------------------------------- forms --- */
+.snzc .field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+.snzc .field {
+  border-radius: 8px;
+  border-color: var(--line-strong);
+  background-color: var(--c-panel);
+}
+.snzc .field:focus { border-color: var(--c-bar); box-shadow: 0 0 0 3px rgb(108 191 59 / 0.22); }
+
+.snzc .pill { letter-spacing: 0; text-transform: none; font-weight: 600; }
+
+/* ------------------------------------------------------------ buttons --- */
+.snzc main :is(a, button).rounded-full { border-radius: 8px; }
+
+/* ------------------------------------------------------------- motion --- */
+/* Nothing rises in: pages and cards appear at once. */
+.snzc .portal-rise,
+.snzc .portal-stagger > *,
+.snzc main .grid > * { animation: none !important; }
+
+/* Coloured top rules on dashboard cards are decoration; keep the cards flat. */
+.snzc .dash-work > * { --card-hue: transparent; }

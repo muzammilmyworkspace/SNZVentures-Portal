@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./boarding.css";
+import "./portal-clean.css";
 
 /**
  * ROOT LAYOUT — PORTAL ORIGIN.
@@ -68,7 +69,7 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('snz-theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('snz-theme');if(t!=='light'&&t!=='dark')t='light';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
           }}
         />
         {/*

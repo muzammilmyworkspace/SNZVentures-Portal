@@ -11,9 +11,6 @@ import { clearDraft } from "@/lib/portal/fee-draft";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import { PortalBackdrop } from "./PortalBackdrop";
-import { useReduced } from "./useReduced";
 import { Avatar } from "./Avatar";
 import { areaForPath, canUse, isStudentDesk } from "@/lib/portal/permissions";
 
@@ -184,8 +181,6 @@ export function PortalShell({
     window.location.replace("/login");
   }
 
-  const reduce = useReduced();
-
   /*
     FOLDING SECTIONS. All folded to begin with, except the one you are in
     (which you can still fold); the ones you open are remembered in this browser (localStorage, read after
@@ -313,23 +308,11 @@ export function PortalShell({
                     href={item.href}
                     aria-current={on ? "page" : undefined}
                     className={cn(
-                      "group relative flex min-h-10 items-center gap-3 rounded-[10px] px-3 text-[0.88rem] transition-colors",
-                      on
-                        ? "font-semibold text-fg-strong"
-                        : "text-muted hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg"
+                      "snzc-item group relative flex min-h-10 items-center gap-3 px-3 text-[0.88rem] transition-colors",
+                      on && "is-on"
                     )}
                   >
-                    {/* The active marker slides between items (shared layout). */}
-                    {on && (
-                      <motion.span
-                        layoutId="portal-nav-active"
-                        aria-hidden
-                        className="absolute inset-0 -z-10 rounded-[10px] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)]"
-                        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }}
-                      >
-                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent)]" />
-                      </motion.span>
-                    )}
+                    
                     {item.step ? (
                       <span
                         aria-hidden
@@ -369,11 +352,10 @@ export function PortalShell({
   );
 
   return (
-    <div className="portal-shell tone-soft relative isolate min-h-screen">
-      <PortalBackdrop />
+    <div className="portal-shell snzc tone-soft relative isolate min-h-screen">
       <div className="relative z-10 mx-auto flex w-full max-w-[100rem]">
         {/* Sidebar — desktop */}
-        <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 backdrop-blur-xl lg:flex">
+        <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
           <Link href={home} className="mb-8 flex items-center gap-2.5 px-2">
             <Image src="/brand/snz-mark.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
             <span className="flex flex-col leading-none">
@@ -414,7 +396,7 @@ export function PortalShell({
 
         {/* Main */}
         <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
+          <header className="snzc-top sticky top-0 z-40 flex items-center gap-3 border-b border-line px-4 py-3 sm:px-6 lg:px-8">
             <button
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
@@ -539,17 +521,7 @@ export function PortalShell({
           )}
 
           <main id="main" className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-            {/* Each page rises in on navigation. Keyed by path; skipped under
-                reduced motion. Opacity starts at 0.001 rather than 0 so the
-                content is never invisible to tools that test for opacity 0. */}
-            <motion.div
-              key={pathname}
-              initial={reduce ? false : { opacity: 0.001, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {children}
-            </motion.div>
+            {children}
           </main>
         </div>
       </div>
