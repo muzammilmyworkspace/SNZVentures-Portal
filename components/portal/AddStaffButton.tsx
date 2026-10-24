@@ -1,5 +1,6 @@
 "use client";
 
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -105,7 +106,7 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
       {open && createPortal(
         <div className="fixed inset-0 z-[80] grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-staff-title">
           <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(4_8_20/0.72)] backdrop-blur-[3px]" />
-          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-[var(--panel-solid,#1B2645)] p-6 shadow-2xl">
+          <div className="pv4-modal relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[18px] border border-line bg-[var(--panel-solid,#1B2645)] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <h2 id="add-staff-title" className="text-[1.15rem] font-semibold text-fg-strong">
                 Add {label}
@@ -247,7 +248,7 @@ Password: ${creds.password}`
                   <fieldset>
                     <legend className="field-label">What they may use</legend>
                     <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-                      {AREAS.map((a) => (
+                      {AREAS.filter((a) => CONSULTANTS_ENABLED || a.key !== "consultants").map((a) => (
                         <label
                           key={a.key}
                           className="flex cursor-pointer items-start gap-2.5 rounded-[10px] border border-line p-3 transition-colors has-[:checked]:border-[var(--accent)] has-[:checked]:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
@@ -273,7 +274,8 @@ Password: ${creds.password}`
 
                 {error && <p role="alert" className="text-[0.85rem] text-danger">{error}</p>}
 
-                <div className="flex justify-end gap-3 pt-1">
+                {/* Stays in view while the list above scrolls. */}
+                <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 flex justify-end gap-3 border-t border-line bg-[var(--panel-solid,#1B2645)] px-6 py-4">
                   <button type="button" onClick={close} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-[0.9rem] text-muted hover:text-fg">
                     Cancel
                   </button>

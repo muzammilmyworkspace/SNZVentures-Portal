@@ -81,6 +81,10 @@ export type SalesStudent = {
   stage: SalesStudentStage;
   feeAmount: string | null;
   handedOverAt: string | null;
+  /** The four checkpoints the agent follows, each with its own state. */
+  fee: "none" | "submitted" | "verified" | "rejected";
+  application: "none" | "draft" | "submitted";
+  consent: boolean;
 };
 
 export type PendingInvite = { id: string; name: string | null; email: string | null; createdAt: string; expiresAt: string };
@@ -99,7 +103,9 @@ export async function studentsOf(agentId: string): Promise<{ students: SalesStud
               ORDER BY (f.status IN ('submitted','verified')) DESC, f.created_at DESC LIMIT 1) AS fee_status,
             (SELECT f.currency || ' ' || f.amount::text FROM fee_submissions f WHERE f.user_id = s.id AND f.status = 'verified'
               ORDER BY f.reviewed_at DESC NULLS LAST LIMIT 1) AS fee_amount,
-            (SELECT i.status::text FROM intake_forms i WHERE i.user_id = s.id AND i.pathway = 'study' LIMIT 1) AS intake
+            (SELECT i.status::text FROM intake_forms i WHERE i.user_id = s.id AND i.pathway = 'study' LIMIT 1) AS intake,
+            EXISTS (SELECT 1 FROM consents c WHERE c.user_id = s.id
+              AND c.kind IN ('student_undertaking', 'consultant_student')) AS consent
           FROM users s
           WHERE s.sales_agent_id = ${agentId}
         ) x), '[]'::json) AS students,
@@ -133,6 +139,9 @@ export async function studentsOf(agentId: string): Promise<{ students: SalesStud
         stage,
         feeAmount: s.fee_amount ? String(s.fee_amount) : null,
         handedOverAt: s.sales_handover_at ? new Date(String(s.sales_handover_at)).toISOString() : null,
+        fee: (fee === "submitted" || fee === "verified" || fee === "rejected" ? fee : "none") as SalesStudent["fee"],
+        application: (!intake ? "none" : intake === "draft" || intake === "returned" ? "draft" : "submitted") as SalesStudent["application"],
+        consent: Boolean(s.consent),
       };
     });
     const invites = ((r?.invites ?? []) as Record<string, unknown>[]).map((i) => ({

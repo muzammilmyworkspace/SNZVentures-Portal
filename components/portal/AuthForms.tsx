@@ -171,6 +171,12 @@ async function post(url: string, body: unknown, timeoutMs = 20_000) {
  * to sign in with their password is the correct and only safe next step.
  */
 const OAUTH_MESSAGE: Record<string, string> = {
+  // "Open portal" from the CRM (app/api/integrations/crm/sign-in).
+  crm_signin_invalid: "That portal link from the CRM did not work. Go back to the CRM and press Open portal again.",
+  crm_signin_used: "That portal link was already used. Go back to the CRM and press Open portal again.",
+  crm_signin_suspended: "Your portal access is switched off. Ask the Super Admin.",
+  crm_signin_conflict: "Your email is already on another kind of portal account. Ask the Super Admin to fix it.",
+  crm_signin_unavailable: "The portal cannot sign you in from the CRM right now. Please try again shortly.",
   unavailable: "Google sign-in isn't switched on for this site yet. Please use your email and password.",
   cancelled: "Google sign-in was cancelled.",
   unverified: "That Google account hasn't confirmed its email address, so we can't use it to sign in.",

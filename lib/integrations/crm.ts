@@ -47,6 +47,48 @@ export async function verifyCrmRequest(req: Request): Promise<Record<string, unk
   }
 }
 
+/*
+ * "OPEN PORTAL" FROM THE CRM: a sign-in ticket.
+ *
+ *   <base64url JSON {code, name, email, nonce, exp}>.<hex HMAC of "signin.<payload>">
+ *
+ * The "signin." prefix keeps a ticket signature from ever matching a request
+ * signature. A ticket lives two minutes and is used once (crm_sign_in_tickets,
+ * migration 048); it arrives in a POST body, never a URL, so it is not left in
+ * browser history or request logs. The CRM side is src/server/portal.ts.
+ */
+export type CrmTicket = { code: string; name: string; email: string; nonce: string; exp: number };
+
+export function verifyCrmTicket(ticket: string): CrmTicket | null {
+  const secret = process.env.CRM_PORTAL_SECRET;
+  if (!secret || typeof ticket !== "string" || ticket.length > 2000) return null;
+  const [payload, given] = ticket.split(".");
+  if (!payload || !given || !/^[a-f0-9]{64}$/.test(given)) return null;
+  const want = Buffer.from(createHmac("sha256", secret).update(`signin.${payload}`).digest("hex"), "hex");
+  if (!timingSafeEqual(want, Buffer.from(given, "hex"))) return null;
+  try {
+    const t = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<CrmTicket>;
+    const now = Date.now();
+    if (typeof t.exp !== "number" || t.exp < now || t.exp > now + 3 * 60 * 1000) return null;
+    if (typeof t.code !== "string" || typeof t.email !== "string" || typeof t.nonce !== "string" || t.nonce.length < 16) return null;
+    return { code: t.code, name: typeof t.name === "string" ? t.name : t.code, email: t.email, nonce: t.nonce, exp: t.exp };
+  } catch {
+    return null;
+  }
+}
+
+/** Marks a ticket used; false when it was used before. Old rows are pruned. */
+export async function useCrmTicket(nonce: string, userId: string): Promise<boolean> {
+  return safeQuery(async () => {
+    await db()`DELETE FROM crm_sign_in_tickets WHERE used_at < now() - interval '1 day'`;
+    const rows = await db()`
+      INSERT INTO crm_sign_in_tickets (nonce, user_id) VALUES (${nonce}, ${userId})
+      ON CONFLICT (nonce) DO NOTHING RETURNING nonce
+    `;
+    return rows.length === 1;
+  }, false);
+}
+
 async function postToCrm(payload: Record<string, unknown>): Promise<boolean> {
   const secret = process.env.CRM_PORTAL_SECRET;
   if (!secret) return false;

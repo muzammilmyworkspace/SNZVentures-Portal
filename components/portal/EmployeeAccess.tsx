@@ -1,5 +1,6 @@
 "use client";
 
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AREAS } from "@/lib/portal/permissions";
@@ -59,7 +60,7 @@ export function EmployeeAccess({
       </label>
       {!full && (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {AREAS.map((a) => (
+          {AREAS.filter((a) => CONSULTANTS_ENABLED || a.key !== "consultants").map((a) => (
             <label key={a.key} className="flex items-start gap-2 text-[0.85rem] text-fg">
               <input
                 type="checkbox"

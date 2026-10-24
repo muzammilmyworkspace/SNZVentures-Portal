@@ -5,11 +5,12 @@ import { retryUnsyncedSales } from "@/lib/integrations/crm";
 import { requireUser } from "@/lib/auth/guard";
 import { homeFor } from "@/lib/portal/roles";
 import { isDatabaseConfigured, db, safeQuery } from "@/lib/db/client";
-import { studentsOf, type SalesStudentStage } from "@/lib/db/repos/sales";
+import { studentsOf } from "@/lib/db/repos/sales";
 import { PLAN_LABEL, type PlanKey } from "@/lib/portal/payment-plan";
-import { PortalHeading, Panel, EmptyState, StatCard, DataTable, Row, Cell, StatusPill } from "@/components/portal/Pieces";
+import { PortalHeading, Panel, EmptyState, StatCard, DataTable, Row, Cell } from "@/components/portal/Pieces";
 import { NotConfigured } from "@/components/portal/NotConfigured";
 import { SalesInvite, HandOverButton } from "@/components/portal/SalesActions";
+import { SalesTrack } from "@/components/portal/SalesTrack";
 
 export const metadata: Metadata = { title: "My students", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -26,13 +27,7 @@ export const dynamic = "force-dynamic";
  * this agent (users.sales_agent_id), see lib/db/repos/sales.ts.
  */
 
-const STAGE: Record<SalesStudentStage, { label: string; tone: string }> = {
-  registered: { label: "Registered — fee not sent", tone: "action_required" },
-  fee_submitted: { label: "Receipt being checked", tone: "under_review" },
-  fee_rejected: { label: "Receipt returned", tone: "needs_update" },
-  fee_verified: { label: "Fee verified — sale counted", tone: "approved" },
-  application_submitted: { label: "Application submitted", tone: "completed" },
-};
+
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -58,22 +53,33 @@ export default async function SalesPage() {
   ]);
   // Any verified sale the CRM missed earlier is re-sent in the background.
   after(() => retryUnsyncedSales());
-  const paid = students.filter((s) => s.stage === "fee_verified" || s.stage === "application_submitted").length;
-  const waiting = students.filter((s) => s.stage === "fee_submitted").length;
+  const paid = students.filter((s) => s.fee === "verified").length;
+  const applied = students.filter((s) => s.application === "submitted").length;
+  const signed = students.filter((s) => s.consent).length;
+  // Back to the CRM, where the agent works their leads.
+  const crmUrl = (process.env.CRM_URL || "https://crm.admitsfair.com").replace(/\/+$/, "");
 
   return (
     <>
       <PortalHeading
         eyebrow={`Sales team${code ? ` · Agent ID ${code}` : ""}`}
         title="My students"
-        lead="Students who signed up through your link. Your sale counts in the CRM as soon as a student's initial fee is verified; then hand the case to the Super Admin."
+        lead="Add a student with their name and email: they get a sign-up link and do the rest themselves. Follow each one here; your sale counts in the CRM as soon as their fee is verified."
+        action={
+          <a href={`${crmUrl}/leads`} className="pv4-btn">
+            <svg viewBox="0 0 12 12" fill="none" aria-hidden className="h-3 w-3">
+              <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back to CRM
+          </a>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Students" value={students.length} />
-        <StatCard label="Fee verified (sales)" value={paid} />
-        <StatCard label="Receipts being checked" value={waiting} />
-        <StatCard label="Links not used yet" value={invites.length} />
+        <StatCard label="My students" value={students.length} hint={`${invites.length} link${invites.length === 1 ? "" : "s"} not used yet`} />
+        <StatCard label="Fee verified (sales)" value={paid} hint="Counted in the CRM" />
+        <StatCard label="Applications submitted" value={applied} />
+        <StatCard label="Consent signed" value={signed} />
       </div>
 
       <div className="mt-6 space-y-6">
@@ -109,25 +115,22 @@ export default async function SalesPage() {
               />
             </div>
           ) : (
-            <DataTable columns={["Student", "ID", "Plan", "Status", "Joined", ""]} minWidth={760} caption="Your students">
+            <DataTable columns={["Student", "Progress", ""]} minWidth={860} caption="Your students">
               {students.map((s) => {
-                const stage = STAGE[s.stage];
-                const canHandOver = !s.handedOverAt && (s.stage === "fee_verified" || s.stage === "application_submitted");
+                const canHandOver = !s.handedOverAt && s.fee === "verified";
                 return (
                   <Row key={s.id}>
                     <Cell>
                       <p className="font-medium text-fg-strong">{s.name}</p>
                       <p className="text-[0.8rem] text-muted">{s.email}</p>
+                      <p className="mt-1 text-[0.74rem] text-faint">
+                        <span className="font-mono">{s.code}</span> · {s.plan ? PLAN_LABEL[s.plan as PlanKey] : "No plan yet"} · joined {date(s.joinedAt)}
+                      </p>
                     </Cell>
-                    <Cell muted className="font-mono text-[0.82rem] whitespace-nowrap">
-                      {s.code}
-                    </Cell>
-                    <Cell muted>{s.plan ? PLAN_LABEL[s.plan as PlanKey] : "—"}</Cell>
                     <Cell>
-                      <StatusPill status={stage.tone} label={stage.label} />
-                      {s.feeAmount && <p className="mt-1 text-[0.78rem] text-muted">{s.feeAmount}</p>}
+                      <SalesTrack s={s} />
+                      {s.feeAmount && <p className="mt-1.5 text-[0.75rem] text-faint">Fee paid: {s.feeAmount}</p>}
                     </Cell>
-                    <Cell muted className="whitespace-nowrap">{date(s.joinedAt)}</Cell>
                     <Cell className="text-right">
                       {s.handedOverAt ? (
                         <span className="text-[0.8rem] text-muted">With Super Admin since {date(s.handedOverAt)}</span>

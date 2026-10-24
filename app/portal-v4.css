@@ -404,3 +404,27 @@
   .pv4-pipe-step .pv4-pipe-node::after { animation: none !important; display: none; }
   .pv4-switch:hover { transform: none; }
 }
+
+/* ------------------------------------------- sales agent: student track --- */
+.pv4-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; min-width: 480px; }
+.pv4-track-step {
+  position: relative;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  color: var(--fg-faint);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.pv4-track-mark {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+.pv4-track-step.is-done { color: var(--fg-strong); background: color-mix(in srgb, var(--viz-3) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-3) 35%, transparent); }
+.pv4-track-step.is-done .pv4-track-mark { color: #fff; background: var(--viz-3); box-shadow: none; }
+.pv4-track-step.is-wait { color: var(--fg-strong); background: color-mix(in srgb, var(--viz-1) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-1) 35%, transparent); }
+.pv4-track-step.is-wait .pv4-track-mark { color: #fff; background: var(--viz-1); box-shadow: none; }
+.pv4-track-step.is-back { color: var(--fg-strong); background: color-mix(in srgb, var(--viz-2) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-2) 35%, transparent); }
+.pv4-track-step.is-back .pv4-track-mark { color: #fff; background: var(--viz-2); box-shadow: none; }
