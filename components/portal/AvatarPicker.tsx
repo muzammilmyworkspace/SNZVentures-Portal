@@ -26,11 +26,14 @@ export function AvatarPicker({
   value,
   onChange,
   name,
+  required = false,
 }: {
   value: string | null;
   onChange: (dataUri: string | null) => void;
   /** For the initials shown until a photo is chosen. */
   name: string;
+  /** Says "Required" instead of "Optional" (the student's first step). */
+  required?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +148,7 @@ export function AvatarPicker({
         </p>
       ) : (
         <p className="mt-1.5 text-[0.75rem] leading-relaxed text-faint">
-          Optional. Shown next to your name in the portal. Cropped square and resized on your
+          {required ? "Required." : "Optional."} Shown next to your name in the portal. Cropped square and resized on your
           device before it is sent.
         </p>
       )}

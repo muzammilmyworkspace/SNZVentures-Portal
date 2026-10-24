@@ -79,56 +79,32 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
     { group: "Application", items: [{ href: "/portal/applicant", label: "My application", icon: "applications" }] },
     { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
   ],
+  /*
+    SNZ (2026-10-24): the student's route, in order. Details and photo come
+    first (the /details screen), then the application with its consent, the
+    document checklist and uploads, and one place to message us.
+  */
   student: [
     {
-      group: "Journey",
+      group: "My file",
       items: [
         { href: "/portal/student", label: "Dashboard", icon: "dashboard" },
-        { href: "/portal/journey", label: "My Journey", icon: "journey" },
-        { href: "/portal/application", label: "My Application", icon: "applications" },
-        { href: "/portal/checklist", label: "Document checklist", icon: "documents" },
-        /*
-          BACK, FOR A REASON THAT DID NOT EXIST BEFORE.
-
-          This was removed when documents moved into the application: a second
-          page listing the same files without the checklist's context was just
-          another place to get it wrong. That reasoning covered UPLOADING.
-
-          It does not cover a document we have sent back. The application locks
-          on submission, so when staff return a passport scan there has to be
-          somewhere the student can still replace that one file — and the badge
-          means the item only draws attention when something is actually
-          waiting on them.
-        */
-        { href: "/portal/documents", label: "Documents", icon: "documents", badgeKey: "documents" },
-        { href: "/portal/cases", label: "Applications", icon: "applications" },
+        { href: "/portal/profile", label: "My details", icon: "profile" },
+        { href: "/portal/application", label: "Application form", icon: "applications" },
+        { href: "/portal/checklist", label: "Document checklist", icon: "tasks" },
+        { href: "/portal/documents", label: "My documents", icon: "documents", badgeKey: "documents" },
       ],
     },
-
     {
-      /*
-        Explore, Consultations, Documents and Tasks all used to be here.
-
-        Documents are collected inside the application now — section 08, where
-        each slot explains itself and names the file — and a second page
-        listing the same files without that context is just another place to
-        get it wrong. The form is the task list.
-
-        What is left is the route a student actually travels. A menu of eleven
-        items where four are live teaches people to stop reading the menu.
-      */
-      group: "Contact",
+      group: "Help",
       items: [
-        { href: "/portal/messages", label: "Messages", icon: "messages", badgeKey: "messages" },
+        { href: "/portal/messages", label: "Message us", icon: "messages", badgeKey: "messages" },
         { href: "/portal/notifications", label: "Notifications", icon: "activity", badgeKey: "notifications" },
       ],
     },
     {
       group: "Account",
-      items: [
-        { href: "/portal/profile", label: "Profile", icon: "profile" },
-        { href: "/portal/settings", label: "Settings", icon: "settings" },
-      ],
+      items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }],
     },
   ],
 
@@ -204,11 +180,12 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       THE STUDENT PIPELINE, IN THE ORDER A STUDENT MOVES THROUGH IT.
 
         01 Website enquiries    somebody contacted us from the website
-        02 Fee verification     they paid; we check the bank slip
-        03 Review applications  they sent their application; we read it
-        04 Ready to apply       approved; we apply to the universities
-        05 Applied              sent; waiting for the universities
-        06 Completed            the file is finished
+        02 Review applications  they sent their application; we read it
+        03 Ready to apply       approved; we apply to the universities
+        04 Applied              sent; waiting for the universities
+        05 Completed            the file is finished
+
+      SNZ (2026-10-24): no fee verification step and no consultants.
 
       Numbered, so where something sits says what happens to it next. The
       badge on each is what is waiting there. ADMIN ONLY: these are firm-wide
@@ -227,18 +204,10 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           roles: ["admin", "super_admin"],
         },
         {
-          href: "/portal/admin/fees",
-          label: "Fee verification",
-          icon: "requests",
-          step: 2,
-          badgeKey: "fees",
-          roles: ["admin", "super_admin"],
-        },
-        {
           href: "/portal/admin/requests",
           label: "Review applications",
           icon: "requests",
-          step: 3,
+          step: 2,
           badgeKey: "review",
           roles: ["admin", "super_admin"],
         },
@@ -246,7 +215,7 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           href: "/portal/admin/ready",
           label: "Ready to apply",
           icon: "applications",
-          step: 4,
+          step: 3,
           badgeKey: "ready",
           roles: ["admin", "super_admin"],
         },
@@ -254,14 +223,14 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
           href: "/portal/admin/applied",
           label: "Applied",
           icon: "universities",
-          step: 5,
+          step: 4,
           roles: ["admin", "super_admin"],
         },
         {
           href: "/portal/admin/completed",
           label: "Completed",
           icon: "activity",
-          step: 6,
+          step: 5,
           roles: ["admin", "super_admin"],
         },
       ],
@@ -301,23 +270,12 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       group: "Manage",
       items: [
         { href: "/portal/admin/users", label: "Users", icon: "users", roles: ["admin", "super_admin"] },
-        { href: "/portal/admin/staff", label: "Consultants", icon: "profile", roles: ["admin", "super_admin"] },
-        // People who signed up to become consultants, waiting for review.
-        {
-          href: "/portal/admin/consultant-applications",
-          label: "Consultant requests",
-          icon: "requests",
-          roles: ["super_admin"],
-          badgeKey: "partners",
-        },
-        { href: "/portal/admin/employees", label: "Employees", icon: "profile", roles: ["admin", "super_admin"] },
       ],
     },
     {
       group: "Contact",
       items: [
         { href: "/portal/messages", label: "Messages", icon: "messages", badgeKey: "messages" },
-        { href: "/portal/appointments", label: "Consultations", icon: "consultations" },
         { href: "/portal/notifications", label: "Notifications", icon: "activity", badgeKey: "notifications" },
       ],
     },
@@ -339,7 +297,6 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/admin/finance/fixed", label: "Fixed expenses", icon: "tasks", roles: ["super_admin"] },
         { href: "/portal/admin/finance/balance", label: "Balance & accounts", icon: "dashboard", roles: ["super_admin"] },
         { href: "/portal/admin/finance/integrations", label: "Integrations", icon: "settings", roles: ["super_admin"] },
-        { href: "/portal/admin/finance/consultants", label: "Referrals", icon: "users", roles: ["super_admin"] },
         { href: "/portal/admin/finance/universities", label: "University commissions", icon: "universities", roles: ["super_admin"] },
         { href: "/portal/admin/finance/stakeholders", label: "Stakeholders", icon: "profile", roles: ["super_admin"] },
         { href: "/portal/admin/finance/reports", label: "Reports", icon: "journey", roles: ["super_admin"] },

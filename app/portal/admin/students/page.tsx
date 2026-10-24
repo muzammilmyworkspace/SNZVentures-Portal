@@ -107,7 +107,7 @@ export default async function StudentsPage({
       <PortalHeading
         eyebrow="Student desk"
         title="Students"
-        lead="Every student whose fee is verified, through to the finished application. Open an application with the eye, their documents with the folder."
+        lead="Every student, from sign-up to the finished application. Open an application with the eye, their documents with the folder."
       />
       {params.review && <ApplicationReview intakeId={params.review} closeHref={href({})} limited />}
       {historyId && <HistoryDrawer userId={historyId} closeHref={href({})} hideConsultants={desk} />}
@@ -158,15 +158,15 @@ export default async function StudentsPage({
           <EmptyState
             icon="search"
             title={all.length === 0 ? "No students yet" : "Nobody matches"}
-            body={all.length === 0 ? "Students appear here once their fee is verified." : "Try another stage or search."}
+            body={all.length === 0 ? "Students appear here as soon as they sign up." : "Try another stage or search."}
           />
         ) : (
           <div className="rail overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left">
+            <table className="w-full min-w-[760px] text-left">
               <caption className="sr-only">Students</caption>
               <thead>
                 <tr className="border-b border-line">
-                  {["#", "ID", "Student", "Brought by", "Fee verified", "Application", "Documents", ""].map((h, i) => (
+                  {["#", "ID", "Student", "Application", "Documents", ""].map((h, i) => (
                     <th key={h || i} scope="col" className="label px-3 py-3 text-faint">
                       {h || <span className="sr-only">Actions</span>}
                     </th>
@@ -192,22 +192,6 @@ export default async function StudentsPage({
                         </span>
                       </span>
                     </td>
-                    <td className="px-3 py-3">
-                      {s.consultantName ? (
-                        <span
-                          data-group="consultant"
-                          className="group-tag inline-flex max-w-[12rem] items-center gap-1.5 truncate"
-                          title={desk ? "Came through a consultant" : `Consultant: ${s.consultantName}`}
-                        >
-                          {desk ? "Consultant" : s.consultantName}
-                        </span>
-                      ) : (
-                        <span data-group="employee" className="group-tag whitespace-nowrap" title="Came to SnZ Ventures directly">
-                          SnZ Ventures
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-[0.82rem] text-faint">{day(s.feeVerifiedAt)}</td>
                     <td className="px-3 py-3">
                       {s.intakeId && s.status && s.status !== "draft" ? (
                         <StageSelect intakeId={s.intakeId} status={s.status} studentName={s.name} />

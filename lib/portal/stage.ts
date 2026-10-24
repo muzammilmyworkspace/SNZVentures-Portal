@@ -94,16 +94,14 @@ export async function studentStage(userId: string): Promise<StageInfo> {
     const consented = Number(r?.consented ?? 0) > 0;
     const note = r?.fee_note ? String(r.fee_note) : null;
 
-    // Nothing live: either we refused the last one, or there has never been
-    // one — a withdrawal puts somebody back in the second case, not the first.
-    if (feeLive === null) {
-      return rejectedCount > 0
-        ? { stage: "fee_rejected" as const, rejectionNote: note }
-        : locked;
-    }
-    if (feeLive === "submitted") return { stage: "fee_review", rejectionNote: null };
+    /*
+      SNZ (2026-10-24): NO FEE STEP. A student goes straight from their
+      details to the application, so the fee columns above are read but no
+      longer gate anything. Kept as variables so turning it back on is one
+      block, not a new query.
+    */
+    void feeLive; void rejectedCount; void note; void locked;
 
-    // Fee verified from here on.
     // Sent back for changes counts as not yet submitted: the form is theirs again.
     const submitted = intake !== null && intake !== "draft" && intake !== "returned";
     if (!submitted) return { stage: "application", rejectionNote: null };

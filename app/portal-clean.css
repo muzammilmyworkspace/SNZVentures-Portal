@@ -133,3 +133,15 @@
 
 /* Coloured top rules on dashboard cards are decoration; keep the cards flat. */
 .snzc .dash-work > * { --card-hue: transparent; }
+
+/* ------------------------------------------------- student dashboard --- */
+.snzc .snz-step-n { background: var(--c-hover); color: var(--fg-muted); border: 1px solid var(--line-strong); }
+.snzc .snz-step.is-now .snz-step-n { background: var(--c-bar); color: #0F1628; border-color: var(--c-bar); }
+.snzc .snz-step.is-done .snz-step-n { background: var(--c-active); color: var(--c-active-ink); border-color: transparent; }
+.snzc .snz-step.is-now { border-color: rgb(108 191 59 / 0.45); }
+.snzc .snz-meter { background: var(--c-hover); }
+.snzc .snz-meter > span { background: var(--c-bar); }
+.snzc .snz-step-cta { border: 1px solid var(--line-strong); color: var(--fg); }
+.snzc .snz-step-cta:hover { background: var(--c-hover); }
+.snzc .snz-step.is-now .snz-step-cta { background: var(--c-bar); border-color: var(--c-bar); color: #0F1628; }
+.snzc .snz-card { background: var(--c-panel); border: 1px solid var(--line); border-radius: 12px; }

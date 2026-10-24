@@ -189,7 +189,10 @@ export function PortalShell({
     the first render so the server and the browser draw the same thing).
   */
   // The first time, only the first section (Overview) is open.
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups[0] ? [groups[0].group] : []));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() =>
+    // A student's menu is short: every section starts open.
+    new Set(role === "student" ? groups.map((g) => g.group) : groups[0] ? [groups[0].group] : [])
+  );
   useEffect(() => {
     try {
       const raw = localStorage.getItem("portal-nav-open");

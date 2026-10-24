@@ -65,8 +65,7 @@ export async function deskStudents(): Promise<DeskStudent[]> {
         ) d ON TRUE
        WHERE u.role = 'student'
          AND u.status = 'active'
-         -- Past the fee: verified, or (older files) already submitted an application.
-         AND (fee.reviewed_at IS NOT NULL OR (f.status IS NOT NULL AND f.status::text <> 'draft'))
+         -- SNZ: no fee step, so every active student is on the desk.
        ORDER BY updated_at DESC
        LIMIT 2000
     `;
@@ -98,14 +97,38 @@ export async function onDesk(userId: string): Promise<boolean> {
     const [r] = await db()`
       SELECT 1 FROM users u
        WHERE u.id = ${userId} AND u.role = 'student'
-         AND (EXISTS (SELECT 1 FROM fee_submissions fs WHERE fs.user_id = u.id AND fs.status = 'verified')
-              OR EXISTS (SELECT 1 FROM intake_forms f WHERE f.user_id = u.id AND f.status::text <> 'draft'))
     `;
     return Boolean(r);
   }, false);
 }
 
+/** The student's own ID number (STU-0000), for their dashboard. */
+export async function studentMemberNo(userId: string): Promise<number | null> {
+  if (!isDatabaseConfigured()) return null;
+  return safeQuery(async () => {
+    const [r] = await db()`SELECT member_no FROM users WHERE id = ${userId}`;
+    return r?.member_no == null ? null : Number(r.member_no);
+  }, null);
+}
+
 /* ---------------------------------------------------------- first sign-in */
+
+/**
+ * A student who has not yet given their photo and basic details. The portal
+ * sends them to /details first (SNZ, 2026-10-24).
+ */
+export async function needsDetails(userId: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) return false;
+  return safeQuery(async () => {
+    const [r] = await db()`
+      SELECT (u.avatar_url IS NULL OR p.phone IS NULL OR p.nationality IS NULL
+              OR p.city IS NULL OR p.country IS NULL) AS missing
+        FROM users u LEFT JOIN profiles p ON p.user_id = u.id
+       WHERE u.id = ${userId} AND u.role = 'student'
+    `;
+    return r?.missing === true;
+  }, false);
+}
 
 export async function mustOnboard(userId: string): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;

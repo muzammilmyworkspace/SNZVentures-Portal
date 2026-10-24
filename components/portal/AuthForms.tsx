@@ -337,7 +337,7 @@ const PATHWAYS = [
   { key: "study", icon: "🎓", title: "Study abroad", blurb: "Education that leads to work" },
   { key: "career", icon: "💼", title: "Global career", blurb: "Roles with European employers" },
   { key: "business", icon: "🏢", title: "Business setup", blurb: "EU entity, licensing, relocation" },
-  { key: "consultant", icon: "🤝", title: "Become a consultant", blurb: "Bring students, work with SnZ" },
+  // SNZ (2026-10-24): no consultants, so no "Become a consultant" path.
 ];
 
 /**
@@ -555,7 +555,7 @@ export function RegisterForm({
 
           {/* Not on an invite link: the link already says who the consultant is.
               Not for a consultant applicant: the code links students to consultants. */}
-          {!invite && pathway !== "consultant" && (
+          {false && !invite && pathway !== "consultant" && (
             <Field
               id="consultant-code"
               label="Consultant code (optional)"
