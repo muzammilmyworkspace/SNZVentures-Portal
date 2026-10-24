@@ -132,6 +132,31 @@ export function PortalShell({
   useEffect(() => setMenuOpen(false), [pathname]);
   useEffect(() => setAccountOpen(false), [pathname]);
 
+  /*
+    A thin bar across the top while the next page loads (portal-v4.css).
+    Started by a click on a link to another portal page, ended when the path
+    changes; a timer clears it in case the navigation never completes.
+  */
+  const [navigating, setNavigating] = useState(false);
+  useEffect(() => setNavigating(false), [pathname]);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || url.pathname === location.pathname) return;
+      setNavigating(true);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+  useEffect(() => {
+    if (!navigating) return;
+    const t = setTimeout(() => setNavigating(false), 10000);
+    return () => clearTimeout(t);
+  }, [navigating]);
+
   // The account menu closes on a click anywhere else, or Escape.
   useEffect(() => {
     if (!accountOpen) return;
@@ -338,6 +363,7 @@ export function PortalShell({
 
   return (
     <div className="portal-shell pv3 tone-soft relative isolate min-h-screen">
+      {navigating && <div className="pv4-progress" aria-hidden />}
       {/* Sidebar — desktop */}
       <aside className="pv3-side fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col lg:flex">
         <div className="flex h-16 shrink-0 items-center px-5">{Brand}</div>
@@ -483,9 +509,9 @@ export function PortalShell({
         <main id="main" className="mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 lg:px-10 lg:py-9">
           <motion.div
             key={pathname}
-            initial={reduce ? false : { opacity: 0.001, y: 6 }}
+            initial={reduce ? false : { opacity: 0.001, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
             {children}
           </motion.div>

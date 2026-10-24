@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { Tabs } from "@/components/portal/Pieces";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +101,9 @@ export function UserFilters({
           items={[
             { key: "all", label: "All", href: href({ role: "all", page: "1" }), count: counts?.all },
             { key: "students", label: "Students", href: href({ role: "students", page: "1" }), count: counts?.students },
-            { key: "consultants", label: "Consultants", href: href({ role: "consultants", page: "1" }), count: counts?.consultants },
+            ...(CONSULTANTS_ENABLED
+              ? [{ key: "consultants", label: "Consultants", href: href({ role: "consultants", page: "1" }), count: counts?.consultants }]
+              : []),
             { key: "employees", label: "Employees", href: href({ role: "employees", page: "1" }), count: counts?.employees },
           ]}
         />

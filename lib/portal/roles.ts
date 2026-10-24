@@ -1,4 +1,4 @@
-import { CONSULTANTS_ENABLED, isConsultantPage } from "./features";
+import { isHiddenPage } from "./features";
 import type { Role } from "@/lib/auth/types";
 
 /**
@@ -395,11 +395,11 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
 };
 
 /** What each audience's dashboard calls itself. */
-// The consultant section is switched off (lib/portal/features.ts): its menu items go.
-if (!CONSULTANTS_ENABLED) {
-  for (const groups of Object.values(navFor)) {
-    for (const g of groups) g.items = g.items.filter((i) => !isConsultantPage(i.href));
-  }
+// Sections switched off in lib/portal/features.ts lose their menu items, and a
+// group left with nothing in it goes too.
+for (const [key, groups] of Object.entries(navFor)) {
+  for (const g of groups) g.items = g.items.filter((i) => !isHiddenPage(i.href));
+  navFor[key as PortalRole] = groups.filter((g) => g.items.length > 0);
 }
 
 export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> = {

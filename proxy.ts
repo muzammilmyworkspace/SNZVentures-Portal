@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
-import { CONSULTANTS_ENABLED, isConsultantPage } from "@/lib/portal/features";
+import { CONSULTANTS_ENABLED, FINANCE_ENABLED, isFinanceApi, isHiddenPage } from "@/lib/portal/features";
 
 /**
  * Route protection for the PORTAL ORIGIN.
@@ -47,14 +47,17 @@ export function proxy(request: NextRequest) {
   }
 
   // Portal requires a session.
-  // The consultant section is switched off (lib/portal/features.ts).
+  // Sections switched off in lib/portal/features.ts (consultants, finance).
+  if (isHiddenPage(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/portal";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (!FINANCE_ENABLED && isFinanceApi(pathname)) {
+    return NextResponse.json({ ok: false, error: "This is not available." }, { status: 404 });
+  }
   if (!CONSULTANTS_ENABLED) {
-    if (isConsultantPage(pathname)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/portal";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
     if (
       pathname === "/api/portal/consultant-code" ||
       pathname.startsWith("/api/portal/applicant") ||

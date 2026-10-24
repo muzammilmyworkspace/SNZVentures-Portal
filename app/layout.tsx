@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Space_Grotesk, JetBrains_Mono } from "next/font/goog
 import "./globals.css";
 import "./boarding.css";
 import "./portal-v3.css";
+import "./portal-v4.css";
 
 /**
  * ROOT LAYOUT — PORTAL ORIGIN.

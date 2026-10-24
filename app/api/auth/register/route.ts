@@ -10,7 +10,7 @@ import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import * as invitesRepo from "@/lib/db/repos/invites";
 import { tellCrm } from "@/lib/integrations/crm";
-import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
+import { CONSULTANTS_ENABLED, STUDENT_ONLY } from "@/lib/portal/features";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import { setAvatar } from "@/lib/db/repos/users";
 import { safeAvatar } from "@/lib/auth/avatar";
@@ -56,10 +56,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
-  const { name, password, pathway, invite, phone, city, country, avatar, consultantCode } = (body ?? {}) as Record<
+  const { name, password, invite, phone, city, country, avatar, consultantCode, ...rest } = (body ?? {}) as Record<
     string,
     unknown
   >;
+  // Students only (lib/portal/features.ts): every new account is a student.
+  const pathway = STUDENT_ONLY ? "study" : rest.pathway;
   let { email } = body as { email?: unknown };
 
   /*

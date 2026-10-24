@@ -1,3 +1,4 @@
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { loadIntake } from "@/lib/portal/forms";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -176,7 +177,7 @@ export default async function AdminUserPage({
             record the enrolment link exists to produce.
           */}
           {/* Who they belong to, and the control to change it (admins). */}
-          {admin && choices && (
+          {CONSULTANTS_ENABLED && admin && choices && (
             <Panel title="Consultant">
               <AssignConsultant userId={id} currentId={choices.currentId} advisors={choices.advisors} />
             </Panel>

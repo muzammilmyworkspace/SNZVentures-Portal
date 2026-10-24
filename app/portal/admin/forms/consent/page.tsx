@@ -1,3 +1,4 @@
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth/guard";
 import {
@@ -36,7 +37,7 @@ export const dynamic = "force-dynamic";
  * AdmitsFair' documents here.
  */
 
-const TABS: { key: string; label: string; category?: ConsentCategory; lead: string }[] = [
+const ALL_TABS: { key: string; label: string; category?: ConsentCategory; lead: string }[] = [
   {
     key: "student",
     label: "AdmitsFair ↔ Students",
@@ -55,6 +56,8 @@ const TABS: { key: string; label: string; category?: ConsentCategory; lead: stri
     lead: "What each consultant asks their own students to agree to. Read only: each consultant manages theirs.",
   },
 ];
+// Only the student consent while the consultant section is off.
+const TABS = ALL_TABS.filter((t) => CONSULTANTS_ENABLED || t.key === "student");
 
 async function rowsFor(templates: ConsentTemplate[], category: ConsentCategory): Promise<ConsentRow[]> {
   const signed = await signaturesByVersion(category);

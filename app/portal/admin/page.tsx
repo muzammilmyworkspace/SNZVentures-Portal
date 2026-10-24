@@ -2,6 +2,8 @@ import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ActivityChart, BarList, StudentRoster } from "@/components/portal/DashboardCharts";
+import { AdminHome } from "@/components/portal/AdminHome";
+import { getStudentInsights } from "@/lib/db/repos/dashboard";
 import { stageRows } from "@/lib/portal/advisor-stages";
 import { requireStaff } from "@/lib/auth/guard";
 import { onStudentDesk } from "@/lib/auth/permissions";
@@ -116,9 +118,23 @@ export default async function AdminPage({
   */
   // The charts query runs IN PARALLEL with the overview, never after it: see
   // the timeout note above. Two statements, one wall-clock round trip.
-  const [overview, charts] = admin
-    ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts(range)])
-    : [null, null];
+  const [overview, charts, insights] = admin
+    ? await Promise.all([getAdminOverview(12, 10, 8), getDashboardCharts(range), getStudentInsights()])
+    : [null, null, null];
+
+  // The admin home is its own layout (Oct 2026): students only, with charts.
+  if (admin && overview && charts && insights) {
+    return (
+      <AdminHome
+        name={session.name}
+        m={(overview.metrics ?? {}) as Record<string, number>}
+        series={charts.series}
+        insights={insights}
+        range={range}
+        pendingDocs={overview.pendingDocuments ?? []}
+      />
+    );
+  }
 
   const [advisorCases, myClients, board] = admin
     ? [[], [], []]

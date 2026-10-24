@@ -6,6 +6,7 @@ import { isDatabaseConfigured } from "@/lib/db/client";
 import { isStorageConfigured } from "@/lib/storage";
 import { getProfile } from "@/lib/db/repos/profiles";
 import { getPaymentSettings, planFor } from "@/lib/db/repos/payments";
+import { scheduleFor } from "@/lib/portal/payment-plan";
 import { paymentSettingsFrom } from "@/lib/portal/payment-plan";
 import { memberId } from "@/lib/portal/member-id";
 import { db, safeQuery } from "@/lib/db/client";
@@ -65,7 +66,8 @@ export default async function Page({
         lockedPath={locked ?? null}
         justSubmitted={fee === "submitted"}
         payments={payments}
-        plan={plan}
+        // A plan saved without its schedule falls back to the current amounts.
+        plan={plan && plan.schedule.length === 0 ? { ...plan, schedule: scheduleFor(plan.plan, payments) } : plan}
         studentCode={memberId(session.role, memberNo)}
       />
       <ClientDashboard session={session} />

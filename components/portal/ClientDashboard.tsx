@@ -216,11 +216,15 @@ export async function ClientDashboard({ session }: { session: Session }) {
         watching the tab sees nothing move and concludes nothing happened.
       */}
 
-      <PortalHeading
-        eyebrow={ctx.eyebrow}
-        title={`Hello, ${firstName}.`}
-        lead={ctx.lead}
-      />
+      <section className="pv4-hero portal-rise mb-6">
+        <div className="relative z-10">
+          <p className="text-[0.82rem] font-semibold text-accent-ink">{ctx.eyebrow}</p>
+          <h1 className="mt-1.5 text-[1.75rem] font-semibold leading-tight tracking-[-0.03em] text-fg-strong sm:text-[2.1rem]">
+            Hello, {firstName}
+          </h1>
+          <p className="mt-2 max-w-xl text-[0.93rem] leading-relaxed text-muted">{ctx.lead}</p>
+        </div>
+      </section>
 
       {/* Progress at a glance (students): journey, application, documents. */}
       {role === "student" && position && admissionDocs && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
+import { CONSULTANTS_ENABLED, STUDENT_ONLY } from "@/lib/portal/features";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
@@ -356,8 +356,9 @@ export function RegisterForm({
     is what makes room to ask for a phone number and a location without the
     sign-up form becoming one long column somebody abandons.
   */
-  const [step, setStep] = useState(1);
-  const [pathway, setPathway] = useState<string | null>(null);
+  // Students only: the pathway step is skipped and the form opens on the details.
+  const [step, setStep] = useState(STUDENT_ONLY ? 2 : 1);
+  const [pathway, setPathway] = useState<string | null>(STUDENT_ONLY ? "study" : null);
   const [name, setName] = useState(invitedName ?? "");
   /*
     Locked to the invitation when there is one. The consultant addressed it to
@@ -488,6 +489,7 @@ export function RegisterForm({
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="space-y-5"
     >
+      {!STUDENT_ONLY && (
       <button
         type="button"
         onClick={() => setStep(1)}
@@ -498,6 +500,7 @@ export function RegisterForm({
         </svg>
         {PATHWAYS.find((p) => p.key === pathway)?.title}
       </button>
+      )}
 
       {step === 2 ? (
         <>

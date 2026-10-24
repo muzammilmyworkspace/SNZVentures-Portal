@@ -1,0 +1,242 @@
+/* ============================================================================
+   PORTAL UI v4 (Oct 2026)
+   ----------------------------------------------------------------------------
+   A finishing layer over v3 (portal-v3.css), same navy + sky palette:
+     • depth: a soft sky glow behind the work area, cards with a faint top
+       light and a lift on hover
+     • the admin home's pieces (.pv4-*): hero, figure cards, attention list,
+       table, buttons
+     • motion: one easing curve everywhere, quick hovers, a thin progress bar
+       while a page loads; all of it off under reduced motion
+   Everything is scoped to `.portal-shell.pv3`, like v3.
+   ========================================================================== */
+
+.portal-shell.pv3 {
+  --pv4-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --pv4-glow-a: rgb(56 189 248 / 0.10);
+  --pv4-glow-b: rgb(99 102 241 / 0.08);
+  --pv4-card-light: rgb(255 255 255 / 0.035);
+  --pv4-lift-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -22px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(56 189 248 / 0.22);
+  background:
+    radial-gradient(1100px 520px at 88% -12%, var(--pv4-glow-a), transparent 62%),
+    radial-gradient(900px 480px at 18% -8%, var(--pv4-glow-b), transparent 60%),
+    var(--pv-bg);
+  background-attachment: fixed;
+}
+[data-theme="light"] .portal-shell.pv3 {
+  --pv4-glow-a: rgb(14 165 233 / 0.09);
+  --pv4-glow-b: rgb(99 102 241 / 0.06);
+  --pv4-card-light: rgb(255 255 255 / 0);
+  --pv4-lift-shadow: 0 18px 40px -24px rgb(16 24 40 / 0.35), 0 0 0 1px rgb(2 132 199 / 0.25);
+}
+
+/* ------------------------------------------------------------ chrome --- */
+.pv3 .pv3-side {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pv-side) 100%, transparent), color-mix(in srgb, var(--pv-side) 92%, #0c1a33));
+}
+[data-theme="light"] .pv3 .pv3-side { background: var(--pv-side); }
+.pv3 .pv3-item { position: relative; transition: color 0.2s var(--pv4-ease), background-color 0.2s var(--pv4-ease); }
+.pv3 .pv3-item-bg { background: linear-gradient(90deg, rgb(56 189 248 / 0.18), rgb(56 189 248 / 0.06)); }
+.pv3 .pv3-item-bg::before {
+  content: "";
+  position: absolute;
+  left: -12px; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+.pv3 .pv3-top { transition: background-color 0.25s; }
+
+/* A thin bar across the top while the next page loads. */
+.pv4-progress {
+  position: fixed; left: 0; top: 0; z-index: 80;
+  height: 2px; width: 100%;
+  pointer-events: none;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--viz-1, #3987e5), var(--accent), #9085e9);
+  box-shadow: 0 0 10px var(--accent);
+  animation: pv4-progress 8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes pv4-progress { from { transform: scaleX(0); } to { transform: scaleX(0.92); } }
+
+/* ------------------------------------------------------------- cards --- */
+.pv3 main section.rounded-\[14px\],
+.pv4-card {
+  border-radius: 16px;
+  background-image: linear-gradient(180deg, var(--pv4-card-light), transparent 38%);
+}
+.pv4-card {
+  position: relative;
+  border: 1px solid var(--line);
+  background-color: var(--panel-solid);
+  box-shadow: var(--panel-shadow);
+}
+.pv4-lift,
+.pv3 main a.rounded-\[14px\],
+.pv3 main a.rounded-\[16px\] {
+  transition: transform 0.3s var(--pv4-ease), box-shadow 0.3s var(--pv4-ease), border-color 0.2s;
+}
+.pv4-lift:hover,
+.pv3 main a.rounded-\[14px\]:hover,
+.pv3 main a.rounded-\[16px\]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pv4-lift-shadow);
+}
+
+/* ----------------------------------------------------------- buttons --- */
+.pv3 main :is(a, button).bg-moss-400 {
+  background-image: linear-gradient(135deg, #38bdf8, #2a78d6);
+  color: #fff;
+  transition: transform 0.2s var(--pv4-ease), box-shadow 0.2s, filter 0.2s;
+}
+.pv3 main :is(a, button).bg-moss-400:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.pv3 main :is(a, button).bg-moss-400:active:not(:disabled) { transform: translateY(0); }
+
+.pv4-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  min-height: 42px; padding: 0 1.1rem;
+  border-radius: 11px;
+  font-size: 0.9rem; font-weight: 600;
+  color: var(--fg-strong);
+  background: color-mix(in srgb, var(--pv-panel) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s var(--pv4-ease), box-shadow 0.2s, background-color 0.2s;
+}
+.pv4-btn:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1px var(--accent); }
+.pv4-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #38bdf8, #2a78d6);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 10px 24px -12px rgb(56 189 248 / 0.9);
+}
+.pv4-btn-primary:hover { box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 14px 30px -12px rgb(56 189 248 / 1); }
+.pv4-btn-count {
+  display: inline-grid; place-items: center;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: rgb(255 255 255 / 0.22);
+}
+.pv4-btn:not(.pv4-btn-primary) .pv4-btn-count { background: var(--pv-active); color: var(--accent-ink); }
+
+/* -------------------------------------------------------------- hero --- */
+.pv4-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.75rem;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(600px 240px at 100% 0%, rgb(56 189 248 / 0.20), transparent 70%),
+    radial-gradient(500px 260px at 0% 120%, rgb(144 133 233 / 0.16), transparent 70%),
+    linear-gradient(135deg, color-mix(in srgb, var(--pv-panel) 92%, #1e3a8a), var(--pv-panel));
+  box-shadow: var(--panel-shadow);
+}
+.pv4-hero::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgb(148 170 210 / 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(90deg, transparent 35%, #000);
+  pointer-events: none;
+}
+[data-theme="light"] .pv4-hero {
+  background:
+    radial-gradient(600px 240px at 100% 0%, rgb(14 165 233 / 0.16), transparent 70%),
+    radial-gradient(500px 260px at 0% 120%, rgb(144 133 233 / 0.12), transparent 70%),
+    linear-gradient(135deg, #ffffff, #f2f7fd);
+}
+@media (min-width: 640px) { .pv4-hero { padding: 2rem 2.25rem; } }
+
+/* ---------------------------------------------------------- figures --- */
+.pv4-kpi-icon {
+  display: inline-grid; place-items: center;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  color: var(--kpi);
+  background: color-mix(in srgb, var(--kpi) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kpi) 30%, transparent);
+}
+.pv4-tip {
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  background: var(--pv-panel-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 8px 20px -10px rgb(0 0 0 / 0.6);
+}
+.pv4-step-dot {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px;
+  border-radius: 6px;
+  font-size: 0.68rem; font-weight: 700;
+  color: var(--fg-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.pv4-row-link { margin: -0.35rem -0.5rem; padding: 0.35rem 0.5rem; transition: background-color 0.2s; }
+.pv4-row-link:hover { background: var(--pv-hover); }
+.pv4-rank {
+  display: inline-grid; place-items: center;
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700;
+  color: var(--fg-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.pv4-rank.is-first { color: #1a1205; background: linear-gradient(135deg, #fde68a, #f59e0b); box-shadow: none; }
+
+/* -------------------------------------------------- needs attention --- */
+.pv4-work {
+  display: flex; align-items: center; gap: 0.75rem;
+  min-height: 46px; padding: 0 0.85rem;
+  border-radius: 11px;
+  color: var(--fg-muted);
+  transition: background-color 0.2s, color 0.2s, transform 0.25s var(--pv4-ease);
+}
+.pv4-work .num { color: var(--fg-faint); }
+.pv4-work-dot { width: 8px; height: 8px; border-radius: 999px; opacity: 0.35; flex-shrink: 0; }
+.pv4-work-arrow { color: var(--fg-faint); opacity: 0; transform: translateX(-4px); transition: opacity 0.2s, transform 0.25s var(--pv4-ease); }
+.pv4-work:hover { background: var(--pv-hover); color: var(--fg-strong); }
+.pv4-work:hover .pv4-work-arrow { opacity: 1; transform: none; }
+.pv4-work.is-on { color: var(--fg-strong); background: color-mix(in srgb, var(--fg) 3.5%, transparent); }
+.pv4-work.is-on .num { color: var(--fg-strong); }
+.pv4-work.is-on .pv4-work-dot { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent); }
+
+/* ------------------------------------------------------------- table --- */
+.pv4-table th {
+  padding: 0.8rem 1.25rem;
+  font-size: 0.76rem; font-weight: 600;
+  color: var(--fg-faint);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--fg) 2%, transparent);
+}
+.pv4-table td {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.87rem;
+  border-bottom: 1px solid var(--line);
+}
+.pv4-table tbody tr { transition: background-color 0.15s; }
+.pv4-table tbody tr:hover { background: var(--pv-hover); }
+.pv4-table tbody tr:last-child td { border-bottom: 0; }
+
+/* Every data table in the work area: a calmer row hover. */
+.pv3 main table tbody tr { transition: background-color 0.15s; }
+.pv3 main table tbody tr:hover { background: var(--pv-hover); }
+
+/* ------------------------------------------------------- scrollbars --- */
+.pv3 ::-webkit-scrollbar { width: 10px; height: 10px; }
+.pv3 ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background: color-mix(in srgb, var(--fg) 18%, transparent) padding-box;
+}
+.pv3 ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--fg) 30%, transparent) padding-box; }
+.pv3 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ------------------------------------------------------------ motion --- */
+.pv3 main .grid:not(form .grid) > * { animation-timing-function: var(--pv4-ease); }
+@media (prefers-reduced-motion: reduce) {
+  .pv4-lift, .pv4-btn, .pv4-work, .pv3 main a { transition: none !important; }
+  .pv4-lift:hover, .pv4-btn:hover, .pv3 main a:hover { transform: none !important; }
+  .pv4-progress { display: none; }
+}
