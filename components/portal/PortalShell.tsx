@@ -56,6 +56,29 @@ function Icon({ name }: { name: IconKey }) {
   );
 }
 
+/** One icon per sidebar section, so a folded menu still scans at a glance. */
+const GROUP_ICONS: Record<string, string> = {
+  overview: ICONS.dashboard,
+  "student pipeline": ICONS.journey,
+  people: ICONS.users,
+  manage: ICONS.tasks,
+  contact: ICONS.messages,
+  forms: ICONS.applications,
+  finance: "M4 19V9M10 19V5M16 19v-7M3 21h18",
+  billing: "M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6",
+  account: ICONS.settings,
+  "my file": ICONS.documents,
+  help: ICONS.messages,
+};
+
+function GroupIcon({ group }: { group: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-[16px] w-[16px]">
+      <path d={GROUP_ICONS[group.toLowerCase()] ?? ICONS.services} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export type Badges = Partial<Record<BadgeKey, number>>;
 
 export function PortalShell({
@@ -234,7 +257,7 @@ export function PortalShell({
         const open = openGroups.has(g.group) || (here && !shut.has(g.group));
         const waiting = g.items.reduce((n, i) => n + (i.badgeKey ? badges[i.badgeKey] ?? 0 : 0), 0);
         return (
-        <div key={g.group} className={cn(gi > 0 && "mt-1")}>
+        <div key={g.group} className={cn(gi > 0 && "mt-0.5")}>
           {/*
             A SECTION HEADING, not a menu item: no box, small capitals, bold,
             the chevron on the right. Only a page (an item) ever gets the green
@@ -244,11 +267,14 @@ export function PortalShell({
             type="button"
             onClick={() => toggleGroup(g.group, open)}
             aria-expanded={open}
-            className="snzc-head group/h flex min-h-9 w-full items-center gap-2 rounded-[8px] px-3 text-left"
+            className={cn("snzc-head group/h flex min-h-10 w-full items-center gap-2.5 rounded-[10px] px-2 text-left", here && "is-here", open && "is-open")}
           >
+            <span className="snzc-gicon">
+              <GroupIcon group={g.group} />
+            </span>
             <span
               className={cn(
-                "flex-1 text-[0.78rem] font-semibold transition-colors",
+                "flex-1 text-[0.86rem] font-semibold transition-colors",
                 here ? "text-fg-strong" : "text-muted group-hover/h:text-fg"
               )}
             >
@@ -268,7 +294,7 @@ export function PortalShell({
             </svg>
           </button>
           {open && (
-          <ul className="mb-2 mt-0.5 flex flex-col gap-0.5">
+          <ul className="snzc-list mb-2 mt-1 flex flex-col gap-0.5">
             {g.items.map((item) => {
               const on = isActive(item.href);
               const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
@@ -356,41 +382,44 @@ export function PortalShell({
     <div className="portal-shell snzc tone-soft relative isolate min-h-screen">
       <div className="relative z-10 mx-auto flex w-full max-w-[100rem]">
         {/* Sidebar — desktop */}
-        <aside className="portal-side sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
-          <Link href={home} className="mb-8 flex items-center gap-2.5 px-2">
-            <Image src="/brand/snz-mark.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
-            <span className="flex flex-col leading-none">
-              <span className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.02em] text-fg">SnZ Ventures</span>
-              <span className="label mt-1 text-[0.72rem] text-faint">Client portal</span>
+        <aside className="portal-side sticky top-0 hidden h-screen w-[17rem] shrink-0 flex-col border-r border-line px-3.5 pb-4 pt-5 lg:flex">
+          <Link href={home} className="snzc-brand mb-5 flex items-center gap-3 rounded-[14px] px-2.5 py-2.5">
+            <Image src="/brand/snz-mark.png" alt="" width={38} height={38} className="h-[38px] w-[38px] rounded-full bg-white ring-2 ring-[#6CBF3B]/40" />
+            <span className="flex min-w-0 flex-col leading-none">
+              <span className="text-[1.05rem] font-bold tracking-[-0.02em] text-fg-strong">SnZ Ventures</span>
+              <span className="mt-1.5 inline-flex w-fit items-center gap-1.5 text-[0.72rem] font-semibold text-accent">
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#6CBF3B] shadow-[0_0_0_3px_rgb(108_191_59/0.25)]" />
+                Client portal
+              </span>
             </span>
           </Link>
 
-          <div className="rail flex-1 overflow-y-auto">{Nav}</div>
+          <p className="mb-1.5 px-2.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-faint">Menu</p>
+          <div className="rail -mr-1.5 flex-1 overflow-y-auto pr-1.5">{Nav}</div>
 
-          <div className="mt-4 border-t border-line pt-4">
-            <div className="flex items-center gap-3 px-2 py-1.5">
-              <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.85rem] font-semibold text-fg">{name}</span>
-                <span className="label block text-[0.72rem] text-faint">{ROLE_LABEL[role]}</span>
-              </span>
-            </div>
+          <div className="snzc-me mt-3 flex items-center gap-3 rounded-[14px] p-2.5">
+            <Avatar id={userId} name={name} photo={avatarV != null} v={avatarV} size="md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.86rem] font-semibold text-fg-strong">{name}</span>
+              <span className="block truncate text-[0.74rem] text-faint">{ROLE_LABEL[role]}</span>
+            </span>
             <button
               type="button"
               onClick={logout}
               disabled={signingOut}
-              className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 text-[0.85rem] text-muted transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg disabled:opacity-50"
+              aria-label={signingOut ? "Signing out" : "Sign out"}
+              title="Sign out"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-muted transition-colors hover:bg-[rgb(255_255_255/0.08)] hover:text-fg-strong disabled:opacity-50"
             >
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden className="h-[15px] w-[15px]">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden className="h-4 w-4">
                 <path
                   d="M10 2.5H4.5A1.5 1.5 0 003 4v8a1.5 1.5 0 001.5 1.5H10M7 8h6.5m0 0l-2-2m2 2l-2 2"
                   stroke="currentColor"
-                  strokeWidth="1.3"
+                  strokeWidth="1.4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
-              {signingOut ? "Signing out…" : "Sign out"}
             </button>
           </div>
         </aside>
