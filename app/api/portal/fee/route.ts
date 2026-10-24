@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as fees from "@/lib/db/repos/fees";
+import { tellCrm } from "@/lib/integrations/crm";
 import * as repo from "@/lib/db/repos/portal";
 import { recordConsent } from "@/lib/db/repos/consents";
 import { audit } from "@/lib/db/repos/audit";
@@ -275,6 +276,9 @@ export async function POST(request: Request) {
         mimeType: file.type,
       })
     );
+
+    // A sales agent's student: the CRM shows the receipt is in (the sale counts when it is verified).
+    after(() => tellCrm("fee.submitted", session.userId));
 
     return NextResponse.json({ ok: true, id: feeId });
   } catch (error) {

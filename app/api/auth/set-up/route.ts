@@ -81,8 +81,12 @@ export async function POST(request: Request) {
     blank is a link the person has to ask for again, and they would be right to
     be annoyed.
   */
+  // A sales agent (047) only sets a password: their details are kept in the CRM.
+  const holder = await store.userForToken(token, "account_setup");
+  const passwordOnly = holder?.role === "sales";
+
   const patch: Record<string, string> = {};
-  for (const [key, label] of REQUIRED) {
+  for (const [key, label] of passwordOnly ? [] : REQUIRED) {
     const value = fields[key];
     if (typeof value !== "string" || !value.trim()) {
       return NextResponse.json(

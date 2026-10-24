@@ -16,7 +16,13 @@ export type Role =
    * Signed up as a consultant and waiting for approval (migration 037). Can
    * open nothing but their own application; becomes `advisor` once approved.
    */
-  | "applicant";
+  | "applicant"
+  /**
+   * An AdmitsFair sales agent (migration 047). Works leads in the CRM and sees
+   * only the students they brought (users.sales_agent_id). Not staff: no
+   * access to anything else in the portal.
+   */
+  | "sales";
 
 /** Client-facing roles, i.e. everything that gets a journey dashboard. */
 export const CLIENT_ROLES: Role[] = ["student", "professional", "business"];
@@ -45,6 +51,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrator",
   super_admin: "Super Administrator",
   applicant: "Consultant applicant",
+  sales: "Sales Agent",
 };
 
 /** Maps the registration question to a role. */

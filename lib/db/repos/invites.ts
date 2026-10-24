@@ -34,8 +34,12 @@ const hashToken = (raw: string) => createHash("sha256").update(raw).digest("hex"
 /** Client roles an invite may enrol. Staff are never enrolled this way. */
 const ENROLLABLE = ["student", "professional", "business"] as const;
 
-/** Roles that may hold students. `advisor` is the consultant. */
-const CAN_HOLD_CLIENTS = ["advisor", "admin", "super_admin"] as const;
+/**
+ * Roles whose invite links work. `advisor` is the consultant. `sales` (047) is
+ * an AdmitsFair sales agent: their link tags the student to them
+ * (users.sales_agent_id) instead of making them the student's consultant.
+ */
+const CAN_HOLD_CLIENTS = ["advisor", "admin", "super_admin", "sales"] as const;
 
 export type InviteRow = {
   id: string;
@@ -93,6 +97,8 @@ export async function createInvite(input: {
   /** The student's name, for the email greeting and the sign-up form. */
   name?: string | null;
   ttlDays?: number;
+  /** The CRM lead this invite came from (sales invites), for posting events back. */
+  crmLeadId?: string | null;
 }): Promise<{ id: string; token: string; expiresAt: string } | null> {
   if (!isDatabaseConfigured()) return null;
 
@@ -103,11 +109,12 @@ export async function createInvite(input: {
   return safeQuery(async () => {
     const rows = await db()`
       INSERT INTO student_invites
-        (consultant_id, created_by, token_hash, email, note, name, expires_at)
+        (consultant_id, created_by, token_hash, email, note, name, crm_lead_id, expires_at)
       VALUES (
         ${input.consultantId}, ${input.createdBy}, ${hashToken(raw)},
         ${input.email?.trim().toLowerCase() || null}, ${input.note?.trim() || null},
         ${input.name?.trim().slice(0, 120) || null},
+        ${input.crmLeadId?.slice(0, 40) || null},
         ${expires}
       )
       RETURNING id, expires_at
@@ -127,6 +134,8 @@ export type InvitePreview = {
   email: string | null;
   expiresAt: string;
   name?: string | null;
+  /** The link is an AdmitsFair sales agent's (047): they are not the consultant. */
+  fromSales?: boolean;
 };
 
 /**
@@ -144,7 +153,7 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
   if (!isDatabaseConfigured() || !rawToken) return null;
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT i.expires_at, i.email, i.name, u.name AS consultant_name
+      SELECT i.expires_at, i.email, i.name, u.name AS consultant_name, u.role::text AS inviter_role
         FROM student_invites i
         JOIN users u ON u.id = i.consultant_id
        WHERE i.token_hash = ${hashToken(rawToken)}
@@ -161,12 +170,19 @@ export async function previewInvite(rawToken: string): Promise<InvitePreview | n
       email: rows[0].email ? String(rows[0].email) : null,
       name: rows[0].name ? String(rows[0].name) : null,
       expiresAt: new Date(String(rows[0].expires_at)).toISOString(),
+      fromSales: rows[0].inviter_role === "sales",
     };
   }, null);
 }
 
 export type ClaimResult =
-  | { ok: true; consultantId: string; consultantName: string }
+  | {
+      ok: true;
+      consultantId: string;
+      consultantName: string;
+      /** Set when the link was a sales agent's: their CRM Agent ID and the CRM lead. */
+      sales?: { crmCode: string | null; crmLeadId: string | null };
+    }
   | { ok: false; reason: "invalid" | "already_assigned" | "not_a_client" };
 
 /**
@@ -192,7 +208,7 @@ export async function claimInvite(
   try {
     return await db().begin(async (tx) => {
       const invite = await tx`
-        SELECT i.id, i.consultant_id
+        SELECT i.id, i.consultant_id, i.crm_lead_id
           FROM student_invites i
          WHERE i.token_hash = ${hashToken(rawToken)}
            AND i.claimed_at IS NULL
@@ -206,13 +222,14 @@ export async function claimInvite(
 
       // Re-read the consultant. An invite outlives a suspension.
       const consultant = await tx`
-        SELECT id, name FROM users
+        SELECT id, name, role::text AS role, crm_code FROM users
          WHERE id = ${consultantId}
            AND status = 'active'
            AND role::text = ANY(${CAN_HOLD_CLIENTS as unknown as string[]})
          LIMIT 1
       `;
       if (!consultant[0]) return { ok: false, reason: "invalid" } as ClaimResult;
+      const isSales = consultant[0].role === "sales";
 
       // The account being enrolled must be a client, never staff.
       const student = await tx`
@@ -231,7 +248,10 @@ export async function claimInvite(
         refusal: a student who already has a consultant is not up for grabs.
       */
       const existing = await tx`
-        SELECT 1 FROM staff_assignments WHERE client_id = ${studentId} LIMIT 1
+        SELECT 1 FROM staff_assignments WHERE client_id = ${studentId}
+        UNION ALL
+        SELECT 1 FROM users WHERE id = ${studentId} AND sales_agent_id IS NOT NULL
+        LIMIT 1
       `;
       if (existing[0]) return { ok: false, reason: "already_assigned" } as ClaimResult;
 
@@ -240,6 +260,22 @@ export async function claimInvite(
            SET claimed_by = ${studentId}, claimed_at = now()
          WHERE id = ${invite[0].id}
       `;
+
+      // A sales agent's link: tag the student to the agent, and leave them with
+      // AdmitsFair (no consultant) for the Super Admin to handle.
+      if (isSales) {
+        await tx`UPDATE users SET sales_agent_id = ${consultantId} WHERE id = ${studentId}`;
+        return {
+          ok: true,
+          consultantId,
+          consultantName: String(consultant[0].name),
+          sales: {
+            crmCode: consultant[0].crm_code ? String(consultant[0].crm_code) : null,
+            crmLeadId: invite[0].crm_lead_id ? String(invite[0].crm_lead_id) : null,
+          },
+        } as ClaimResult;
+      }
+
       await tx`
         INSERT INTO staff_assignments (client_id, advisor_id, assigned_by)
         VALUES (${studentId}, ${consultantId}, ${consultantId})

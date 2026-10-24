@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import * as store from "@/lib/auth/store";
 import { hashPassword, validatePassword } from "@/lib/auth/password";
 import { createToken, setSessionCookie, authConfigured } from "@/lib/auth/session";
@@ -9,6 +9,7 @@ import { homeFor } from "@/lib/portal/roles";
 import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import * as invitesRepo from "@/lib/db/repos/invites";
+import { tellCrm } from "@/lib/integrations/crm";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import { setAvatar } from "@/lib/db/repos/users";
 import { safeAvatar } from "@/lib/auth/avatar";
@@ -222,6 +223,11 @@ export async function POST(request: Request) {
         meta: { consultantId: claim.consultantId },
         ip,
       });
+      // Through a sales agent's link: tell the CRM, without holding up the sign-up.
+      if (claim.sales) {
+        const id = user.id;
+        after(() => tellCrm("student.registered", id));
+      }
     } else {
       // Recorded, not shown. The student can do nothing about it; the admin can.
       // eslint-disable-next-line no-console

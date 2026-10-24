@@ -86,7 +86,8 @@ export default async function SetUpPage({
         </p>
       }
     >
-      <SetUpForm token={token ?? ""} name={account.name} email={account.email} />
+      {/* A sales agent's details are kept in the CRM: they only choose a password here. */}
+      <SetUpForm token={token ?? ""} name={account.name} email={account.email} passwordOnly={account.role === "sales"} />
     </AuthShell>
   );
 }

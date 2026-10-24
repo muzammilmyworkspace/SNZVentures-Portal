@@ -64,6 +64,7 @@ export function FeeDialog({
   open,
   onClose,
   rejectionNote,
+  preset,
 }: {
   studentName: string;
   studentEmail: string;
@@ -72,6 +73,12 @@ export function FeeDialog({
   open: boolean;
   onClose: () => void;
   rejectionNote?: string | null;
+  /**
+   * The fee being paid, when the portal already knows it (AdmitsFair's
+   * initial process fee on the plan the student chose). Seeds those fields and
+   * wins over an older saved draft; the student can still correct them.
+   */
+  preset?: Partial<Pick<Facts, "university" | "programme" | "feeType" | "currency" | "amount">>;
 }) {
   const [step, setStep] = useState<Step>("details");
   const [busy, setBusy] = useState(false);
@@ -90,6 +97,7 @@ export function FeeDialog({
     phone: known?.phone ?? "",
     city: known?.city ?? "",
     nationality: known?.nationality ?? "",
+    ...preset,
   };
   const [f, setF] = useState<Facts>(start);
   const set: SetFact = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -114,7 +122,7 @@ export function FeeDialog({
     if (!open || restored) return;
     const draft = readDraft();
     if (draft) {
-      setF((prev) => ({ ...prev, ...draft.facts }));
+      setF((prev) => ({ ...prev, ...draft.facts, ...preset }));
       if (draft.agreed) setAgreed(true);
       /*
         A browser cannot give a File back after a reload, so a step past the
@@ -129,6 +137,7 @@ export function FeeDialog({
       setResumed(true);
     }
     setRestored(true);
+    // `preset` is fixed for the dialog's life, so it is not a dependency.
   }, [open, restored]);
 
   useEffect(() => {

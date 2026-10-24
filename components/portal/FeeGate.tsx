@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { FeeDialog } from "@/components/portal/FeeDialog";
+import { InitialFeeDialog } from "@/components/portal/InitialFeeDialog";
 import type { StudentStage } from "@/lib/portal/stage";
+import { PLAN_LABEL, money, type PaymentSettings, type Phase, type PlanKey } from "@/lib/portal/payment-plan";
 
 /**
  * The banner above the student dashboard, and the dialog it opens.
@@ -27,6 +29,9 @@ export function FeeGate({
   storageOn = true,
   lockedPath,
   justSubmitted,
+  payments,
+  plan,
+  studentCode,
 }: {
   stage: StudentStage;
   rejectionNote: string | null;
@@ -38,9 +43,19 @@ export function FeeGate({
   storageOn?: boolean;
   lockedPath: string | null;
   justSubmitted: boolean;
+  /** AdmitsFair's process fee: amounts and the bank details on the voucher. */
+  payments: PaymentSettings;
+  /** The plan the student chose, if any (047 payment_plans). */
+  plan: { plan: PlanKey; schedule: Phase[]; currency: string } | null;
+  /** Their student ID (STU-0012), quoted as the payment reference. */
+  studentCode: string;
 }) {
   const needsAction = stage === "fee_due" || stage === "fee_rejected";
+  // Plan, voucher and terms first; then the receipt form.
+  const [planOpen, setPlanOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [chosen, setChosen] = useState<PlanKey | null>(plan?.plan ?? null);
+  const startFee = () => setPlanOpen(true);
 
   useEffect(() => {
     if (!needsAction) return;
@@ -56,7 +71,7 @@ export function FeeGate({
     } catch {
       // Private browsing refuses storage. Opening once is the right fallback.
     }
-    const t = window.setTimeout(() => setOpen(true), 450);
+    const t = window.setTimeout(() => setPlanOpen(true), 450);
     return () => window.clearTimeout(t);
   }, [needsAction]);
 
@@ -85,11 +100,12 @@ export function FeeGate({
         <Note
           tone="action"
           title="Start with your fee verification"
-          cta={{ label: "Verify my fee", onClick: () => setOpen(true) }}
+          cta={{ label: "Start my initial process", onClick: startFee }}
         >
+          Choose your payment plan, pay the initial process fee of{" "}
+          {money(payments.initialFee, payments.currency)} and upload your receipt.
           Your application form, documents and the rest of your file open once
-          we&rsquo;ve confirmed your payment. It takes about five minutes and you
-          will need your transfer receipt.
+          we&rsquo;ve verified it.
         </Note>
       )}
 
@@ -97,7 +113,7 @@ export function FeeGate({
         <Note
           tone="error"
           title="Your payment receipt needs another look"
-          cta={{ label: "Resubmit", onClick: () => setOpen(true) }}
+          cta={{ label: "Resubmit", onClick: startFee }}
         >
           {rejectionNote ?? "Please submit your receipt again."}
         </Note>
@@ -142,7 +158,29 @@ export function FeeGate({
         </Note>
       )}
 
+      {plan && <PlanCard plan={plan} initialPaid={!needsAction && stage !== "fee_review"} />}
+
+      <InitialFeeDialog
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        onReady={(p) => {
+          setChosen(p);
+          setPlanOpen(false);
+          setOpen(true);
+        }}
+        settings={payments}
+        currentPlan={chosen}
+        studentCode={studentCode}
+      />
+
       <FeeDialog
+        preset={{
+          university: "AdmitsFair",
+          programme: chosen ? `Initial process (${PLAN_LABEL[chosen]})` : "Initial process",
+          feeType: "Process initiation fee",
+          currency: payments.currency,
+          amount: String(payments.initialFee),
+        }}
         studentName={studentName}
         studentEmail={studentEmail}
         known={known}
@@ -156,6 +194,32 @@ export function FeeGate({
 }
 
 /* ------------------------------------------------------------------ note */
+
+/** The plan the student chose, phase by phase. */
+function PlanCard({ plan, initialPaid }: { plan: { plan: PlanKey; schedule: Phase[]; currency: string }; initialPaid: boolean }) {
+  return (
+    <div className="portal-rise mb-6 rounded-[16px] border border-line bg-[image:var(--panel-bg)] p-5 shadow-[var(--panel-shadow)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold text-fg-strong">Your payment plan</p>
+        <p className="label text-accent">{PLAN_LABEL[plan.plan]}</p>
+      </div>
+      <ol className="mt-3 grid gap-2 sm:grid-cols-3">
+        {plan.schedule.map((p, i) => {
+          const paid = i === 0 && initialPaid;
+          return (
+            <li key={p.key} className={`rounded-[12px] border px-4 py-3 ${paid ? "border-moss-400/45 bg-moss-400/10" : "border-line"}`}>
+              <p className="text-[0.78rem] text-muted">
+                {i + 1}. {p.label}
+              </p>
+              <p className="mt-0.5 font-semibold text-fg-strong">{money(p.amount, plan.currency)}</p>
+              <p className="mt-0.5 text-[0.78rem] text-muted">{paid ? "Paid and verified" : p.when}</p>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
 const TONES = {
   ok: "border-moss-400/45 bg-moss-400/10 before:bg-moss-400",

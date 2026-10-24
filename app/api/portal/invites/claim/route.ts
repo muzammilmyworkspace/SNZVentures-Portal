@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { audit } from "@/lib/db/repos/audit";
 import * as invitesRepo from "@/lib/db/repos/invites";
+import { tellCrm } from "@/lib/integrations/crm";
 import { isDatabaseConfigured } from "@/lib/db/client";
 
 export const runtime = "nodejs";
@@ -84,6 +85,11 @@ export async function POST(request: Request) {
     meta: { consultantId: claim.consultantId, via: "existing_account" },
     ip: clientIp(request),
   });
+
+  if (claim.sales) {
+    const id = session.userId;
+    after(() => tellCrm("student.registered", id));
+  }
 
   return NextResponse.json({ ok: true, consultantName: claim.consultantName });
 }

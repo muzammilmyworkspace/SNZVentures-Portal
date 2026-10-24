@@ -17,7 +17,7 @@ import type { Role } from "@/lib/auth/types";
  * server, against the database.
  */
 
-export type PortalRole = "student" | "job-seeker" | "business" | "admin" | "applicant";
+export type PortalRole = "student" | "job-seeker" | "business" | "admin" | "applicant" | "sales";
 
 /** Session role (database value) to URL segment. */
 export function portalRoleFor(role: Role): PortalRole {
@@ -31,6 +31,9 @@ export function portalRoleFor(role: Role): PortalRole {
     // Never falls through to the staff side: an applicant is not staff yet.
     case "applicant":
       return "applicant";
+    // A sales agent sees their own students only, never the staff side.
+    case "sales":
+      return "sales";
     default:
       // advisor, admin and super_admin all work the operational side.
       return "admin";
@@ -77,6 +80,11 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
   // Waiting to be approved as a consultant: their application, and nothing else.
   applicant: [
     { group: "Application", items: [{ href: "/portal/applicant", label: "My application", icon: "applications" }] },
+    { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
+  ],
+  // A sales agent: the students they brought, and nothing else.
+  sales: [
+    { group: "Sales", items: [{ href: "/portal/sales", label: "My students", icon: "users" }] },
     { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
   ],
   student: [
@@ -328,6 +336,8 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       items: [
         { href: "/portal/admin/forms/consent", label: "Consent form", icon: "documents", roles: ["super_admin", "advisor"] },
         { href: "/portal/admin/forms/application", label: "Application form", icon: "applications", roles: ["super_admin"] },
+        // The initial process fee: plan amounts and the bank details on the student's voucher (047).
+        { href: "/portal/admin/payment-settings", label: "Fees & voucher", icon: "requests", roles: ["super_admin"] },
       ],
     },
     {
@@ -398,6 +408,10 @@ export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> 
   admin: {
     eyebrow: "Operations",
     lead: "Here's what the platform needs from you today.",
+  },
+  sales: {
+    eyebrow: "Sales team",
+    lead: "The students you brought to AdmitsFair, and where each one stands.",
   },
   applicant: {
     eyebrow: "Consultant application",

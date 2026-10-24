@@ -142,8 +142,10 @@ export default async function JoinPage({
     >
       <div className="space-y-5">
         <p className="note-ok p-4 text-[0.88rem] leading-relaxed">
-          <strong className="font-semibold">{invite.consultantName}</strong> has invited you to
-          AdmitsFair. Finish signing up and they will be your consultant.
+          <strong className="font-semibold">{invite.consultantName}</strong>
+          {invite.fromSales
+            ? " from the AdmitsFair team has invited you. Finish signing up to start your process."
+            : " has invited you to AdmitsFair. Finish signing up and they will be your consultant."}
         </p>
 
         <RegisterForm invite={token} invitedEmail={invite.email} invitedName={invite.name ?? null} />

@@ -73,6 +73,12 @@ export type AuditAction =
   | "invite.created"
   | "invite.revoked"
   | "invite.claimed"
+  // Sales agents and the CRM link (047)
+  | "sales.agent_created"
+  | "sales.agent_link_sent"
+  | "sales.handover"
+  | "payments.plan_chosen"
+  | "payments.settings_saved"
   // Schema applied from the admin area (009). A migration changes the shape
   // of every table under it and cannot be undone from the UI, so both the
   // successful runs and the refused ones are recorded with who pressed it.

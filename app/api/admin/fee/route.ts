@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
-import { apiRequireStaff } from "@/lib/auth/guard";
+import { NextResponse, after } from "next/server";
+import { apiRequireAdmin } from "@/lib/auth/guard";
+import { retryUnsyncedSales, tellCrmSaleVerified } from "@/lib/integrations/crm";
 import * as fees from "@/lib/db/repos/fees";
 import * as repo from "@/lib/db/repos/portal";
 import { audit } from "@/lib/db/repos/audit";
@@ -26,7 +27,13 @@ export const dynamic = "force-dynamic";
  * to the UI, because the UI is not the only thing that can call this.
  */
 export async function PATCH(request: Request) {
-  const guard = await apiRequireStaff();
+  /*
+    ADMIN ROLES ONLY. This was apiRequireStaff, and apiAreaAllowed only narrows
+    the `admin` role, so a consultant could verify fees through the API although
+    the Fees page is not theirs. Verifying a fee now also counts a sales agent's
+    sale in the CRM, which makes that gap about money.
+  */
+  const guard = await apiRequireAdmin();
   if (!guard.ok) return guard.response;
   const { session } = guard;
   {
@@ -90,6 +97,12 @@ export async function PATCH(request: Request) {
 
   // In-portal notification. Independent of email, because email can bounce and
   // this is the message that changes what the student can do next.
+  // A sales agent's student: their sale counts in the CRM. Best effort, after the response.
+  if (action === "verify") {
+    const fee = { id, userId: updated.userId, amount: updated.amount, currency: updated.currency };
+    after(() => tellCrmSaleVerified(fee).then(() => retryUnsyncedSales()));
+  }
+
   await repo.notify({
     userId: updated.userId,
     kind: "status",

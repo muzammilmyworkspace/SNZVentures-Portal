@@ -5,6 +5,10 @@ import { studentStage } from "@/lib/portal/stage";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { isStorageConfigured } from "@/lib/storage";
 import { getProfile } from "@/lib/db/repos/profiles";
+import { getPaymentSettings, planFor } from "@/lib/db/repos/payments";
+import { paymentSettingsFrom } from "@/lib/portal/payment-plan";
+import { memberId } from "@/lib/portal/member-id";
+import { db, safeQuery } from "@/lib/db/client";
 
 /**
  * Student dashboard.
@@ -37,6 +41,18 @@ export default async function Page({
     ? await studentStage(session.userId)
     : { stage: "fee_due" as const, rejectionNote: null };
 
+  // The process fee: amounts and voucher details, the plan chosen, and the ID quoted as the reference.
+  const [payments, plan, memberNo] = isDatabaseConfigured()
+    ? await Promise.all([
+        getPaymentSettings(),
+        planFor(session.userId),
+        safeQuery(async () => {
+          const [r] = await db()`SELECT member_no FROM users WHERE id = ${session.userId}`;
+          return r?.member_no == null ? null : Number(r.member_no);
+        }, null as number | null),
+      ])
+    : [paymentSettingsFrom(null), null, null];
+
   return (
     <>
       <FeeGate
@@ -48,6 +64,9 @@ export default async function Page({
         storageOn={isStorageConfigured()}
         lockedPath={locked ?? null}
         justSubmitted={fee === "submitted"}
+        payments={payments}
+        plan={plan}
+        studentCode={memberId(session.role, memberNo)}
       />
       <ClientDashboard session={session} />
     </>

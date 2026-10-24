@@ -36,13 +36,16 @@ export function SetUpForm({
   token,
   name,
   email,
+  passwordOnly = false,
 }: {
   token: string;
   name: string;
   email: string;
+  /** Skip the contact details (a sales agent's are in the CRM). */
+  passwordOnly?: boolean;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(passwordOnly ? 2 : 1);
   const [form, setForm] = useState<Record<string, string>>({});
   const [avatar, setAvatar] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -100,7 +103,7 @@ export function SetUpForm({
 
   return (
     <div>
-      <ol className="mb-6 flex items-center gap-2" aria-label="Progress">
+      <ol className={`mb-6 flex items-center gap-2 ${passwordOnly ? "hidden" : ""}`} aria-label="Progress">
         {[1, 2].map((n) => (
           <li key={n} className="flex flex-1 items-center gap-2">
             <span

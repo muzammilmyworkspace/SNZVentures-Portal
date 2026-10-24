@@ -217,7 +217,9 @@ export async function listFeeSubmissions(
         COALESCE((SELECT json_agg(x) FROM (
           SELECT f.*, u.name AS student_name, u.email AS student_email,
                  u.member_no, CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::bigint END AS avatar_v,
-                 cons.name AS consultant_name
+                 -- A sales agent's student (047) shows the agent instead: "Ali (Sales AF-001)".
+                 COALESCE(cons.name, (SELECT sa2.name || ' (Sales' || COALESCE(' ' || sa2.crm_code, '') || ')'
+                                        FROM users sa2 WHERE sa2.id = u.sales_agent_id)) AS consultant_name
           FROM fee_submissions f JOIN users u ON u.id = f.user_id
           -- Who brought them. LIMIT 1: several advisors on one client would
           -- otherwise repeat the row; the first is the one who enrolled them.

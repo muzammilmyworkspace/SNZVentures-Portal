@@ -157,11 +157,11 @@ export async function isTokenValid(raw: string, kind: TokenKind): Promise<boolea
 export async function userForToken(
   raw: string,
   kind: TokenKind
-): Promise<{ id: string; name: string; email: string } | null> {
+): Promise<{ id: string; name: string; email: string; role?: string } | null> {
   if (!isDatabaseConfigured() || !raw) return null;
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email
+      SELECT u.id, u.name, u.email, u.role::text AS role
         FROM user_tokens t
         JOIN users u ON u.id = t.user_id
        WHERE t.token_hash = ${hashToken(raw)}
@@ -175,6 +175,7 @@ export async function userForToken(
       id: String(rows[0].id),
       name: String(rows[0].name),
       email: String(rows[0].email),
+      role: String(rows[0].role),
     };
   }, null);
 }
