@@ -10,47 +10,65 @@
    default theme; light follows the same rules.
    ========================================================================== */
 
+/* ------------------------------------------------------------ palette ---
+   "Navy & Leaf": the brand navy #1F2D5C carries the sidebar in both themes,
+   the brand green is the one accent, and the working area stays calm.
+     light  cool paper ground, white cards with a soft lift, navy sidebar
+     dark   deep night ground, navy sidebar a step lighter, quiet cards     */
 .portal-shell.snzc,
 .snza {
-  --c-bg: #F4F6F3;
-  --c-side: #FFFFFF;
+  --c-bg: #F3F5FA;
+  --c-side: #1F2D5C;
+  --c-top: rgb(243 245 250 / 0.92);
   --c-panel: #FFFFFF;
   --c-hover: rgb(31 45 92 / 0.05);
   --c-active: #EAF5E1;
   --c-active-ink: #2C5E18;
   --c-bar: #6CBF3B;
+  --c-lift: 0 1px 2px rgb(16 27 64 / 0.05), 0 6px 20px -8px rgb(16 27 64 / 0.10);
 
   --surface: var(--c-bg);
   --surface-wash: none;
   --panel-bg: var(--c-panel);
   --panel-solid: var(--c-panel);
-  --panel-shadow: none;
-  --line: rgb(31 45 92 / 0.12);
-  --line-strong: rgb(31 45 92 / 0.22);
+  --panel-shadow: var(--c-lift);
+  --line: rgb(16 27 64 / 0.09);
+  --line-strong: rgb(16 27 64 / 0.18);
   background: var(--c-bg);
 }
 [data-theme="dark"] .portal-shell.snzc,
 [data-theme="dark"] .snza {
-  --c-bg: #121A30;
-  --c-side: #0F1628;
-  --c-panel: #18223D;
+  --c-bg: #0D1426;
+  --c-side: #162248;
+  --c-top: rgb(13 20 38 / 0.92);
+  --c-panel: #141E3A;
   --c-hover: rgb(255 255 255 / 0.05);
-  --c-active: rgb(108 191 59 / 0.15);
-  --c-active-ink: #A7E07F;
-  --line: rgb(255 255 255 / 0.08);
-  --line-strong: rgb(255 255 255 / 0.18);
+  --c-active: rgb(123 203 74 / 0.14);
+  --c-active-ink: #B4E794;
+  --c-bar: #7BCB4A;
+  --c-lift: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --line: rgb(255 255 255 / 0.07);
+  --line-strong: rgb(255 255 255 / 0.16);
 }
 
 /* ------------------------------------------------------------- sign-in --- */
 .snza {
   background:
-    radial-gradient(60% 40% at 50% 0%, rgb(108 191 59 / 0.10), transparent 70%),
+    radial-gradient(55% 45% at 50% -5%, rgb(31 45 92 / 0.55), transparent 70%),
+    radial-gradient(40% 35% at 85% 100%, rgb(108 191 59 / 0.10), transparent 70%),
+    var(--c-bg);
+}
+[data-theme="light"] .snza {
+  background:
+    radial-gradient(55% 45% at 50% -5%, rgb(31 45 92 / 0.10), transparent 70%),
+    radial-gradient(40% 35% at 85% 100%, rgb(108 191 59 / 0.10), transparent 70%),
     var(--c-bg);
 }
 .snza-card {
   background: var(--c-panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
+  box-shadow: var(--c-lift), 0 24px 60px -30px rgb(0 0 0 / 0.45);
 }
 .snza .field-label {
   font-size: 0.85rem;
@@ -59,24 +77,38 @@
   text-transform: none;
   color: var(--fg);
 }
-.snza .field { border-radius: 8px; border-color: var(--line-strong); background-color: var(--c-bg); }
+.snza .field { border-radius: 10px; border-color: var(--line-strong); background-color: var(--c-bg); }
 .snza .field:focus { border-color: var(--c-bar); box-shadow: 0 0 0 3px rgb(108 191 59 / 0.22); }
-.snza :is(a, button).rounded-full { border-radius: 8px; }
-.snza button[type="submit"] { width: 100%; justify-content: center; }
+.snza :is(a, button).rounded-full { border-radius: 10px; }
+.snza button[type="submit"] { width: 100%; justify-content: center; box-shadow: none; }
 
 /* ------------------------------------------------------------ chrome --- */
+/* The sidebar is navy in both themes, so its text always uses light ink. */
 .snzc .portal-side,
 [data-theme="light"] .snzc .portal-side {
   background: var(--c-side);
   backdrop-filter: none;
+  border-color: transparent;
+  --fg: #E6ECF8;
+  --fg-strong: #FFFFFF;
+  --fg-muted: #B3BEDA;
+  --fg-faint: #8D9AC0;
+  --line: rgb(255 255 255 / 0.10);
+  --line-strong: rgb(255 255 255 / 0.2);
+  --c-hover: rgb(255 255 255 / 0.07);
+  --c-active: rgb(123 203 74 / 0.18);
+  --c-active-ink: #C6F0A6;
+  --c-bar: #7BCB4A;
+  --accent: #8FD461;
+  color: var(--fg);
 }
 .snzc .snzc-top {
-  background: var(--c-side);
-  backdrop-filter: none;
+  background: var(--c-top);
+  backdrop-filter: blur(8px);
 }
 .snzc .snzc-head:hover { background: var(--c-hover); }
-.snzc .snzc-item { color: var(--fg-muted); border-radius: 8px; padding-left: 1.6rem; }
-.snzc .snzc-item:hover { background: var(--c-hover); color: var(--fg); }
+.snzc .snzc-item { color: var(--fg-muted); border-radius: 10px; padding-left: 1.6rem; }
+.snzc .snzc-item:hover { background: var(--c-hover); color: var(--fg-strong); }
 .snzc .snzc-item.is-on {
   background: var(--c-active);
   color: var(--c-active-ink);
@@ -102,8 +134,8 @@
 /* -------------------------------------------------------------- cards --- */
 .snzc .panel,
 .snzc [class*="rounded-[var(--radius-lg)]"],
-.snzc [class*="rounded-2xl"] { border-radius: 10px; }
-.snzc main [class*="shadow"] { box-shadow: none; }
+.snzc [class*="rounded-2xl"] { border-radius: 14px; }
+.snzc main [class*="shadow"] { box-shadow: var(--c-lift); }
 
 /* -------------------------------------------------------------- forms --- */
 .snzc .field-label {
@@ -144,4 +176,4 @@
 .snzc .snz-step-cta { border: 1px solid var(--line-strong); color: var(--fg); }
 .snzc .snz-step-cta:hover { background: var(--c-hover); }
 .snzc .snz-step.is-now .snz-step-cta { background: var(--c-bar); border-color: var(--c-bar); color: #0F1628; }
-.snzc .snz-card { background: var(--c-panel); border: 1px solid var(--line); border-radius: 12px; }
+.snzc .snz-card { background: var(--c-panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--c-lift); }

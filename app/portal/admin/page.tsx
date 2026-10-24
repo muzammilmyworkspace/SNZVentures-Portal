@@ -174,12 +174,6 @@ export default async function AdminPage({
       note: "Nobody on the team has opened these yet.",
       href: "/portal/messages",
     },
-    {
-      label: "Consultations",
-      value: m.appointments ?? 0,
-      note: "Requested or confirmed, still to be held.",
-      href: "/portal/appointments",
-    },
   ];
 
   const advisorWork = [
@@ -208,7 +202,7 @@ export default async function AdminPage({
     ternary branch, where a JSX comment beside it counts as a second expression
     and will not parse.
   */
-  const workGrid = `dash-work grid gap-4 sm:grid-cols-2 ${admin ? "lg:grid-cols-3 xl:grid-cols-5" : ""}`;
+  const workGrid = `dash-work grid gap-4 sm:grid-cols-2 ${admin ? "lg:grid-cols-4" : ""}`;
 
   const people = [
     { label: "Students", value: m.students ?? 0 },
@@ -230,10 +224,11 @@ export default async function AdminPage({
   */
   const standing = [
     {
-      label: "Consultants",
-      value: m.consultants ?? 0,
-      note: "Staff who enrol and carry their own students.",
-      href: "/portal/admin/staff",
+      // SNZ: no consultants, so the first standing figure is the students.
+      label: "Students",
+      value: m.students ?? 0,
+      note: "Every student with an account.",
+      href: "/portal/admin/students",
     },
     {
       label: "Clients",
