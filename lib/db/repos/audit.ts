@@ -79,6 +79,7 @@ export type AuditAction =
   | "sales.handover"
   | "payments.plan_chosen"
   | "payments.settings_saved"
+  | "data.reset"
   // Schema applied from the admin area (009). A migration changes the shape
   // of every table under it and cannot be undone from the UI, so both the
   // successful runs and the refused ones are recorded with who pressed it.

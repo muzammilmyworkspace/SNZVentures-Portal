@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
+import { CONSULTANTS_ENABLED, isConsultantPage } from "@/lib/portal/features";
 
 /**
  * Route protection for the PORTAL ORIGIN.
@@ -46,6 +47,23 @@ export function proxy(request: NextRequest) {
   }
 
   // Portal requires a session.
+  // The consultant section is switched off (lib/portal/features.ts).
+  if (!CONSULTANTS_ENABLED) {
+    if (isConsultantPage(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/portal";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    if (
+      pathname === "/api/portal/consultant-code" ||
+      pathname.startsWith("/api/portal/applicant") ||
+      pathname.startsWith("/api/admin/consultant-applications")
+    ) {
+      return NextResponse.json({ ok: false, error: "This is not available." }, { status: 404 });
+    }
+  }
+
   if (pathname.startsWith("/portal")) {
     if (!hasCookie) {
       const url = request.nextUrl.clone();

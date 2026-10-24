@@ -1,5 +1,6 @@
 "use client";
 
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
@@ -445,7 +446,7 @@ export function RegisterForm({
         <p className="field-label mb-4">What brings you to AdmitsFair?</p>
         <div className="grid gap-2.5">
           {/* A student's invite link is not the way to apply as a consultant. */}
-          {PATHWAYS.filter((p) => !(invite && p.key === "consultant")).map((p) => (
+          {PATHWAYS.filter((p) => !((invite || !CONSULTANTS_ENABLED) && p.key === "consultant")).map((p) => (
             <button
               key={p.key}
               type="button"
@@ -555,7 +556,7 @@ export function RegisterForm({
 
           {/* Not on an invite link: the link already says who the consultant is.
               Not for a consultant applicant: the code links students to consultants. */}
-          {!invite && pathway !== "consultant" && (
+          {CONSULTANTS_ENABLED && !invite && pathway !== "consultant" && (
             <Field
               id="consultant-code"
               label="Consultant code (optional)"

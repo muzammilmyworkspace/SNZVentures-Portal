@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/guard";
 import { ROLE_LABEL, CLIENT_ROLES, type Role } from "@/lib/auth/types";
 import { codeContext } from "@/lib/db/repos/invites";
 import { ConsultantCodeForm } from "@/components/portal/ConsultantCodeForm";
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { PortalHeading, Panel, BackendRequired } from "@/components/portal/Pieces";
 import { ChangePassword } from "@/components/portal/ChangePassword";
 import { ChangeEmail } from "@/components/portal/ChangeEmail";
@@ -35,7 +36,7 @@ export default async function SettingsPage() {
               become your student and show your name in every list.
             </p>
           </Panel>
-        ) : isClient ? (
+        ) : isClient && CONSULTANTS_ENABLED ? (
           <Panel title="Your consultant">
             {codes.consultantName ? (
               <p className="text-[0.95rem] text-fg">

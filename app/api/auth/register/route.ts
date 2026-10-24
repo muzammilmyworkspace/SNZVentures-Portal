@@ -10,6 +10,7 @@ import { sendMail, mailConfigured } from "@/lib/mail";
 import { siteUrl } from "@/lib/site-url";
 import * as invitesRepo from "@/lib/db/repos/invites";
 import { tellCrm } from "@/lib/integrations/crm";
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import * as profilesRepo from "@/lib/db/repos/profiles";
 import { setAvatar } from "@/lib/db/repos/users";
 import { safeAvatar } from "@/lib/auth/avatar";
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
     Ignored on an invite link, which already names the consultant.
   */
   const code =
-    typeof consultantCode === "string" && consultantCode.trim() && !(typeof invite === "string" && invite) &&
+    CONSULTANTS_ENABLED && typeof consultantCode === "string" && consultantCode.trim() && !(typeof invite === "string" && invite) &&
     pathway !== "consultant"
       ? consultantCode.trim().toUpperCase()
       : null;
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (typeof pathway !== "string" || !(pathway in PATHWAY_TO_ROLE)) {
+  if (typeof pathway !== "string" || !(pathway in PATHWAY_TO_ROLE) || (pathway === "consultant" && !CONSULTANTS_ENABLED)) {
     return NextResponse.json(
       { ok: false, error: "Please choose what brings you here." },
       { status: 400 }

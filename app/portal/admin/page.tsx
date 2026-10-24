@@ -1,3 +1,4 @@
+import { CONSULTANTS_ENABLED } from "@/lib/portal/features";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ActivityChart, BarList, StudentRoster } from "@/components/portal/DashboardCharts";
@@ -229,12 +230,16 @@ export default async function AdminPage({
     it.
   */
   const standing = [
-    {
-      label: "Consultants",
-      value: m.consultants ?? 0,
-      note: "Staff who enrol and carry their own students.",
-      href: "/portal/admin/staff",
-    },
+    ...(CONSULTANTS_ENABLED
+      ? [
+          {
+            label: "Consultants",
+            value: m.consultants ?? 0,
+            note: "Staff who enrol and carry their own students.",
+            href: "/portal/admin/staff",
+          },
+        ]
+      : []),
     {
       label: "Clients",
       value: (m.students ?? 0) + (m.professionals ?? 0) + (m.businesses ?? 0),

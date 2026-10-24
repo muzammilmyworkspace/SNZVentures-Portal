@@ -1,3 +1,4 @@
+import { CONSULTANTS_ENABLED, isConsultantPage } from "./features";
 import type { Role } from "@/lib/auth/types";
 
 /**
@@ -367,6 +368,8 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
     {
       group: "Account",
       items: [
+        // Deletes every student and consultant (super admin, typed confirmation).
+        { href: "/portal/admin/reset-data", label: "Reset data", icon: "settings", roles: ["super_admin"] },
         {
           href: "/portal/admin/audit",
           label: "Audit log",
@@ -392,6 +395,13 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
 };
 
 /** What each audience's dashboard calls itself. */
+// The consultant section is switched off (lib/portal/features.ts): its menu items go.
+if (!CONSULTANTS_ENABLED) {
+  for (const groups of Object.values(navFor)) {
+    for (const g of groups) g.items = g.items.filter((i) => !isConsultantPage(i.href));
+  }
+}
+
 export const roleContext: Record<PortalRole, { eyebrow: string; lead: string }> = {
   student: {
     eyebrow: "Study journey",
