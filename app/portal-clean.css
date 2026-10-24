@@ -64,6 +64,52 @@
     radial-gradient(40% 35% at 85% 100%, rgb(108 191 59 / 0.10), transparent 70%),
     var(--c-bg);
 }
+/* Split sign-in (components/portal/AuthShell): the brand panel on the left is
+   navy in both themes, with the campus photo far back behind a navy veil. */
+.snza-panel { background: #142049; color: #fff; }
+@media (min-width: 1024px) {
+  .snza-panel { position: sticky; top: 0; height: 100vh; border-radius: 0 28px 28px 0; }
+}
+.snza-photo { opacity: 0.32; transform: scale(1.06); animation: snza-drift 26s ease-in-out infinite alternate; }
+.snza-veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(70% 55% at 100% 0%, rgb(108 191 59 / 0.22), transparent 65%),
+    linear-gradient(180deg, rgb(20 32 73 / 0.55) 0%, rgb(17 26 58 / 0.92) 55%, #111A3A 100%);
+}
+.snza-dots {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.35;
+  background-image: radial-gradient(rgb(255 255 255 / 0.22) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 40%, transparent);
+}
+.snza-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #A7E07F;
+}
+.snza-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; background: #6CBF3B; }
+.snza-steps { position: relative; gap: 14px; }
+.snza-steps::before {
+  content: ""; position: absolute; left: 17px; top: 18px; bottom: 18px; width: 2px;
+  background: linear-gradient(180deg, #6CBF3B, rgb(108 191 59 / 0.15));
+}
+.snza-step { position: relative; display: flex; gap: 14px; align-items: flex-start; opacity: 0; animation: snza-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.snza-step b { display: block; color: #fff; font-size: 0.98rem; letter-spacing: -0.01em; }
+.snza-step > span:last-child > span { display: block; margin-top: 2px; font-size: 0.88rem; line-height: 1.45; color: #B9C3DE; }
+.snza-step-n {
+  position: relative; display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+  background: #1F2D5C; box-shadow: inset 0 0 0 2px #6CBF3B; color: #C6F0A6; font-weight: 700; font-size: 0.9rem;
+}
+.snza-step:first-child .snza-step-n { background: #6CBF3B; color: #0B1A05; box-shadow: 0 0 0 6px rgb(108 191 59 / 0.18); }
+.snza-rise { animation: snza-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes snza-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes snza-drift { from { transform: scale(1.06) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+@media (prefers-reduced-motion: reduce) {
+  .snza-photo, .snza-rise { animation: none; }
+  .snza-step { animation: none; opacity: 1; }
+}
+
 .snza-card {
   background: var(--c-panel);
   border: 1px solid var(--line);

@@ -41,12 +41,12 @@ export const company = {
     consultationEmail: "study@snzventures.com",
     /** Live site links a WhatsApp channel on the same published number. */
     whatsapp: "37062393857",
-    city: "Vilnius",
+    city: "Molėtų r.",
     country: "Lithuania",
     countryCode: "LT",
     /** Client-supplied — office address. */
-    streetAddress: "T. Ševčenkos g. 16",
-    postalCode: "03223",
+    streetAddress: "Lėlių g. 6, Lėlių k.",
+    postalCode: "LT-33157",
   },
 
   /** [CONTENT REQUIRED] — legal entity details not published. */
