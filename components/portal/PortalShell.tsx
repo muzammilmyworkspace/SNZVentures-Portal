@@ -204,10 +204,13 @@ export function PortalShell({
     the browser draw the same thing). The first time, every section is open:
     in v3 the sections are compact enough to show in full.
   */
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups.map((g) => g.group)));
+  // "System" starts folded: rarely used, and it keeps the menu to one screen.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(groups.map((g) => g.group).filter((name) => name !== "System"))
+  );
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("portal-nav-open-v3");
+      const raw = localStorage.getItem("portal-nav-open-v4");
       if (raw === null) return;
       const saved = JSON.parse(raw);
       if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String)));
@@ -227,7 +230,7 @@ export function PortalShell({
       if (open) next.delete(name);
       else next.add(name);
       try {
-        localStorage.setItem("portal-nav-open-v3", JSON.stringify([...next]));
+        localStorage.setItem("portal-nav-open-v4", JSON.stringify([...next]));
       } catch {}
       return next;
     });
@@ -283,7 +286,44 @@ export function PortalShell({
                 <path d="M4 2.5L7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {open && (
+            {/*
+              THE STUDENT PIPELINE, drawn as a stepper: one rail through six
+              numbered stops, so the order is seen rather than read. A stop
+              with work waiting glows and carries its count.
+            */}
+            {open && g.style === "pipeline" && (
+              <ol className="pv4-pipe">
+                {g.items.map((item: NavItem) => {
+                  const on = isActive(item.href);
+                  const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={on ? "page" : undefined}
+                        className={cn("pv4-pipe-step", on && "is-on", count > 0 && "has-work")}
+                      >
+                        {on && (
+                          <motion.span
+                            layoutId="pv3-nav-active"
+                            aria-hidden
+                            className="pv4-pipe-bg absolute inset-0 -z-10 rounded-lg"
+                            transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 480, damping: 40 }}
+                          />
+                        )}
+                        <span aria-hidden className="pv4-pipe-node">{item.step}</span>
+                        <span className="flex-1 truncate">
+                          <span className="sr-only">Step {item.step}: </span>
+                          {item.label}
+                        </span>
+                        {count > 0 && <span className="pv4-pipe-count">{count > 99 ? "99+" : count}</span>}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {open && g.style !== "pipeline" && (
               <ul className="flex flex-col gap-0.5">
                 {g.items.map((item: NavItem) => {
                   const on = isActive(item.href);

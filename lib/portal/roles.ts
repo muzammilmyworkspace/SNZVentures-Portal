@@ -77,7 +77,10 @@ export type NavItem = {
  * nothing behind them were left out rather than shipped as decoration — a menu
  * item that opens an invented page is worse than one that is absent.
  */
-export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> = {
+/** A group of the menu. `pipeline` draws it as a connected stepper (PortalShell). */
+export type NavGroup = { group: string; items: NavItem[]; style?: "pipeline" };
+
+export const navFor: Record<PortalRole, NavGroup[]> = {
   // Waiting to be approved as a consultant: their application, and nothing else.
   applicant: [
     { group: "Application", items: [{ href: "/portal/applicant", label: "My application", icon: "applications" }] },
@@ -204,126 +207,53 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
     { group: "Account", items: [{ href: "/portal/settings", label: "Settings", icon: "settings" }] },
   ],
 
+  /*
+    THE STAFF MENU (Oct 2026), tightened from eleven sections to six:
+
+      Overview         the dashboard
+      Student pipeline the six queues, in the order a student moves through
+                       them, drawn as a stepper (see PortalShell)
+      People           students, everyone, the firm's employees
+      Inbox            messages, consultations, notifications
+      Setup            the forms students fill (one page, two tabs) and the fee
+      System           records and the tools only the super admin needs
+
+    Pipeline queues are firm-wide, so admin only; each page guards itself too.
+    Consultant-only items stay (roles: advisor) for when that section returns.
+  */
   admin: [
     {
       group: "Overview",
       items: [{ href: "/portal/admin", label: "Dashboard", icon: "dashboard" }],
     },
-    /*
-      THE STUDENT PIPELINE, IN THE ORDER A STUDENT MOVES THROUGH IT.
-
-        01 Website enquiries    somebody contacted us from the website
-        02 Fee verification     they paid; we check the bank slip
-        03 Review applications  they sent their application; we read it
-        04 Ready to apply       approved; we apply to the universities
-        05 Applied              sent; waiting for the universities
-        06 Completed            the file is finished
-
-      Numbered, so where something sits says what happens to it next. The
-      badge on each is what is waiting there. ADMIN ONLY: these are firm-wide
-      queues, not a consultant's own book (their students are under People),
-      and each page guards itself as well.
-    */
     {
       group: "Student pipeline",
+      style: "pipeline",
       items: [
-        {
-          href: "/portal/admin/enquiries",
-          label: "Website enquiries",
-          icon: "messages",
-          step: 1,
-          badgeKey: "enquiries",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/fees",
-          label: "Fee verification",
-          icon: "requests",
-          step: 2,
-          badgeKey: "fees",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/requests",
-          label: "Review applications",
-          icon: "requests",
-          step: 3,
-          badgeKey: "review",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/ready",
-          label: "Ready to apply",
-          icon: "applications",
-          step: 4,
-          badgeKey: "ready",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/applied",
-          label: "Applied",
-          icon: "universities",
-          step: 5,
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/completed",
-          label: "Completed",
-          icon: "activity",
-          step: 6,
-          roles: ["admin", "super_admin"],
-        },
+        { href: "/portal/admin/enquiries", label: "Enquiries", icon: "messages", step: 1, badgeKey: "enquiries", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/fees", label: "Fee verification", icon: "requests", step: 2, badgeKey: "fees", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/requests", label: "Review applications", icon: "requests", step: 3, badgeKey: "review", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/ready", label: "Ready to apply", icon: "applications", step: 4, badgeKey: "ready", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/applied", label: "Applied", icon: "universities", step: 5, roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/completed", label: "Completed", icon: "activity", step: 6, roles: ["admin", "super_admin"] },
       ],
     },
-    {
-      group: "Records",
-      items: [
-        /*
-          CONSULTANTS ONLY. For an admin the pipeline above is the same list,
-          in stages, and moving an application there moves its case too. A
-          consultant has no pipeline pages (they are firm-wide), so this
-          scoped list of their own cases is how they follow their students.
-          The page itself still works for an admin by URL.
-        */
-        { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
-      ],
-    },
-    /*
-      A consultant's own students. Consultants only: an admin manages
-      everybody from Manage below.
-    */
     {
       group: "People",
       items: [
-        { href: "/portal/admin/my-students", label: "Your students", icon: "users", roles: ["advisor"] },
-        // The student desk: fee-verified students, without who brought them.
+        // The student desk: fee-verified students.
         { href: "/portal/admin/students", label: "Students", icon: "users", roles: ["admin", "super_admin"] },
-      ],
-    },
-    /*
-      EVERYONE WHO USES THE PORTAL, for admins. Users is the whole list with
-      All / Students / Consultants / Employees; Consultants adds each one's
-      workload; Employees is the firm's own staff. From any of them you can
-      message people one by one or all at once.
-    */
-    {
-      group: "Manage",
-      items: [
-        { href: "/portal/admin/users", label: "Users", icon: "users", roles: ["admin", "super_admin"] },
-        { href: "/portal/admin/staff", label: "Consultants", icon: "profile", roles: ["admin", "super_admin"] },
-        // People who signed up to become consultants, waiting for review.
-        {
-          href: "/portal/admin/consultant-applications",
-          label: "Consultant requests",
-          icon: "requests",
-          roles: ["super_admin"],
-          badgeKey: "partners",
-        },
+        { href: "/portal/admin/users", label: "All users", icon: "users", roles: ["admin", "super_admin"] },
         { href: "/portal/admin/employees", label: "Employees", icon: "profile", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/staff", label: "Consultants", icon: "profile", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/consultant-applications", label: "Consultant requests", icon: "requests", roles: ["super_admin"], badgeKey: "partners" },
+        // A consultant's own book (consultants only).
+        { href: "/portal/admin/my-students", label: "Your students", icon: "users", roles: ["advisor"] },
+        { href: "/portal/admin/cases", label: "Cases", icon: "applications", roles: ["advisor"] },
       ],
     },
     {
-      group: "Contact",
+      group: "Inbox",
       items: [
         { href: "/portal/messages", label: "Messages", icon: "messages", badgeKey: "messages" },
         { href: "/portal/appointments", label: "Consultations", icon: "consultations" },
@@ -331,18 +261,16 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
       ],
     },
     {
-      // The consent students sign and the questions they answer. Only the
-      // super admin changes them; consultants can read the consent.
-      group: "Forms",
+      group: "Setup",
       items: [
-        { href: "/portal/admin/forms/consent", label: "Consent form", icon: "documents", roles: ["super_admin", "advisor"] },
-        { href: "/portal/admin/forms/application", label: "Application form", icon: "applications", roles: ["super_admin"] },
-        // The initial process fee: plan amounts and the bank details on the student's voucher (047).
+        // Application form and consent form: one page with two tabs (forms/layout.tsx).
+        { href: "/portal/admin/forms", label: "Forms", icon: "documents", roles: ["super_admin", "advisor"] },
+        // The initial process fee: plan amounts and the bank details on the voucher (047).
         { href: "/portal/admin/payment-settings", label: "Fees & voucher", icon: "requests", roles: ["super_admin"] },
+        { href: "/portal/admin/integrations", label: "Integrations", icon: "settings", roles: ["admin", "super_admin"] },
       ],
     },
     {
-      // The firm's money: super admin only.
       group: "Finance",
       items: [
         { href: "/portal/admin/finance", label: "Dashboard", icon: "activity", roles: ["super_admin"] },
@@ -354,40 +282,16 @@ export const navFor: Record<PortalRole, { group: string; items: NavItem[] }[]> =
         { href: "/portal/admin/finance/universities", label: "University commissions", icon: "universities", roles: ["super_admin"] },
         { href: "/portal/admin/finance/stakeholders", label: "Stakeholders", icon: "profile", roles: ["super_admin"] },
         { href: "/portal/admin/finance/reports", label: "Reports", icon: "journey", roles: ["super_admin"] },
-      ],
-    },
-    {
-      group: "Billing",
-      items: [
-        // Super admin only. Raising an invoice is the firm speaking about
-        // money in its own name — a smaller circle than the rest of the
-        // admin area, which advisors and admins share.
         { href: "/portal/admin/invoices", label: "Invoices", icon: "requests", roles: ["super_admin", "advisor"] },
       ],
     },
     {
-      group: "Account",
+      group: "System",
       items: [
+        { href: "/portal/admin/audit", label: "Audit log", icon: "activity", roles: ["admin", "super_admin"] },
+        { href: "/portal/admin/schema", label: "Database & storage", icon: "settings", roles: ["admin", "super_admin"] },
         // Deletes every student and consultant (super admin, typed confirmation).
         { href: "/portal/admin/reset-data", label: "Reset data", icon: "settings", roles: ["super_admin"] },
-        {
-          href: "/portal/admin/audit",
-          label: "Audit log",
-          icon: "activity",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/schema",
-          label: "Database & storage",
-          icon: "settings",
-          roles: ["admin", "super_admin"],
-        },
-        {
-          href: "/portal/admin/integrations",
-          label: "Integrations",
-          icon: "settings",
-          roles: ["admin", "super_admin"],
-        },
         { href: "/portal/settings", label: "Settings", icon: "settings" },
       ],
     },

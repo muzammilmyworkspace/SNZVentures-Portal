@@ -152,8 +152,10 @@ export function UserTable({
           <tbody>
             {users.map((u, idx) => {
               const self = u.id === actorId;
+              // A role the list cannot grant (a sales agent, made from the CRM) is
+              // shown as a label: a select would show the wrong first option.
               const locked =
-                self || (u.role === "super_admin" && actorRole !== "super_admin");
+                self || (u.role === "super_admin" && actorRole !== "super_admin") || !grantable.includes(u.role);
 
               return (
                 <tr

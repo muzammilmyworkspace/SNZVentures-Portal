@@ -35,11 +35,11 @@ export function PortalHeading({
   meta?: ReactNode;
 }) {
   return (
-    <header className="portal-rise mb-7">
+    <header className="pv4-head portal-rise mb-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {eyebrow && <p className="mb-1.5 text-[0.8rem] font-semibold text-accent-ink">{eyebrow}</p>}
-          <h1 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.025em] text-fg-strong sm:text-[1.85rem]">{title}</h1>
+          {eyebrow && <p className="pv4-eyebrow mb-2.5">{eyebrow}</p>}
+          <h1 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.03em] text-fg-strong sm:text-[1.95rem]">{title}</h1>
           {lead && <p className="mt-2 max-w-2xl text-[0.92rem] leading-relaxed text-muted">{lead}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
@@ -240,7 +240,7 @@ export function StatCard({
   );
 
   const base = cn(
-    "group relative block rounded-[14px] border bg-[var(--panel-solid)] p-4 shadow-[var(--panel-shadow)] transition-colors sm:p-5",
+    "pv4-stat group relative block overflow-hidden rounded-[14px] border bg-[var(--panel-solid)] p-4 shadow-[var(--panel-shadow)] transition-colors sm:p-5",
     urgent ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : "border-line"
   );
 
