@@ -155,6 +155,8 @@ export function PortalShell({
       .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0] ?? null;
   const here = best?.label ?? null;
+  // The section the page sits in, so the bar reads "Finance / Dashboard", not just "Dashboard".
+  const hereGroup = best ? groups.find((g) => g.items.includes(best))?.group ?? null : null;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -229,7 +231,7 @@ export function PortalShell({
         const open = openGroups.has(g.group) || (here && !shut.has(g.group));
         const waiting = g.items.reduce((n, i) => n + (i.badgeKey ? badges[i.badgeKey] ?? 0 : 0), 0);
         return (
-        <div key={g.group} className={cn(gi > 0 && "mt-1 border-t border-line pt-1")}>
+        <div key={g.group} className={cn(gi > 0 && "mt-1")}>
           {/*
             A SECTION HEADING, not a menu item: no box, small capitals, bold,
             the chevron on the right. Only a page (an item) ever gets the green
@@ -239,16 +241,12 @@ export function PortalShell({
             type="button"
             onClick={() => toggleGroup(g.group, open)}
             aria-expanded={open}
-            className="group/h flex w-full items-center gap-2 rounded-[8px] px-3 pb-2 pt-3 text-left"
+            className="snzc-head group/h flex min-h-9 w-full items-center gap-2 rounded-[8px] px-3 text-left"
           >
             <span
-              aria-hidden
-              className={cn("h-1.5 w-1.5 shrink-0 rounded-full transition-colors", here ? "bg-[var(--accent)]" : "bg-transparent")}
-            />
-            <span
               className={cn(
-                "flex-1 text-[0.7rem] font-bold uppercase tracking-[0.16em] transition-colors",
-                here ? "text-[var(--accent)]" : open ? "text-fg-strong" : "text-faint group-hover/h:text-fg"
+                "flex-1 text-[0.78rem] font-semibold transition-colors",
+                here ? "text-fg-strong" : "text-muted group-hover/h:text-fg"
               )}
             >
               {g.group}
@@ -267,7 +265,7 @@ export function PortalShell({
             </svg>
           </button>
           {open && (
-          <ul className="mb-2 ml-[1.1rem] flex flex-col gap-0.5 border-l border-line pl-2">
+          <ul className="mb-2 mt-0.5 flex flex-col gap-0.5">
             {g.items.map((item) => {
               const on = isActive(item.href);
               const count = item.badgeKey ? badges[item.badgeKey] ?? 0 : 0;
@@ -416,6 +414,9 @@ export function PortalShell({
 
             {/* Where you are. */}
             <p className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-[-0.015em] text-fg-strong">
+              {hereGroup && hereGroup !== here && (
+                <span className="font-medium text-muted">{hereGroup} <span aria-hidden className="text-faint">/</span> </span>
+              )}
               {here ?? name}
             </p>
 

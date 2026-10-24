@@ -19,8 +19,8 @@ export const metadata: Metadata = buildMetadata({
 export default function LoginPage() {
   return (
     <AuthShell
-      title="Welcome back."
-      lead="Sign in to pick up where your journey left off."
+      title="Welcome back"
+      lead="Sign in to your SnZ Ventures portal."
       footer={
         <p className="text-[0.9rem] text-muted">
           Don&rsquo;t have an account yet?{" "}

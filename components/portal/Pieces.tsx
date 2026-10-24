@@ -35,20 +35,17 @@ export function PortalHeading({
   meta?: ReactNode;
 }) {
   return (
-    <header className="portal-rise mb-8">
+    <header className="portal-rise mb-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           {eyebrow && (
-            <p className="label mb-3 flex items-center gap-3 text-accent">
-              <span aria-hidden className="inline-block h-px w-8 bg-current" />
-              {eyebrow}
-            </p>
+            <p className="label mb-1.5 text-accent">{eyebrow}</p>
           )}
-          <h1 className="font-[family-name:var(--font-display)] text-[1.9rem] font-semibold leading-[1.05] tracking-[-0.035em] text-fg-strong sm:text-[2.4rem]">
+          <h1 className="font-[family-name:var(--font-display)] text-[1.5rem] font-bold leading-[1.15] tracking-[-0.02em] text-fg-strong sm:text-[1.75rem]">
             {title}
           </h1>
           {lead && (
-            <p className="mt-3 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{lead}</p>
+            <p className="mt-1.5 max-w-2xl text-[0.92rem] leading-relaxed text-muted">{lead}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}

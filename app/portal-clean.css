@@ -1,16 +1,17 @@
 /* ============================================================================
    SNZ PORTAL — CLEAN (October 2026)
    ----------------------------------------------------------------------------
-   A plain, light working surface for the SnZ Ventures portal: white sidebar
-   and cards, hairline borders instead of shadows, the brand green as the one
-   accent, 8px corners, and no backdrop, waves, glows or page animations.
+   A plain working surface for the SnZ Ventures portal: flat sidebar and
+   cards, hairline borders instead of shadows, the brand green as the one
+   accent, 8-10px corners, and no backdrop, waves, glows or page animations.
 
-   Scoped to `.portal-shell.snzc` (set by components/portal/PortalShell), so
-   the sign-in screens keep their own look. Light is the default theme; a
-   calm dark version follows the same rules.
+   Scoped to `.portal-shell.snzc` (set by components/portal/PortalShell) and
+   `.snza` (the sign-in screens, components/portal/AuthShell). Dark is the
+   default theme; light follows the same rules.
    ========================================================================== */
 
-.portal-shell.snzc {
+.portal-shell.snzc,
+.snza {
   --c-bg: #F4F6F3;
   --c-side: #FFFFFF;
   --c-panel: #FFFFFF;
@@ -28,16 +29,40 @@
   --line-strong: rgb(31 45 92 / 0.22);
   background: var(--c-bg);
 }
-[data-theme="dark"] .portal-shell.snzc {
-  --c-bg: #151D36;
-  --c-side: #1A2342;
-  --c-panel: #1C2647;
+[data-theme="dark"] .portal-shell.snzc,
+[data-theme="dark"] .snza {
+  --c-bg: #121A30;
+  --c-side: #0F1628;
+  --c-panel: #18223D;
   --c-hover: rgb(255 255 255 / 0.05);
-  --c-active: rgb(108 191 59 / 0.16);
+  --c-active: rgb(108 191 59 / 0.15);
   --c-active-ink: #A7E07F;
-  --line: rgb(255 255 255 / 0.1);
-  --line-strong: rgb(255 255 255 / 0.2);
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.18);
 }
+
+/* ------------------------------------------------------------- sign-in --- */
+.snza {
+  background:
+    radial-gradient(60% 40% at 50% 0%, rgb(108 191 59 / 0.10), transparent 70%),
+    var(--c-bg);
+}
+.snza-card {
+  background: var(--c-panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.snza .field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+.snza .field { border-radius: 8px; border-color: var(--line-strong); background-color: var(--c-bg); }
+.snza .field:focus { border-color: var(--c-bar); box-shadow: 0 0 0 3px rgb(108 191 59 / 0.22); }
+.snza :is(a, button).rounded-full { border-radius: 8px; }
+.snza button[type="submit"] { width: 100%; justify-content: center; }
 
 /* ------------------------------------------------------------ chrome --- */
 .snzc .portal-side,
@@ -49,7 +74,8 @@
   background: var(--c-side);
   backdrop-filter: none;
 }
-.snzc .snzc-item { color: var(--fg-muted); border-radius: 8px; }
+.snzc .snzc-head:hover { background: var(--c-hover); }
+.snzc .snzc-item { color: var(--fg-muted); border-radius: 8px; padding-left: 1.6rem; }
 .snzc .snzc-item:hover { background: var(--c-hover); color: var(--fg); }
 .snzc .snzc-item.is-on {
   background: var(--c-active);
