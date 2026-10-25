@@ -35,9 +35,22 @@ const bad = (error: string, status = 400) => NextResponse.json({ ok: false, erro
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export async function POST(request: Request) {
+  // Said plainly, so whoever sees it on the CRM knows which setting to fix.
+  if (!process.env.CRM_PORTAL_SECRET) {
+    return bad("CRM_PORTAL_SECRET is not set on the portal. Add it in Vercel (admitsfair-portal → Settings → Environment Variables) and redeploy.", 503);
+  }
   const body = await verifyCrmRequest(request);
-  if (!body) return bad("Unauthorized.", 401);
+  if (!body) return bad("The CRM and the portal have different CRM_PORTAL_SECRET values. Make them identical and redeploy both.", 401);
   if (!isDatabaseConfigured()) return bad("The portal database is not configured.", 503);
+
+  // The CRM removed the agent from the team: their portal login ends too.
+  if (body.type === "agent.remove") {
+    const code = str(body.code, 20).toUpperCase();
+    if (!CODE_RE.test(code)) return bad("Invalid Agent ID.");
+    const suspended = await sales.suspendAgent(code);
+    await audit({ action: "sales.agent_removed", actorId: null, actorEmail: "crm", entity: "user", meta: { crmCode: code, suspended } });
+    return NextResponse.json({ ok: true, suspended });
+  }
 
   if (body.type === "agent.upsert") {
     const code = str(body.code, 20).toUpperCase();

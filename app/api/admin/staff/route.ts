@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAgentInCrm } from "@/lib/integrations/crm";
 import * as sales from "@/lib/db/repos/sales";
 import { emailAgentSetup } from "@/lib/integrations/sales-mail";
 import { randomBytes } from "node:crypto";
@@ -98,15 +99,31 @@ export async function POST(request: Request) {
     follow each one's progress on My students, and nothing else.
   */
   if (kind === "employee" && preset === "sales") {
-    const code = typeof crmCode === "string" ? crmCode.trim().toUpperCase() : "";
-    if (!/^[A-Z]{2,4}-\d{3,5}$/.test(code)) {
-      return NextResponse.json({ ok: false, error: "Enter their CRM Agent ID, for example AF-002." }, { status: 400 });
+    let code = typeof crmCode === "string" ? crmCode.trim().toUpperCase() : "";
+    if (code && !/^[A-Z]{2,4}-\d{3,5}$/.test(code)) {
+      return NextResponse.json({ ok: false, error: "That Agent ID doesn't look right. Use the form AF-002, or leave it empty." }, { status: 400 });
     }
     if (typeof name !== "string" || name.trim().length < 2 || name.length > 120) {
       return NextResponse.json({ ok: false, error: "Enter their full name." }, { status: 400 });
     }
     if (typeof email !== "string" || !EMAIL_RE.test(email.trim()) || email.length > 200) {
       return NextResponse.json({ ok: false, error: "That email address doesn't look right." }, { status: 400 });
+    }
+    // No ID typed: the CRM makes the member and gives the next Agent ID.
+    let crm: { crmEmailed: boolean; crmLink: string | null } | null = null;
+    if (!code) {
+      const made = await createAgentInCrm({ name: name.trim(), email: email.trim().toLowerCase() });
+      if (!made.ok) return NextResponse.json({ ok: false, error: made.error }, { status: 502 });
+      code = made.code;
+      crm = { crmEmailed: made.crmEmailed, crmLink: made.crmLink };
+    }
+    // An Agent ID already held by somebody else on the portal is never taken over.
+    const holder = await sales.agentByCrmCode(code);
+    if (holder && holder.email.toLowerCase() !== email.trim().toLowerCase()) {
+      return NextResponse.json(
+        { ok: false, error: `Agent ID ${code} already belongs to ${holder.name} (${holder.email}) on the portal. Check the ID in the CRM Team page.` },
+        { status: 409 }
+      );
     }
     const res = await sales.upsertSalesAgent({ code, name: name.trim(), email: email.trim().toLowerCase() });
     if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 409 });
@@ -123,7 +140,7 @@ export async function POST(request: Request) {
       meta: { crmCode: code, emailed },
       ip,
     });
-    return NextResponse.json({ ok: true, id: res.agent.id, name: res.agent.name, email: res.agent.email, link, emailed });
+    return NextResponse.json({ ok: true, id: res.agent.id, name: res.agent.name, email: res.agent.email, link, emailed, code, crm });
   }
   /*
     CONSULTANT OR EMPLOYEE. An employee is an admin account limited to the

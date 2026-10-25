@@ -78,12 +78,18 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
         emailed?: boolean;
         password?: string;
         loginUrl?: string;
+        code?: string;
       };
       if (!res.ok || !data.ok || (!data.link && !data.password)) throw new Error(data.error ?? "We couldn't create that account.");
       if (data.password && data.loginUrl) {
         setCreds({ loginUrl: data.loginUrl, email: data.email ?? email, password: data.password });
       }
-      setCreated({ name: data.name ?? name, email: data.email ?? email, link: data.link ?? "", emailed: Boolean(data.emailed) });
+      setCreated({
+        name: data.code ? `${data.name ?? name} (${data.code})` : data.name ?? name,
+        email: data.email ?? email,
+        link: data.link ?? "",
+        emailed: Boolean(data.emailed),
+      });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network problem. Please try again.");
@@ -256,18 +262,17 @@ Password: ${creds.password}`
 
                 {kind === "employee" && role === "sales" && (
                   <div>
-                    <label htmlFor="staff-crm-code" className="field-label">CRM Agent ID</label>
+                    <label htmlFor="staff-crm-code" className="field-label">CRM Agent ID (optional)</label>
                     <input
                       id="staff-crm-code"
-                      required
                       className="field font-mono uppercase"
                       value={crmCode}
                       onChange={(e) => setCrmCode(e.target.value.toUpperCase())}
-                      placeholder="AF-002"
+                      placeholder="Leave empty for a new ID"
                       pattern="[A-Za-z]{2,4}-[0-9]{3,5}"
                     />
                     <p className="mt-1.5 text-[0.75rem] text-faint">
-                      Their ID in the CRM (Team page). Their students&apos; verified fees count as their sales there.
+                      Empty: the CRM gives them the next Agent ID and invites them to the CRM too. Already in the CRM? Type their ID from the Team page.
                     </p>
                   </div>
                 )}

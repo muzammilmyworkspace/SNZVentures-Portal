@@ -215,3 +215,18 @@ export async function notifySalesAgent(studentId: string, what: (studentName: st
     return true;
   }, false);
 }
+
+/**
+ * The CRM removed this agent: their login is suspended and every open
+ * session ends (a new session epoch). Their students keep the link to them.
+ */
+export async function suspendAgent(code: string): Promise<boolean> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE users SET status = 'suspended', session_epoch = session_epoch + 1, updated_at = now()
+       WHERE upper(crm_code) = ${code.trim().toUpperCase()} AND role = 'sales'
+      RETURNING id
+    `;
+    return rows.length > 0;
+  }, false);
+}

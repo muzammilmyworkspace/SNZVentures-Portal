@@ -89,6 +89,36 @@ export async function useCrmTicket(nonce: string, userId: string): Promise<boole
   }, false);
 }
 
+/**
+ * "Add employee → Sales agent" with no Agent ID: the CRM owns the IDs, so it
+ * makes the team member (next AF-xxx, invited to the CRM too) and answers with
+ * the ID. The error is the CRM's own words, shown to the Super Admin.
+ */
+export async function createAgentInCrm(input: { name: string; email: string }): Promise<
+  { ok: true; code: string; crmEmailed: boolean; crmLink: string | null } | { ok: false; error: string }
+> {
+  const secret = process.env.CRM_PORTAL_SECRET;
+  if (!secret) return { ok: false, error: "CRM_PORTAL_SECRET is not set on the portal, so it cannot ask the CRM for an Agent ID. Add it in Vercel and redeploy, or type the Agent ID." };
+  const body = JSON.stringify({ type: "agent.create", ...input });
+  const ts = String(Date.now());
+  try {
+    const res = await fetch(`${CRM_URL}/api/integrations/portal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-AF-Timestamp": ts, "X-AF-Signature": sign(secret, ts, body) },
+      body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+    });
+    const json = (await res.json().catch(() => null)) as
+      | { ok?: boolean; error?: string; code?: string; crmEmailed?: boolean; crmLink?: string | null }
+      | null;
+    if (!res.ok || !json?.ok || !json.code) return { ok: false, error: json?.error || `The CRM answered ${res.status}.` };
+    return { ok: true, code: json.code, crmEmailed: Boolean(json.crmEmailed), crmLink: json.crmLink ?? null };
+  } catch {
+    return { ok: false, error: "Could not reach the CRM to make an Agent ID. Try again, or type the Agent ID." };
+  }
+}
+
 async function postToCrm(payload: Record<string, unknown>): Promise<boolean> {
   const secret = process.env.CRM_PORTAL_SECRET;
   if (!secret) return false;
