@@ -55,16 +55,23 @@ export async function planFor(userId: string): Promise<StudentPlan | null> {
  * the amounts frozen as they were when they agreed. Changing plan is allowed
  * until the initial fee is verified.
  */
-export async function choosePlan(userId: string, plan: PlanKey, ip: string | null): Promise<StudentPlan | null> {
+export async function choosePlan(
+  userId: string,
+  plan: PlanKey,
+  ip: string | null,
+  termsVersion: string = PAYMENT_TERMS_VERSION,
+  userAgent: string | null = null,
+): Promise<StudentPlan | null> {
   const settings = await getPaymentSettings();
   const schedule = scheduleFor(plan, settings);
   const [r] = await db()`
-    INSERT INTO payment_plans (user_id, plan, schedule, currency, terms_version, terms_accepted_at, ip)
-    SELECT ${userId}, ${plan}, ${db().json(schedule)}, ${settings.currency}, ${PAYMENT_TERMS_VERSION}, now(), ${ip}
+    INSERT INTO payment_plans (user_id, plan, schedule, currency, terms_version, terms_accepted_at, ip, user_agent)
+    SELECT ${userId}, ${plan}, ${db().json(schedule)}, ${settings.currency}, ${termsVersion}, now(), ${ip}, ${userAgent}
      WHERE NOT EXISTS (SELECT 1 FROM fee_submissions WHERE user_id = ${userId} AND status = 'verified')
     ON CONFLICT (user_id) DO UPDATE
       SET plan = EXCLUDED.plan, schedule = EXCLUDED.schedule, currency = EXCLUDED.currency,
-          terms_version = EXCLUDED.terms_version, terms_accepted_at = now(), ip = EXCLUDED.ip, updated_at = now()
+          terms_version = EXCLUDED.terms_version, terms_accepted_at = now(), ip = EXCLUDED.ip,
+          user_agent = EXCLUDED.user_agent, updated_at = now()
     RETURNING plan, schedule, currency, terms_accepted_at
   `;
   if (!r) return null;

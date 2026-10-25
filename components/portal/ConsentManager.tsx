@@ -426,12 +426,15 @@ export function ConsentVersions({
   party,
   basePath,
   builtIn,
+  pdfBase,
 }: {
   rows: ConsentRow[];
   party: string;
+  /** Where a version opens as a PDF (?id=, or ?builtin=1); none for the consultant consents. */
+  pdfBase?: string;
   /** This page's URL, to which `edit=` is added. */
   basePath: string;
-  /** AdmitsFair's student consent only: the wording built into the portal. */
+  /** AdmitsFair's student consent and payment terms: the wording built into the portal. */
   builtIn?: { title: string; version: string; signed: number; isCurrent: boolean } | null;
 }) {
   const router = useRouter();
@@ -491,6 +494,11 @@ export function ConsentVersions({
               <button type="button" onClick={() => setViewing(r)} aria-label="Preview" data-tip="Preview" className="tip icon-btn">
                 <Icon d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z M8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
               </button>
+              {pdfBase && (
+                <a href={`${pdfBase}?id=${r.id}`} target="_blank" rel="noopener" aria-label="Open as PDF" data-tip="PDF" className="tip icon-btn">
+                  <Icon d="M4 1.5h5.5L13 5v9.5H4zM9.5 1.5V5H13M6 9h5M6 11.5h3" />
+                </a>
+              )}
               {r.status === "draft" ? (
                 <Link href={`${basePath}${join}edit=${r.id}`} aria-label="Edit draft" data-tip="Edit draft" className="tip icon-btn">
                   <Icon d="M10.5 2.5l3 3L6 13H3v-3z" />
@@ -564,6 +572,11 @@ export function ConsentVersions({
               </p>
             </div>
             {builtIn.isCurrent ? <span className="pill pill-ok">Active</span> : <span className="pill pill-neutral">Standby</span>}
+            {pdfBase && (
+              <a href={`${pdfBase}?builtin=1`} target="_blank" rel="noopener" aria-label="Open as PDF" data-tip="PDF" className="tip tip-end icon-btn">
+                <Icon d="M4 1.5h5.5L13 5v9.5H4zM9.5 1.5V5H13M6 9h5M6 11.5h3" />
+              </a>
+            )}
           </li>
         )}
       </ul>

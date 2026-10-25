@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { apiRequireRole } from "@/lib/auth/guard";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { audit } from "@/lib/db/repos/audit";
 import { choosePlan } from "@/lib/db/repos/payments";
-import { PAYMENT_TERMS_VERSION, type PlanKey } from "@/lib/portal/payment-plan";
+import { type PlanKey } from "@/lib/portal/payment-plan";
+import { activePaymentTerms } from "@/lib/portal/payment-terms";
+import { recordSigned } from "@/lib/portal/signed-docs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +38,10 @@ export async function POST(request: Request) {
   }
 
   const ip = clientIp(request);
-  const saved = await choosePlan(session.userId, plan as PlanKey, ip).catch(() => null);
+  // The terms on screen today: the published version, or the built-in wording.
+  const terms = await activePaymentTerms();
+  const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? null;
+  const saved = await choosePlan(session.userId, plan as PlanKey, ip, terms.version, userAgent).catch(() => null);
   if (!saved) {
     return NextResponse.json(
       { ok: false, error: "Your fee is already verified, so the plan cannot be changed here. Please contact us." },
@@ -49,8 +54,10 @@ export async function POST(request: Request) {
     actorEmail: session.email,
     entity: "user",
     entityId: session.userId,
-    meta: { plan, termsVersion: PAYMENT_TERMS_VERSION },
+    meta: { plan, termsVersion: terms.version },
     ip,
   });
+  // The accepted terms as a PDF with their certificate, kept and copied to Drive.
+  after(() => recordSigned("payment_terms", session.userId));
   return NextResponse.json({ ok: true, plan: saved });
 }

@@ -32,6 +32,7 @@ export function InitialFeeDialog({
   settings,
   currentPlan,
   studentCode,
+  terms = PAYMENT_TERMS,
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,6 +41,8 @@ export function InitialFeeDialog({
   settings: PaymentSettings;
   currentPlan: PlanKey | null;
   studentCode: string;
+  /** The payment terms in use (Forms → Consent forms → Payment terms); the built-in ones by default. */
+  terms?: string[];
 }) {
   const [step, setStep] = useState<"plan" | "voucher">("plan");
   const [plan, setPlan] = useState<PlanKey | null>(currentPlan);
@@ -264,7 +267,7 @@ export function InitialFeeDialog({
                 <p className="mt-1 text-[0.85rem] text-muted">Please read before you continue.</p>
               </div>
               <ol className="min-h-0 flex-1 list-decimal space-y-2.5 overflow-y-auto py-4 pr-5 pl-10 text-[0.9rem] leading-relaxed text-fg">
-                {PAYMENT_TERMS.map((t) => (
+                {terms.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ol>

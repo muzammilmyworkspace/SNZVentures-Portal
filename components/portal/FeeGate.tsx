@@ -32,6 +32,7 @@ export function FeeGate({
   payments,
   plan,
   studentCode,
+  paymentTerms,
 }: {
   stage: StudentStage;
   rejectionNote: string | null;
@@ -44,6 +45,8 @@ export function FeeGate({
   lockedPath: string | null;
   justSubmitted: boolean;
   /** AdmitsFair's process fee: amounts and the bank details on the voucher. */
+  /** The payment terms in use, one line per term. */
+  paymentTerms?: string[];
   payments: PaymentSettings;
   /** The plan the student chose, if any (047 payment_plans). */
   plan: { plan: PlanKey; schedule: Phase[]; currency: string } | null;
@@ -171,6 +174,7 @@ export function FeeGate({
         settings={payments}
         currentPlan={chosen}
         studentCode={studentCode}
+        terms={paymentTerms}
       />
 
       <FeeDialog

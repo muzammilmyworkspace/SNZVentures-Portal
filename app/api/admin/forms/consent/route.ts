@@ -42,7 +42,7 @@ const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
 /** May this person manage this category, and as which owner? */
 function scope(session: Session, category: unknown): { category: ConsentCategory; ownerId: string | null } | null {
   if (session.impersonator) return null;
-  if (session.role === "super_admin" && (category === "student" || category === "consultant")) {
+  if (session.role === "super_admin" && (category === "student" || category === "consultant" || category === "payment")) {
     return { category, ownerId: null };
   }
   if (session.role === "advisor" && category === "consultant_student") {

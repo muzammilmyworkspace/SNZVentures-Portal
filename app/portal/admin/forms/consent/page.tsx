@@ -20,6 +20,10 @@ import {
   type ConsentRow,
 } from "@/components/portal/ConsentManager";
 import { ConsentDoc } from "@/components/application/UndertakingDoc";
+import { SignersTable } from "@/components/portal/SignersTable";
+import { signersOf } from "@/lib/portal/signed-docs";
+import { PAYMENT_TERMS_VERSION } from "@/lib/portal/payment-plan";
+import { PAYMENT_TERMS_TITLE } from "@/lib/portal/payment-terms";
 
 export const metadata: Metadata = { title: "Consent form", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -27,9 +31,12 @@ export const dynamic = "force-dynamic";
 /**
  * CONSENT FORMS.
  *
- * Super admin: AdmitsFair' two documents, each with drafts and versions
- *   Students     AdmitsFair <-> student, signed at the end of the application
- *   Consultants  AdmitsFair <-> consultant, signed by each consultant at sign-in
+ * Super admin: AdmitsFair' documents, each with drafts and versions
+ *   Students       AdmitsFair <-> student, signed at the end of the application
+ *   Payment terms  accepted by each student before choosing a plan and paying
+ *   Consultants    AdmitsFair <-> consultant, signed by each consultant at sign-in
+ * Under the student consent and the payment terms: everybody who signed, each
+ * with their signed PDF (certificate included), also copied to Google Drive.
  * plus a read-only look at what each consultant gives their own students.
  *
  * Consultant: their own consent for their students (with their logo), which
@@ -40,9 +47,15 @@ export const dynamic = "force-dynamic";
 const ALL_TABS: { key: string; label: string; category?: ConsentCategory; lead: string }[] = [
   {
     key: "student",
-    label: "AdmitsFair ↔ Students",
+    label: "Student consent",
     category: "student",
-    lead: "Every student signs the active one at the end of their application. If none is active, the original built-in wording is used.",
+    lead: "Every student signs the active one at the end of their application. If none is active, the original built-in wording is used. Edit makes a new draft; publish it to put it in use.",
+  },
+  {
+    key: "payment",
+    label: "Payment terms",
+    category: "payment",
+    lead: "Every student accepts the active terms before choosing a payment plan and paying the initial fee. Write one term per line. If none is active, the built-in terms are used.",
   },
   {
     key: "consultant",
@@ -57,7 +70,7 @@ const ALL_TABS: { key: string; label: string; category?: ConsentCategory; lead: 
   },
 ];
 // Only the student consent while the consultant section is off.
-const TABS = ALL_TABS.filter((t) => CONSULTANTS_ENABLED || t.key === "student");
+const TABS = ALL_TABS.filter((t) => CONSULTANTS_ENABLED || t.key === "student" || t.key === "payment");
 
 async function rowsFor(templates: ConsentTemplate[], category: ConsentCategory): Promise<ConsentRow[]> {
   const signed = await signaturesByVersion(category);
@@ -134,7 +147,16 @@ export default async function ConsentFormPage({
             .reduce((n, [, c]) => n + c, 0),
           isCurrent: !active,
         }
-      : null;
+      : category === "payment"
+        ? {
+            title: PAYMENT_TERMS_TITLE,
+            version: PAYMENT_TERMS_VERSION,
+            signed: (await signaturesByVersion("payment"))[PAYMENT_TERMS_VERSION] ?? 0,
+            isCurrent: !active,
+          }
+        : null;
+  const signedKind = category === "student" ? "student_undertaking" : category === "payment" ? "payment_terms" : null;
+  const signers = signedKind ? await signersOf(signedKind) : [];
 
   return (
     <>
@@ -155,16 +177,37 @@ export default async function ConsentFormPage({
           <Panel title="New consent">
             <ConsentNew
               category={category}
-              defaultTitle={active?.title ?? (category === "student" ? CONSENT_TITLE : category === "consultant" ? "Consultant Agreement" : "Consent")}
+              defaultTitle={active?.title ?? (category === "student" ? CONSENT_TITLE : category === "payment" ? PAYMENT_TERMS_TITLE : category === "consultant" ? "Consultant Agreement" : "Consent")}
               logoInUse={active?.logoUrl ?? null}
               storageOn={isStorageConfigured()}
               basePath={basePath}
             />
           </Panel>
           <Panel title="Versions">
-            <ConsentVersions rows={rows} party={party} basePath={basePath} builtIn={builtIn} />
+            <ConsentVersions
+              rows={rows}
+              party={party}
+              basePath={basePath}
+              builtIn={builtIn}
+              pdfBase={category === "student" || category === "payment" ? `/api/admin/consent-preview/${category}` : undefined}
+            />
           </Panel>
         </div>
+      )}
+
+      {signedKind && !editing && (
+        <Panel
+          className="mt-6"
+          padded={false}
+          title={`${category === "payment" ? "Accepted by" : "Signed by"} (${signers.length})`}
+          action={
+            <a href={`/api/admin/consent-preview/${category}`} target="_blank" rel="noopener" className="text-[0.8rem] font-semibold text-accent-ink hover:underline">
+              View the one in use as PDF
+            </a>
+          }
+        >
+          <SignersTable kind={signedKind} signers={signers} />
+        </Panel>
       )}
     </>
   );

@@ -6,6 +6,8 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  *   student             AdmitsFair <-> student      (super admin)
  *   consultant          AdmitsFair <-> consultant   (super admin)
  *   consultant_student  a consultant <-> their students (that consultant)
+ *   payment             the payment terms a student accepts before the fee
+ *                       (super admin; acceptances are in payment_plans)
  *
  * A draft is edited in place and never shown. Publishing makes it the one in
  * use for its category and owner. Published versions are never changed:
@@ -13,14 +15,15 @@ import { db, safeQuery, isDatabaseConfigured } from "../client";
  * words that person read. One in use can be switched off (inactive) and back.
  */
 
-export type ConsentCategory = "student" | "consultant" | "consultant_student";
-export const CATEGORIES: ConsentCategory[] = ["student", "consultant", "consultant_student"];
+export type ConsentCategory = "student" | "consultant" | "consultant_student" | "payment";
+export const CATEGORIES: ConsentCategory[] = ["student", "consultant", "consultant_student", "payment"];
 
 /** What a signature of each category is stored as in `consents.kind`. */
 export const KIND: Record<ConsentCategory, string> = {
   student: "student_undertaking",
   consultant: "consultant_agreement",
   consultant_student: "consultant_student",
+  payment: "payment_terms",
 };
 
 export type ConsentTemplate = {
@@ -75,6 +78,7 @@ function toTemplate(r: Record<string, unknown>): ConsentTemplate {
 export function templateVersion(t: { category: ConsentCategory; version: number }): string {
   if (t.category === "consultant") return `consultant-v${t.version}`;
   if (t.category === "consultant_student") return `partner-v${t.version}`;
+  if (t.category === "payment") return `payment-v${t.version}`;
   return `custom-v${t.version}`;
 }
 
@@ -249,7 +253,10 @@ export async function setActive(id: string, active: boolean): Promise<boolean> {
 export async function signedCount(t: ConsentTemplate): Promise<number> {
   if (!isDatabaseConfigured()) return 0;
   return safeQuery(async () => {
-    const [r] = await db()`
+    const [r] =
+      t.category === "payment"
+        ? await db()`SELECT count(*)::int AS n FROM payment_plans WHERE terms_version = ${templateVersion(t)}`
+        : await db()`
       SELECT count(*)::int AS n FROM consents WHERE kind = ${KIND[t.category]} AND version = ${templateVersion(t)}`;
     return Number(r?.n ?? 0);
   }, 0);
@@ -259,7 +266,11 @@ export async function signedCount(t: ConsentTemplate): Promise<number> {
 export async function signaturesByVersion(category: ConsentCategory): Promise<Record<string, number>> {
   if (!isDatabaseConfigured()) return {};
   return safeQuery(async () => {
-    const rows = await db()`
+    // Payment terms are accepted in payment_plans (one row per student), not in consents.
+    const rows =
+      category === "payment"
+        ? await db()`SELECT terms_version AS version, count(*)::int AS n FROM payment_plans GROUP BY terms_version`
+        : await db()`
       SELECT version, count(*)::int AS n FROM consents WHERE kind = ${KIND[category]} GROUP BY version`;
     return Object.fromEntries(rows.map((r) => [String(r.version), Number(r.n)]));
   }, {});

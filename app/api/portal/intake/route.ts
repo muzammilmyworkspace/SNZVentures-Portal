@@ -1,4 +1,5 @@
 import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
+import { recordSigned } from "@/lib/portal/signed-docs";
 import { notifySalesAgent } from "@/lib/db/repos/sales";
 import { consultantOf } from "@/lib/db/repos/consent-templates";
 import { NextResponse, after } from "next/server";
@@ -405,6 +406,8 @@ export async function POST(request: Request) {
 
   if (pathway === "study") {
     after(() => notifySalesAgent(session.userId, (n) => `${n} submitted their application and signed the consent`));
+    // The signed consent as a PDF with its certificate, kept and copied to the student's Drive folder.
+    after(() => recordSigned("student_undertaking", session.userId));
   }
   await repo.notify({
     userId: session.userId,

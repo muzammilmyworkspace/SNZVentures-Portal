@@ -7,6 +7,7 @@ import { isStorageConfigured } from "@/lib/storage";
 import { getProfile } from "@/lib/db/repos/profiles";
 import { getPaymentSettings, planFor } from "@/lib/db/repos/payments";
 import { scheduleFor } from "@/lib/portal/payment-plan";
+import { activePaymentTerms } from "@/lib/portal/payment-terms";
 import { paymentSettingsFrom } from "@/lib/portal/payment-plan";
 import { memberId } from "@/lib/portal/member-id";
 import { db, safeQuery } from "@/lib/db/client";
@@ -43,6 +44,8 @@ export default async function Page({
     : { stage: "fee_due" as const, rejectionNote: null };
 
   // The process fee: amounts and voucher details, the plan chosen, and the ID quoted as the reference.
+  // The payment terms the student accepts: the published version, or the built-in wording.
+  const terms = await activePaymentTerms();
   const [payments, plan, memberNo] = isDatabaseConfigured()
     ? await Promise.all([
         getPaymentSettings(),
@@ -69,6 +72,7 @@ export default async function Page({
         // A plan saved without its schedule falls back to the current amounts.
         plan={plan && plan.schedule.length === 0 ? { ...plan, schedule: scheduleFor(plan.plan, payments) } : plan}
         studentCode={memberId(session.role, memberNo)}
+        paymentTerms={terms.lines}
       />
       <ClientDashboard session={session} />
     </>
