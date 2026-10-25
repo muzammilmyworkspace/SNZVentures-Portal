@@ -7,6 +7,7 @@ import { audit } from "@/lib/db/repos/audit";
 import { emailStudentInvite, emailAgentSetup } from "@/lib/integrations/sales-mail";
 import { siteUrl } from "@/lib/site-url";
 import { isDatabaseConfigured } from "@/lib/db/client";
+import { storeInDrive } from "@/lib/integrations/drive-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,18 @@ export async function POST(request: Request) {
   const body = await verifyCrmRequest(request);
   if (!body) return bad("The CRM and the portal have different CRM_PORTAL_SECRET values. Make them identical and redeploy both.", 401);
   if (!isDatabaseConfigured()) return bad("The portal database is not configured.", 503);
+
+  // A sales member's signed onboarding document, for the team folder in Google Drive.
+  if (body.type === "drive.store") {
+    const folders = Array.isArray(body.folders) ? body.folders.map((f) => str(f, 120)).filter(Boolean).slice(0, 4) : [];
+    const fileName = str(body.fileName, 160).replace(/[\\/:*?"<>|]/g, "-");
+    const mimeType = body.mimeType === "application/pdf" ? "application/pdf" : "";
+    const data = typeof body.data === "string" ? body.data : "";
+    if (!folders.length || !fileName || !mimeType || !data || data.length > 8_000_000) return bad("Invalid file.");
+    const res = await storeInDrive({ folders, fileName, mimeType, bytes: Buffer.from(data, "base64") });
+    if (!res.ok) return bad(res.error, 409);
+    return NextResponse.json({ ok: true, folderUrl: res.folderUrl });
+  }
 
   // The CRM removed the agent from the team: their portal login ends too.
   if (body.type === "agent.remove") {
