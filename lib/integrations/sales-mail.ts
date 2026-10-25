@@ -32,3 +32,33 @@ export async function emailStudentInvite(i: { to: string; name: string; agentNam
     return false;
   }
 }
+
+/** The set-up email a new sales agent gets (from the CRM or from Add employee). */
+export async function emailAgentSetup(a: { to: string; name: string; code: string; link: string }) {
+  if (!(await mailConfigured())) return false;
+  try {
+    await sendMail({
+      to: a.to,
+      subject: "Your AdmitsFair portal login (sales team)",
+      text: [
+        `Hello ${a.name},`,
+        "",
+        `Your AdmitsFair student portal login is ready. Your Agent ID is ${a.code}, the same as in the CRM.`,
+        "",
+        `You sign in with: ${a.to}`,
+        "",
+        "Set your password here. The link works once and expires in three days:",
+        a.link,
+        "",
+        "In the portal you add a student with their name and email, and follow each",
+        "one: fee submitted and verified, application submitted, consent signed.",
+        "",
+        "AdmitsFair",
+      ].join("\n"),
+    });
+    return true;
+  } catch (error) {
+    console.error("[sales] agent setup email failed:", error);
+    return false;
+  }
+}

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { notify } from "./portal";
 import { db, safeQuery, isDatabaseConfigured } from "../client";
 import * as usersRepo from "./users";
 import { hashPassword } from "@/lib/auth/password";
@@ -195,4 +196,22 @@ export async function revokeOlderInvites(agentId: string, email: string): Promis
          AND claimed_at IS NULL AND revoked_at IS NULL
     `;
   }, undefined);
+}
+
+/**
+ * Tells a student's sales agent, in their portal bell, that something moved:
+ * signed up, receipt sent, fee verified or returned, application submitted.
+ * The agent follows progress only; they never see the application itself.
+ * Best effort and silent for a student who came without an agent.
+ */
+export async function notifySalesAgent(studentId: string, what: (studentName: string) => string): Promise<void> {
+  await safeQuery(async () => {
+    const [r] = await db()`
+      SELECT s.name, s.sales_agent_id FROM users s
+       WHERE s.id = ${studentId} AND s.sales_agent_id IS NOT NULL
+    `;
+    if (!r) return false;
+    await notify({ userId: String(r.sales_agent_id), kind: "status", title: what(String(r.name)), href: "/portal/sales" });
+    return true;
+  }, false);
 }

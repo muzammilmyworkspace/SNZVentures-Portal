@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { notifySalesAgent } from "@/lib/db/repos/sales";
 import { apiRequireUser } from "@/lib/auth/guard";
 import * as fees from "@/lib/db/repos/fees";
 import { tellCrm } from "@/lib/integrations/crm";
@@ -279,6 +280,7 @@ export async function POST(request: Request) {
 
     // A sales agent's student: the CRM shows the receipt is in (the sale counts when it is verified).
     after(() => tellCrm("fee.submitted", session.userId));
+    after(() => notifySalesAgent(session.userId, (n) => `${n} sent their fee receipt for verification`));
 
     return NextResponse.json({ ok: true, id: feeId });
   } catch (error) {

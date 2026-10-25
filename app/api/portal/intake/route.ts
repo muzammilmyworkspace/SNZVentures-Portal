@@ -1,4 +1,5 @@
 import { loadIntake, activeConsent, partnerConsentFor } from "@/lib/portal/forms";
+import { notifySalesAgent } from "@/lib/db/repos/sales";
 import { consultantOf } from "@/lib/db/repos/consent-templates";
 import { NextResponse, after } from "next/server";
 import { apiRequireUser } from "@/lib/auth/guard";
@@ -402,6 +403,9 @@ export async function POST(request: Request) {
     })
   );
 
+  if (pathway === "study") {
+    after(() => notifySalesAgent(session.userId, (n) => `${n} submitted their application and signed the consent`));
+  }
   await repo.notify({
     userId: session.userId,
     title: "Your application has been received",

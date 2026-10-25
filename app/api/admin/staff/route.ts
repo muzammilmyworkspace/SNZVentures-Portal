@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import * as sales from "@/lib/db/repos/sales";
+import { emailAgentSetup } from "@/lib/integrations/sales-mail";
 import { randomBytes } from "node:crypto";
 import { apiRequireSuperAdmin } from "@/lib/auth/guard";
 import * as usersRepo from "@/lib/db/repos/users";
@@ -87,7 +89,42 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
-  const { name, email, kind, permissions, preset } = (body ?? {}) as Record<string, unknown>;
+  const { name, email, kind, permissions, preset, crmCode } = (body ?? {}) as Record<string, unknown>;
+
+  /*
+    A SALES AGENT (Oct 2026). The same account the CRM makes (role `sales`,
+    users.crm_code = their CRM Agent ID), so a student they bring counts as
+    their sale in the CRM once the fee is verified. They add students and
+    follow each one's progress on My students, and nothing else.
+  */
+  if (kind === "employee" && preset === "sales") {
+    const code = typeof crmCode === "string" ? crmCode.trim().toUpperCase() : "";
+    if (!/^[A-Z]{2,4}-\d{3,5}$/.test(code)) {
+      return NextResponse.json({ ok: false, error: "Enter their CRM Agent ID, for example AF-002." }, { status: 400 });
+    }
+    if (typeof name !== "string" || name.trim().length < 2 || name.length > 120) {
+      return NextResponse.json({ ok: false, error: "Enter their full name." }, { status: 400 });
+    }
+    if (typeof email !== "string" || !EMAIL_RE.test(email.trim()) || email.length > 200) {
+      return NextResponse.json({ ok: false, error: "That email address doesn't look right." }, { status: 400 });
+    }
+    const res = await sales.upsertSalesAgent({ code, name: name.trim(), email: email.trim().toLowerCase() });
+    if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 409 });
+    const link = `${siteUrl()}/set-up?token=${encodeURIComponent(
+      await store.issueToken(res.agent.id, "account_setup", SETUP_TTL_MINUTES)
+    )}`;
+    const emailed = await emailAgentSetup({ to: res.agent.email, name: res.agent.name, code, link });
+    await audit({
+      action: res.created ? "sales.agent_created" : "sales.agent_link_sent",
+      actorId: session.userId,
+      actorEmail: session.email,
+      entity: "user",
+      entityId: res.agent.id,
+      meta: { crmCode: code, emailed },
+      ip,
+    });
+    return NextResponse.json({ ok: true, id: res.agent.id, name: res.agent.name, email: res.agent.email, link, emailed });
+  }
   /*
     CONSULTANT OR EMPLOYEE. An employee is an admin account limited to the
     areas ticked when they were added (030); an empty list is refused, since

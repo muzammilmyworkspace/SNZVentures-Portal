@@ -26,7 +26,8 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
   const [email, setEmail] = useState("");
   const [areas, setAreas] = useState<string[]>([]);
   // Employees: the "Admin" role (students only) or access chosen area by area.
-  const [role, setRole] = useState<"desk" | "custom">("desk");
+  const [role, setRole] = useState<"desk" | "custom" | "sales">("desk");
+  const [crmCode, setCrmCode] = useState("");
   const [creds, setCreds] = useState<{ loginUrl: string; email: string; password: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +43,15 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
     setEmail("");
     setAreas([]);
     setRole("desk");
+    setCrmCode("");
     setCreds(null);
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     const desk = kind === "employee" && role === "desk";
-    if (kind === "employee" && !desk && areas.length === 0) {
+    const salesAgent = kind === "employee" && role === "sales";
+    if (kind === "employee" && role === "custom" && areas.length === 0) {
       setError("Tick at least one area they may use.");
       return;
     }
@@ -58,7 +61,13 @@ export function AddStaffButton({ kind }: { kind: "consultant" | "employee" }) {
       const res = await fetch("/api/admin/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, kind, permissions: areas, ...(desk ? { preset: "student_desk" } : {}) }),
+        body: JSON.stringify({
+          name,
+          email,
+          kind,
+          permissions: areas,
+          ...(desk ? { preset: "student_desk" } : salesAgent ? { preset: "sales", crmCode } : {}),
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -216,11 +225,12 @@ Password: ${creds.password}`
                 {kind === "employee" && (
                   <fieldset>
                     <legend className="field-label">Role</legend>
-                    <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
                       {(
                         [
                           ["desk", "Admin", "Students only: their files, documents and applications, plus messages and consultations. Gets a username and password by email."],
                           ["custom", "Custom access", "Choose the areas yourself. Gets a link to set up their account."],
+                          ["sales", "Sales agent", "Adds students by email and follows each one's fee, application and consent. Same Agent ID as in the CRM."],
                         ] as const
                       ).map(([k, title, hint]) => (
                         <label
@@ -242,6 +252,24 @@ Password: ${creds.password}`
                       ))}
                     </div>
                   </fieldset>
+                )}
+
+                {kind === "employee" && role === "sales" && (
+                  <div>
+                    <label htmlFor="staff-crm-code" className="field-label">CRM Agent ID</label>
+                    <input
+                      id="staff-crm-code"
+                      required
+                      className="field font-mono uppercase"
+                      value={crmCode}
+                      onChange={(e) => setCrmCode(e.target.value.toUpperCase())}
+                      placeholder="AF-002"
+                      pattern="[A-Za-z]{2,4}-[0-9]{3,5}"
+                    />
+                    <p className="mt-1.5 text-[0.75rem] text-faint">
+                      Their ID in the CRM (Team page). Their students&apos; verified fees count as their sales there.
+                    </p>
+                  </div>
                 )}
 
                 {kind === "employee" && role === "custom" && (

@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { notifySalesAgent } from "@/lib/db/repos/sales";
 import * as store from "@/lib/auth/store";
 import { hashPassword, validatePassword } from "@/lib/auth/password";
 import { createToken, setSessionCookie, authConfigured } from "@/lib/auth/session";
@@ -230,6 +231,7 @@ export async function POST(request: Request) {
       if (claim.sales) {
         const id = user.id;
         after(() => tellCrm("student.registered", id));
+        after(() => notifySalesAgent(id, (n) => `${n} signed up on the portal`));
       }
     } else {
       // Recorded, not shown. The student can do nothing about it; the admin can.

@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { notifySalesAgent } from "@/lib/db/repos/sales";
 import { apiRequireAdmin } from "@/lib/auth/guard";
 import { retryUnsyncedSales, tellCrmSaleVerified } from "@/lib/integrations/crm";
 import * as fees from "@/lib/db/repos/fees";
@@ -102,6 +103,11 @@ export async function PATCH(request: Request) {
     const fee = { id, userId: updated.userId, amount: updated.amount, currency: updated.currency };
     after(() => tellCrmSaleVerified(fee).then(() => retryUnsyncedSales()));
   }
+  after(() =>
+    notifySalesAgent(updated.userId, (n) =>
+      action === "verify" ? `${n}'s fee is verified: your sale counts in the CRM` : `${n}'s fee receipt was sent back to them`
+    )
+  );
 
   await repo.notify({
     userId: updated.userId,

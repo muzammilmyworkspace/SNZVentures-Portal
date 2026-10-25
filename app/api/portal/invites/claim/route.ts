@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { notifySalesAgent } from "@/lib/db/repos/sales";
 import { apiRequireUser } from "@/lib/auth/guard";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { audit } from "@/lib/db/repos/audit";
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
   if (claim.sales) {
     const id = session.userId;
     after(() => tellCrm("student.registered", id));
+        after(() => notifySalesAgent(id, (n) => `${n} signed up on the portal`));
   }
 
   return NextResponse.json({ ok: true, consultantName: claim.consultantName });

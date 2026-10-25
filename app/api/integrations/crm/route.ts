@@ -4,8 +4,7 @@ import * as sales from "@/lib/db/repos/sales";
 import * as invitesRepo from "@/lib/db/repos/invites";
 import * as store from "@/lib/auth/store";
 import { audit } from "@/lib/db/repos/audit";
-import { sendMail, mailConfigured } from "@/lib/mail";
-import { emailStudentInvite } from "@/lib/integrations/sales-mail";
+import { emailStudentInvite, emailAgentSetup } from "@/lib/integrations/sales-mail";
 import { siteUrl } from "@/lib/site-url";
 import { isDatabaseConfigured } from "@/lib/db/client";
 
@@ -53,33 +52,7 @@ export async function POST(request: Request) {
     const setupLink = `${siteUrl()}/set-up?token=${encodeURIComponent(
       await store.issueToken(res.agent.id, "account_setup", SETUP_TTL_MINUTES),
     )}`;
-    let emailed = false;
-    if (await mailConfigured()) {
-      try {
-        await sendMail({
-          to: res.agent.email,
-          subject: "Your AdmitsFair portal login (sales team)",
-          text: [
-            `Hello ${res.agent.name},`,
-            "",
-            `Your AdmitsFair student portal login is ready. Your Agent ID is ${res.agent.crmCode}, the same as in the CRM.`,
-            "",
-            `You sign in with: ${res.agent.email}`,
-            "",
-            "Set your password here. The link works once and expires in three days:",
-            setupLink,
-            "",
-            "In the portal you can see the students you brought, where each one stands,",
-            "and hand a student over to the Super Admin once their initial fee is verified.",
-            "",
-            "AdmitsFair",
-          ].join("\n"),
-        });
-        emailed = true;
-      } catch (error) {
-        console.error("[crm] agent setup email failed:", error);
-      }
-    }
+    const emailed = await emailAgentSetup({ to: res.agent.email, name: res.agent.name, code: res.agent.crmCode, link: setupLink });
     await audit({
       action: res.created ? "sales.agent_created" : "sales.agent_link_sent",
       actorId: null,
