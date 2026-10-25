@@ -1105,12 +1105,14 @@ export type AdvisorLoad = {
   memberNo?: number | null;
   /** Employee access (030); null = unrestricted. */
   permissions?: string[] | null;
+  /** A sales agent's CRM Agent ID (047). */
+  crmCode?: string | null;
 };
 
 export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
   return safeQuery(async () => {
     const rows = await db()`
-      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.consultant_code, u.member_no, u.permissions,
+      SELECT u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.consultant_code, u.member_no, u.permissions, u.crm_code,
              CASE WHEN u.avatar_url IS NULL THEN NULL ELSE floor(extract(epoch FROM u.updated_at))::int END AS avatar_v,
              count(DISTINCT sa.client_id)::int AS client_count,
              count(DISTINCT c.id) FILTER (
@@ -1128,8 +1130,8 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       FROM users u
       LEFT JOIN staff_assignments sa ON sa.advisor_id = u.id
       LEFT JOIN cases c ON c.advisor_id = u.id
-      WHERE u.role IN ('advisor','admin','super_admin')
-      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at, u.consultant_code, u.member_no, u.permissions
+      WHERE u.role IN ('advisor','admin','super_admin','sales')
+      GROUP BY u.id, u.name, u.email, u.role, u.status, u.last_login_at, u.avatar_url, u.updated_at, u.consultant_code, u.member_no, u.permissions, u.crm_code
       ORDER BY u.name
     `;
     return rows.map((r) => ({
@@ -1146,6 +1148,7 @@ export async function getAdvisorsWithLoad(): Promise<AdvisorLoad[]> {
       consultantCode: r.consultant_code ? String(r.consultant_code) : null,
       memberNo: r.member_no == null ? null : Number(r.member_no),
       permissions: (r.permissions as string[] | null) ?? null,
+      crmCode: r.crm_code ? String(r.crm_code) : null,
     }));
   }, []);
 }

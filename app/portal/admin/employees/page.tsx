@@ -33,7 +33,8 @@ export default async function EmployeesPage() {
   const all = await getAdvisorsWithLoad();
   const clients = await getClientsByAdvisor();
   const profiles = await getStaffProfiles();
-  const people = all.filter((c) => c.role === "admin" || c.role === "super_admin");
+  // The team the super admin manages: admins and sales agents. The super admin is not listed.
+  const people = all.filter((c) => c.role === "admin" || c.role === "sales");
   const emailOff = !(await mailConfigured());
   const active = people.filter((c) => c.status === "active").length;
   const limited = people.filter((c) => c.role === "admin" && c.permissions != null).length;

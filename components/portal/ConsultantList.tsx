@@ -286,7 +286,11 @@ export function ConsultantList({
             </Cell>
             <Cell>
               {employee ? (
-                c.role === "super_admin" || c.permissions == null ? (
+                c.role === "sales" ? (
+                  <span className="whitespace-nowrap text-[0.82rem] text-fg">
+                    Sales agent{c.crmCode ? ` · ${c.crmCode}` : ""}
+                  </span>
+                ) : c.role === "super_admin" || c.permissions == null ? (
                   <span className="text-[0.82rem] text-fg">Full access</span>
                 ) : (
                   <span
