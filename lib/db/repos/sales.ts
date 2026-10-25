@@ -230,3 +230,15 @@ export async function suspendAgent(code: string): Promise<boolean> {
     return rows.length > 0;
   }, false);
 }
+
+/** The CRM brought the agent back: their portal login works again. */
+export async function restoreAgent(code: string): Promise<boolean> {
+  return safeQuery(async () => {
+    const rows = await db()`
+      UPDATE users SET status = 'active', updated_at = now()
+       WHERE upper(crm_code) = ${code.trim().toUpperCase()} AND role = 'sales' AND status = 'suspended'
+      RETURNING id
+    `;
+    return rows.length > 0;
+  }, false);
+}

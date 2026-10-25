@@ -52,6 +52,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, suspended });
   }
 
+  if (body.type === "agent.restore") {
+    const code = str(body.code, 20).toUpperCase();
+    if (!CODE_RE.test(code)) return bad("Invalid Agent ID.");
+    const restored = await sales.restoreAgent(code);
+    await audit({ action: "sales.agent_restored", actorId: null, actorEmail: "crm", entity: "user", meta: { crmCode: code, restored } });
+    return NextResponse.json({ ok: true, restored });
+  }
+
   if (body.type === "agent.upsert") {
     const code = str(body.code, 20).toUpperCase();
     const name = str(body.name, 120);

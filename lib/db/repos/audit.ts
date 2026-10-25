@@ -79,6 +79,7 @@ export type AuditAction =
   | "sales.handover"
   | "auth.crm_sign_in"
   | "sales.agent_removed"
+  | "sales.agent_restored"
   | "payments.plan_chosen"
   | "payments.settings_saved"
   | "data.reset"
