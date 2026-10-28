@@ -22,31 +22,25 @@ export const company = {
   missionQuote:
     "Geography should not be a barrier to ambition. AdmitsFair dismantles the borders between European opportunity.",
 
-  /** Verified — published on the live site. */
+  /** Email only (Oct 2026): no phone or WhatsApp number is published. */
   contact: {
-    phone: "+370 623 93857",
-    phoneHref: "+37062393857",
     email: "admitsfair@gmail.com",
     /**
      * Where consultation enquiries are delivered.
      *
      * ⚠ DIFFERENT DOMAIN, ON PURPOSE — client-specified. General contact
-     * Owner instruction 2026-10-04: one email (admitsfair@gmail.com) and one
-     * number (+370 623 93857, calls and WhatsApp) everywhere, as on the website.
+     * Owner instruction 2026-10-28: one email (admitsfair@gmail.com), no
+     * number, and the office as Islamabad, Pakistan, as on the website.
      * `MAIL_TO` overrides this at runtime without a code change, so if this
      * address is ever wrong it can be corrected from the environment.
      *
      * See CONTENT-HANDOFF § 2 — this one needs confirming before launch.
      */
     consultationEmail: "admitsfair@gmail.com",
-    /** Live site links a WhatsApp channel on the same published number. */
-    whatsapp: "37062393857",
-    city: "Vilnius",
-    country: "Lithuania",
-    countryCode: "LT",
-    /** Client-supplied — office address. */
-    streetAddress: "T. Ševčenkos g. 16",
-    postalCode: "03223",
+    /** Office: city and country only, no street address. */
+    city: "Islamabad",
+    country: "Pakistan",
+    countryCode: "PK",
   },
 
   /** [CONTENT REQUIRED] — legal entity details not published. */
@@ -54,7 +48,7 @@ export const company = {
     registeredName: null as string | null,
     companyCode: null as string | null,
     vatNumber: null as string | null,
-    incorporatedIn: "Lithuania",
+    incorporatedIn: null as string | null,
   },
 
   /** AdmitsFair's own profiles: none supplied yet (the SnZ ones were removed). */
@@ -82,7 +76,7 @@ export const company = {
   },
 
   /** Verified — stated on the live site. */
-  attributes: ["Woman-Owned Enterprise", "Vilnius, Lithuania", "EU / EEA Reach"],
+  attributes: ["Woman-Owned Enterprise", "Islamabad, Pakistan", "EU / EEA Reach"],
 
   /**
    * Regulatory posture — stated plainly on the live site.

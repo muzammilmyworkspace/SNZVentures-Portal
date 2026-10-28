@@ -7,8 +7,6 @@ export default async function SupportPage() {
 
   const contacts = [
     { label: "Email", value: company.contact.email, href: `mailto:${company.contact.email}` },
-    { label: "WhatsApp", value: company.contact.phone, href: `https://wa.me/${company.contact.whatsapp}` },
-    { label: "Phone", value: company.contact.phone, href: `tel:${company.contact.phoneHref}` },
   ];
 
   return (
@@ -38,11 +36,7 @@ export default async function SupportPage() {
           <address className="mt-6 not-italic border-t border-line pt-5">
             <span className="label block text-faint">Office</span>
             <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
-              {company.contact.streetAddress}
-              <br />
-              {company.contact.postalCode} {company.contact.city}
-              <br />
-              {company.contact.country}
+              {company.contact.city}, {company.contact.country}
             </p>
           </address>
         </Panel>

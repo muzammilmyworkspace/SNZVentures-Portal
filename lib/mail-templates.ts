@@ -43,7 +43,7 @@ function shell(inner: string): string {
 ${inner}
 <tr><td style="padding:18px 28px 24px;border-top:1px solid ${LINE};">
 <p style="margin:0;color:${MUTED};font-size:12px;line-height:1.6;">
-AdmitsFair · Vilnius, Lithuania<br>
+AdmitsFair · Islamabad, Pakistan<br>
 This is an automated message from the client portal.
 </p>
 </td></tr>

@@ -155,7 +155,7 @@ export default async function MessagesPage() {
           conversationId={thread?.id ?? null}
           viewerId={session.userId}
           initialMessages={messages}
-          emptyPrompt="No messages yet. Ask us anything about your case — an advisor picks these up during Vilnius working hours."
+          emptyPrompt="No messages yet. Ask us anything about your case — an advisor picks these up during our working hours."
         />
       </Panel>
     </>

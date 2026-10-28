@@ -85,7 +85,7 @@ export function AuthShell({
         </div>
 
         <p className="relative z-[4] font-mono text-[0.75rem] uppercase tracking-[0.16em] text-[#A9B3C9]">
-          {company.contact.city}, {company.contact.country} · VNO
+          {company.contact.city}, {company.contact.country} · ISB
         </p>
       </aside>
 

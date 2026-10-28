@@ -11,7 +11,7 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || company.siteUrl;
 
 const DEFAULT_DESCRIPTION =
-  "AdmitsFair is a Vilnius-based advisory firm helping students, professionals and founders move into Europe — company formation, fintech licensing, international recruitment and investor relocation.";
+  "AdmitsFair is an Islamabad-based advisory firm helping students, professionals and founders move into Europe — company formation, fintech licensing, international recruitment and investor relocation.";
 
 type PageSeo = {
   title: string;
@@ -76,17 +76,10 @@ export function organizationSchema() {
     description: DEFAULT_DESCRIPTION,
     url: SITE_URL,
     email: company.contact.email,
-    telephone: company.contact.phone,
     address: {
       "@type": "PostalAddress",
       addressLocality: company.contact.city,
       addressCountry: company.contact.countryCode,
-      ...(company.contact.streetAddress
-        ? { streetAddress: company.contact.streetAddress }
-        : {}),
-      ...(company.contact.postalCode
-        ? { postalCode: company.contact.postalCode }
-        : {}),
     },
     ...(sameAs.length ? { sameAs } : {}),
     areaServed: { "@type": "Place", name: "European Union" },

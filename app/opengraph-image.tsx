@@ -82,7 +82,7 @@ export default async function OpengraphImage() {
                 marginTop: 3,
               }}
             >
-              Vilnius · Lithuania
+              Islamabad · Pakistan
             </div>
           </div>
         </div>
